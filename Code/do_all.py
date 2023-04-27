@@ -7,13 +7,20 @@ import torch
 import numpy as np
 import pickle
 from datetime import datetime
+import sys
+
+
 
 now = datetime.now()
 dt_string = now.strftime("%Y_%m_%d__%H_%M_%S")
 print("date and time =", dt_string)	
 
 homedir = os.path.expanduser('~')
-os.chdir(homedir + '/Networks/Code/jmp_version')
+
+sys.path.append(homedir + '/NetworksGit/Code/Modules')
+
+
+os.chdir(homedir + '/NetworksGit/Code')
 
 logdir = './logs/' + dt_string
 os.mkdir(logdir)
@@ -37,7 +44,7 @@ from alphas_func import compute_alphas
 from alphas_func import load_alphas
 #from correlogram import correlogram
 
-figuredir = homedir + '/Networks/Code/jmp_version/results/'
+figuredir = homedir + '/NetworksGit/Results/'
 
 ################################################################
 ## STRUCTURAL OBJECTS
