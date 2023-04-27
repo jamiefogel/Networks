@@ -16,11 +16,10 @@ dt_string = now.strftime("%Y_%m_%d__%H_%M_%S")
 print("date and time =", dt_string)	
 
 homedir = os.path.expanduser('~')
+root = homedir + '/NetworksGit/'
+sys.path.append(root + 'Code/Modules')
 
-sys.path.append(homedir + '/NetworksGit/Code/Modules')
 
-
-os.chdir(homedir + '/NetworksGit/Code')
 
 logdir = './logs/' + dt_string
 os.mkdir(logdir)
@@ -44,7 +43,7 @@ from alphas_func import compute_alphas
 from alphas_func import load_alphas
 #from correlogram import correlogram
 
-figuredir = homedir + '/NetworksGit/Results/'
+figuredir = root + 'Results/'
 
 ################################################################
 ## STRUCTURAL OBJECTS
@@ -111,12 +110,12 @@ classification_list = [('iota','gamma'), ('occ2_first_recode','sector_IBGE'), ('
 # Define filenames
 if 1==1:
     #mle_data_filename      = homedir + "/Networks/RAIS_exports/earnings_panel/panel_rio_2009_2012_level_" + str(level) + ".csv"
-    mle_data_filename      = homedir + "/Networks/RAIS_exports/earnings_panel/panel_rio_2009_2012_w_kmeans.csv"
-    mle_data_sums_filename = homedir + "/Networks/RAIS_exports/earnings_panel/panel_rio_2009_2012_mle_data_sums_" + worker_type_var + "_" + job_type_var + "_" "level_" + str(level) + ".p"
-    mle_estimates_filename = homedir + "/Networks/Code/jmp_version/MLE_estimates/panel_rio_2009_2012_mle_estimates_" + worker_type_var + "_" + job_type_var + "_" "level_" + str(level) + ".p"
+    mle_data_filename      = root + "Data/RAIS_exports/earnings_panel/panel_rio_2009_2012_w_kmeans.csv"
+    mle_data_sums_filename = root + "Data/mle_data_sums/panel_rio_2009_2012_mle_data_sums_" + worker_type_var + "_" + job_type_var + "_" "level_" + str(level) + ".p"
+    mle_estimates_filename = root + "MLE_estimates/panel_rio_2009_2012_mle_estimates_" + worker_type_var + "_" + job_type_var + "_" "level_" + str(level) + ".p"
 
-    psi_and_k_file = homedir + "/Networks/Code/jmp_version/MLE_estimates/panel_rio_2009_2012_psi_normalized_" + worker_type_var + "_" + job_type_var + "_" "level_" + str(level) + "_eta_" + str(eta) + ".p"
-    alphas_file = homedir + "/Networks/Code/jmp_version/MLE_estimates/panel_rio_2009_2012_alphas_" + worker_type_var + "_" + job_type_var + "_" "level_" + str(level) + "_eta_" + str(eta) + ".p"
+    psi_and_k_file         = root + "MLE_estimates/panel_rio_2009_2012_psi_normalized_" + worker_type_var + "_" + job_type_var + "_" "level_" + str(level) + "_eta_" + str(eta) + ".p"
+    alphas_file            = root + "MLE_estimates/panel_rio_2009_2012_alphas_" + worker_type_var + "_" + job_type_var + "_" "level_" + str(level) + "_eta_" + str(eta) + ".p"
     
 
 logfile.write('\nmle_data_filename: '+ mle_data_filename +'\n')
@@ -163,11 +162,11 @@ if run_all==True:
     
         suffix = wtype_var + "_" + jtype_var + "_" "level_" + str(level)
     
-        est_mle_data_filename      = homedir + "/Networks/RAIS_exports/earnings_panel/panel_rio_2009_2012_w_kmeans.csv"
-        est_mle_data_sums_filename = homedir + "/Networks/RAIS_exports/earnings_panel/panel_rio_2009_2012_mle_data_sums_" + suffix + ".p"
-        est_mle_estimates_filename = homedir + "/Networks/Code/jmp_version/MLE_estimates/panel_rio_2009_2012_mle_estimates_"  + suffix + ".p"
-        est_psi_and_k_file         = homedir + "/Networks/Code/jmp_version/MLE_estimates/panel_rio_2009_2012_psi_normalized_" + suffix + "_eta_" + str(eta) + ".p"
-        est_alphas_file            = homedir + "/Networks/Code/jmp_version/MLE_estimates/panel_rio_2009_2012_alphas_" + suffix + "_eta_" + str(eta) + ".p"
+        est_mle_data_filename      = root + "Data/RAIS_exports/earnings_panel/panel_rio_2009_2012_w_kmeans.csv"
+        est_mle_data_sums_filename = root + "Data/mle_data_sums/panel_rio_2009_2012_mle_data_sums_" + suffix + ".p"
+        est_mle_estimates_filename = root + "MLE_estimates/panel_rio_2009_2012_mle_estimates_"  + suffix + ".p"
+        est_psi_and_k_file         = root + "MLE_estimates/panel_rio_2009_2012_psi_normalized_" + suffix + "_eta_" + str(eta) + ".p"
+        est_alphas_file            = root + "MLE_estimates/panel_rio_2009_2012_alphas_" + suffix + "_eta_" + str(eta) + ".p"
 
         if run_query_sums == 1:
             mle_load_fulldata(est_mle_data_filename, est_mle_data_sums_filename, wtype_var, jtype_var, mle_firstyear=2009, mle_lastyear=2012)
@@ -260,7 +259,7 @@ if run_correlogram==True:
     exec(open('correlogram.py').read())
     
     for l in range(4):
-        sums = pickle.load(open( homedir + "/Networks/RAIS_exports/earnings_panel/panel_rio_2009_2012_mle_data_sums_iota_gamma_level_" + str(l) + ".p", "rb"), encoding='bytes')
+        sums = pickle.load(open( root + "Data/mle_data_sums/panel_rio_2009_2012_mle_data_sums_iota_gamma_level_" + str(l) + ".p", "rb"), encoding='bytes')
         print('Level ', l, ': ', sums['I'].item(), ' iotas and ', sums['G'].item(), ' gammas.')
   
     exec(open('concentration_figures.py').read())
@@ -284,7 +283,7 @@ exec(open('shock_case_study.py').read())
 #  Some summary stats about occ4s and kmeans
 #--------------------------
 
-data_full = pd.read_csv(homedir + '/Networks/RAIS_exports/earnings_panel/panel_rio_2009_2012_w_kmeans.csv')
+data_full = pd.read_csv(root + 'Data/RAIS_exports/earnings_panel/panel_rio_2009_2012_w_kmeans.csv')
 n_kmeans = data_full.kmeans.value_counts().shape[0]
 print(n_kmeans, " kmeans groups remaining after dropping those with fewer than 5000 observations")
 
