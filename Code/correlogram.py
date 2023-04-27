@@ -143,10 +143,11 @@ print('Done with NMI')
 # Compute occupation and industry transition rates
 ####################################################################################
 
-df = pd.read_csv(homedir + "/Networks/RAIS_exports/earnings_panel/panel_rio_2009_2012_w_kmeans.csv", nrows=None)
-df_educ = pd.read_csv(homedir + "/Networks/RAIS_exports/earnings_panel/temp_educ.csv", nrows=None)
+df = pd.read_csv(root + "Data/RAIS_exports/earnings_panel/panel_rio_2009_2012_w_kmeans.csv", nrows=None)
 
-df = df.drop(columns='_merge').merge(df_educ, on=['wid_masked','jid_masked','year'], how='left', indicator=True)
+# I can't find the data set temp_educ. Need to figure this out once we get access to the server back. 
+#df_educ = pd.read_csv(homedir + "/Networks/RAIS_exports/earnings_panel/temp_educ.csv", nrows=None)
+#df = df.drop(columns='_merge').merge(df_educ, on=['wid_masked','jid_masked','year'], how='left', indicator=True)
 
 df['occ4'] = pd.to_numeric(df['cbo2002'].astype(str).str.slice(0,4), errors='coerce')
 df['occ2'] = pd.to_numeric(df['cbo2002'].astype(str).str.slice(0,2), errors='coerce')
