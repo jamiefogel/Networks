@@ -163,9 +163,10 @@ df['cbo2002_lag'] = df.groupby(['wid_masked'])['cbo2002'].shift(1)
 df['clas_cnae20_lag'] = df.groupby(['wid_masked'])['clas_cnae20'].shift(1)
 df['sector_IBGE_lag'] = df.groupby(['wid_masked'])['sector_IBGE'].shift(1)
 df['job_change'] = (df.jid_masked != df.jid_masked_lag) & (pd.isnull(df.jid_masked)==False) & (pd.isnull(df.jid_masked_lag)==False)
-df['educ'] = df.grau_instr.map({1:'dropout',2:'dropout',3:'dropout',4:'dropout',5:'dropout',6:'dropout',7:'hs',8:'some_college',9:'college',10:'grad',11:'grad'})
+# df['educ'] = df.grau_instr.map({1:'dropout',2:'dropout',3:'dropout',4:'dropout',5:'dropout',6:'dropout',7:'hs',8:'some_college',9:'college',10:'grad',11:'grad'})
 
-changes_df = df.loc[df.job_change==True][['cbo2002','cbo2002_lag','clas_cnae20','clas_cnae20_lag','gamma','gamma_lag','occ1','occ1_lag','occ2','occ2_lag','occ4','occ4_lag','sector_IBGE', 'sector_IBGE_lag', 'educ']]
+changes_df = df.loc[df.job_change==True][['cbo2002','cbo2002_lag','clas_cnae20','clas_cnae20_lag','gamma','gamma_lag','occ1','occ1_lag','occ2','occ2_lag','occ4','occ4_lag','sector_IBGE', 'sector_IBGE_lag']]
+#changes_df = df.loc[df.job_change==True][['cbo2002','cbo2002_lag','clas_cnae20','clas_cnae20_lag','gamma','gamma_lag','occ1','occ1_lag','occ2','occ2_lag','occ4','occ4_lag','sector_IBGE', 'sector_IBGE_lag', 'educ']]
 changes_df['change_occ6'] = changes_df.cbo2002!=changes_df.cbo2002_lag
 changes_df['change_occ1']= changes_df.occ1!=changes_df.occ1_lag
 changes_df['change_occ2']= changes_df.occ2!=changes_df.occ2_lag
@@ -208,12 +209,13 @@ print(df.gamma.value_counts().shape)
 d = {'occ1':1, 'occ2':2, 'occ4':4}
 
 
-print(changes_df.groupby(['educ'])['change_occ1'].mean())
-print(changes_df.groupby(['educ'])['change_occ2'].mean())
-print(changes_df.groupby(['educ'])['change_occ4'].mean())
-print(changes_df.groupby(['educ'])['change_occ6'].mean())
-print(changes_df.groupby(['educ'])['change_ind'].mean())
-print(changes_df.groupby(['educ'])['change_gamma'].mean())
+# Commented out because can't find temp_educ.csv
+# print(changes_df.groupby(['educ'])['change_occ1'].mean())
+# print(changes_df.groupby(['educ'])['change_occ2'].mean())
+# print(changes_df.groupby(['educ'])['change_occ4'].mean())
+# print(changes_df.groupby(['educ'])['change_occ6'].mean())
+# print(changes_df.groupby(['educ'])['change_ind'].mean())
+# print(changes_df.groupby(['educ'])['change_gamma'].mean())
 
 
 
