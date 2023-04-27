@@ -1,4 +1,4 @@
-Running do_all.py on 2023/04/27 at 16:53:45
+Running do_all.py on 2023/04/27 at 16:58:22
 From file /Users/jfogel/NetworksGit/Code/do_all.py
 
 run_mle: True
