@@ -67,12 +67,12 @@ np.set_printoptions(linewidth=200)
 np.set_printoptions(suppress=True)
 
 
-run_all = False
-run_mle = False
-run_query_sums = False
-run_normalization = False
-run_occ_counts = False
-run_correlogram = False
+run_all = True
+run_mle = True
+run_query_sums = True
+run_normalization = True
+run_occ_counts = True
+run_correlogram = True
 solve_GE_silently = True
 a_s_variation = True
 
