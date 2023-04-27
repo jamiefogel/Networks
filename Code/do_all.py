@@ -258,11 +258,6 @@ logfile.close()
 
 if run_correlogram==True:
     exec(open('correlogram.py').read())
-    
-    for l in range(4):
-        sums = pickle.load(open( root + "Data/mle_data_sums/panel_rio_2009_2012_mle_data_sums_iota_gamma_level_" + str(l) + ".p", "rb"), encoding='bytes')
-        print('Level ', l, ': ', sums['I'].item(), ' iotas and ', sums['G'].item(), ' gammas.')
-  
     exec(open('concentration_figures.py').read())
     
 
