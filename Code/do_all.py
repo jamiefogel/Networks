@@ -21,7 +21,7 @@ sys.path.append(root + 'Code/Modules')
 
 
 
-logdir = './logs/' + dt_string
+logdir = root + '/Logs/' + dt_string
 os.mkdir(logdir)
 
 logfile = open(logdir + '/log.txt', "w+")
@@ -41,6 +41,7 @@ from mle_load_fulldata import mle_load_fulldata
 from normalization_k import normalization_k
 from alphas_func import compute_alphas
 from alphas_func import load_alphas
+from solve_model_functions import *
 #from correlogram import correlogram
 
 figuredir = root + 'Results/'
@@ -131,10 +132,10 @@ logfile.write('psi_and_k_file: '+ psi_and_k_file +'\n')
 
 # LOAD SOLVE MODEL FUNCTIONS
 #--------------------------------------
-if a_s_variation == True:
-    exec(open('solve_model_functions.py').read())
-else:
-    exec(open('solve_model_functions_ps.py').read())   # Can probably be deleted
+#if a_s_variation == True:
+#    exec(open('solve_model_functions.py').read())
+#else:
+#    exec(open('solve_model_functions_ps.py').read())   # Can probably be deleted
 
 
 
