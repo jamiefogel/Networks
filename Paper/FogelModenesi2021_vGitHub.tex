@@ -979,7 +979,6 @@ In addition to disaggregating workers in the same occupation with different skil
 
 
 
-\end{document}
 
 
 \subsection{Worker type skill correlations}
@@ -1076,37 +1075,37 @@ Figure \ref{fig:correlograms_sorted} shows that correlations between different w
 	\begin{subfigure}[b]{\w\textwidth}
 		\centering
 		\caption{($\i,\g$) correlogram}
-		\includegraphics[height=.25\textheight]{../../Code/aug2021/results/correlograms_iota_gamma_sorted}
+		\includegraphics[height=.25\textheight]{../Results/correlograms_iota_gamma_sorted}
 		\label{fig:correlograms_iota_gamma_sorted}
 	\end{subfigure}\hfill
 	\begin{subfigure}[b]{\w\textwidth}
 		\centering
 		\caption{($\i,\g$) histogram}
-		\includegraphics[height=.25\textheight]{../../Code/aug2021/results/correlograms_hist_iota_gamma_sorted}
+		\includegraphics[height=.25\textheight]{../Results/correlograms_hist_iota_gamma_sorted}
 		\label{fig:correlograms_hist_iota_gamma_sorted}
 	\end{subfigure}\vfill
 	\begin{subfigure}[b]{\w\textwidth}
 		\centering
 		\caption{(Occ4, Sector) correlogram}
-		\includegraphics[height=.25\textheight]{../../Code/aug2021/results/correlograms_occ4_first_recode_sector_IBGE_sorted}
+		\includegraphics[height=.25\textheight]{../Results/correlograms_occ4_first_recode_sector_IBGE_sorted}
 		\label{fig:correlograms_occ4_first_recode_sector_IBGE_sorted}
 	\end{subfigure}\hfill
 	\begin{subfigure}[b]{\w\textwidth}
 		\centering
 		\caption{(Occ4, Sector) histogram}
-		\includegraphics[height=.25\textheight]{../../Code/aug2021/results/correlograms_hist_occ4_first_recode_sector_IBGE_sorted}
+		\includegraphics[height=.25\textheight]{../Results/correlograms_hist_occ4_first_recode_sector_IBGE_sorted}
 		\label{fig:correlograms_hist_occ4_first_recode_sector_IBGE_sorted}
 	\end{subfigure}\vfill
 	\begin{subfigure}[b]{\w\textwidth}
 		\centering
 		\caption{(Occ4, $\g$) correlogram}
-		\includegraphics[height=.25\textheight]{../../Code/aug2021/results/correlograms_occ4_first_recode_gamma_sorted}
+		\includegraphics[height=.25\textheight]{../Results/correlograms_occ4_first_recode_gamma_sorted}
 		\label{fig:correlograms_occ4_first_recode_gamma_sorted}
 	\end{subfigure}\hfill
 	\begin{subfigure}[b]{\w\textwidth}
 		\centering
 		\caption{(Occ4, $\g$) histogram}
-		\includegraphics[height=.25\textheight]{../../Code/aug2021/results/correlograms_hist_occ4_first_recode_gamma_sorted}
+		\includegraphics[height=.25\textheight]{../Results/correlograms_hist_occ4_first_recode_gamma_sorted}
 		\label{fig:correlograms_hist_occ4_first_recode_gamma_sorted}
 	\end{subfigure}
 	\label{fig:correlograms_sorted}
@@ -1158,7 +1157,6 @@ Figure \ref{fig:correlograms_sorted} shows that correlations between different w
 %\end{figure}
 
 
-
 \subsection{Worker types' labor market concentration}
 
 
@@ -1183,13 +1181,13 @@ Figure \ref{fig:concentration_figures_iota_gamma_sector_hhi_worker_weighted} pre
 	\begin{subfigure}{\textwidth}
 		\centering
 		\caption{Markets ($\g$) and sectors}
-		\includegraphics[width=0.8\linewidth]{../../Code/aug2021/results/concentration_figures_iota_gamma_sector_hhi_worker_weighted}
+		\includegraphics[width=0.8\linewidth]{../Results/concentration_figures_iota_gamma_sector_hhi_worker_weighted}
 		\label{fig:concentration_figures_iota_gamma_sector_hhi_worker_weighted}
 	\end{subfigure}
 	\begin{subfigure}{\textwidth}
 		\centering
 		\caption{Markets ($\g$) and 5-digit industries}
-		\includegraphics[width=0.8\linewidth]{../../Code/aug2021/results/concentration_figures_iota_gamma_sector5_hhi_worker_weighted}
+		\includegraphics[width=0.8\linewidth]{../Results/concentration_figures_iota_gamma_sector5_hhi_worker_weighted}
 		\label{fig:concentration_figures_iota_gamma_sector5_hhi_worker_weighted}
 	\end{subfigure}
 	\label{fig:concentration_figures_iota_gamma_hhi}
@@ -1238,8 +1236,20 @@ We test our model's ability to predict the effects of shocks in the context of t
 \end{align}
 If our model is able to perfectly predict the actual effects of the Rio Olympics shock, the slope would be 1 and the intercept 0. As shown in the first column of Table \ref{table:model_fit} the slope of the best fit line is 0.982 and the intercept is -0.003, very close to our goals of 1 and 0, respectively.\footnote{The standard errors in this regression are large, but this is not surprising. There is significant variation that we are unable to predict because a number of important margins of adjustment are outside of our model. However, the fact that we estimate a slope close to 1 and an intercept close to 0 is consistent with these other factors being approximately orthogonal to our classifications. These other factors may include job amenities and non-monetary compensation, migration into or out of the Rio de Janeiro metro area, worker retraining, and changes in the tasks required by each job. Moreover, our model excludes linkages between sectors in the product market, which could affect demand for different types of labor, although our model could be expanded to include product market linkages by adding sector-level intermediate goods as inputs to firms' production functions (equation \ref{eq:int_prod}).} 
 
-%\input{../../Code/aug2021/results/model_fit.tex}
-\input{../../Code/aug2021/results/model_fit_se.tex}
+%\input{../Results/model_fit.tex}
+
+
+\begin{table}[h!] \centering
+	\caption{Predicted Effect of Olympics on Wages: Network-Based vs. Standard Classifications}
+	\input{../Results/model_fit_se.tex}
+	\label{table:model_fit}
+	\flushleft\footnotesize \emph{Notes:} Table presents results from estimating equation (\ref{eq:model_fit_reg}) for various worker and job classifications. Workers classified by worker type ($\i$) in column 1, 4-digit occupation in columns 2 and 3, and by k-means clusters of 6-digit occupations in columns 4 and 5. K-means clustering done on the basis of occupation specific skills defined by the U.S. O*NET, which is applied to Brazilian occupations using a crosswalk creaged by Aguinaldo Maciente \citep{Maciente2013}. Jobs are classified by market ($\g$) in columns 1, 3, and 5, and by IBGE sector in columns 2 and 4. Standard errors reported in parentheses. Independent and dependent variables defined at the worker classification level as described in Section \ref{sec:model_fit}. Dependent variables based on data from the 2009-2012 RAIS worker earnings panel described in Section \ref{sec:data}. Independent computed by solving the model described in Section \ref{sec:model} using parameters estimated in Section \ref{sec:estimating_psi} and calibrated in Section \ref{sec:calibration}. Regressions are weighted by the number of workers per classification.
+\end{table}
+
+
+
+\end{document}
+
 
 We further assess our model's predictive ability by comparing it to a series of standard approaches, which use our model but classify worker and job heterogeneity using commonly-used observable variables. Our first two standard approaches classify workers using 4-digit occupation codes instead of our network-based worker types. After dropping occupations with fewer than 5,000 employees for computational reasons,\footnote{This is necessary because we can only use occupations that are observed both pre-shock and post-shock. \iffalse XX provide details here and review exactly why we did this and how sensitive results are.\fi}  we are left with 306 4-digit occupations, yielding a level of disaggregation similar to the 290 worker types. The second two benchmarks characterize worker heterogeneity using k-means clusters of 6-digit occupations based on 225 O*NET skills, where the number of clusters is chosen to match the number of worker types $\i$, however we have to drop some of the resulting clusters because they are very small and are not observed in both the pre-shock and post-shock periods.\footnote{O*NET is defined for the U.S., but we use a crosswalk from the U.S. O*NET to the Brazilian occupation classification system created by Aguinaldo Maciente \citep{Maciente2013}. The clustering method yields a highly skewed cluster size distribution and we must drop some of the smallest clusters because they are not observed in both the pre-shock and post-shock periods. Therefore the actual number of clusters is somewhat smaller than the number of $\i$'s.} We classify job heterogeneity using sector in the first and third benchmark and using our network-based markets in the second and fourth. We present the results of these standard approaches in columns 2--5 of Table \ref{table:model_fit}.
 

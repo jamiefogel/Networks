@@ -3,9 +3,9 @@ Capacity: max_strings=35307, hash_size=35307, hash_prime=30011
 The top-level auxiliary file: FogelModenesi2021_vGitHub.aux
 I found no \bibdata command---while reading file FogelModenesi2021_vGitHub.aux
 I found no \bibstyle command---while reading file FogelModenesi2021_vGitHub.aux
-You've used 44 entries,
+You've used 45 entries,
             0 wiz_defined-function locations,
-            171 strings with 2110 characters,
+            173 strings with 2134 characters,
 and the built_in function-call counts, 0 in all, are:
 = -- 0
 > -- 0

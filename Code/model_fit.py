@@ -31,6 +31,9 @@ for idx in classification_list: #
     # using wtype_var and jtype_Var instead of worker_type_var and job_type_var so we don't reset the master versions set in do_all.py
     wtype_var = idx[0]
     jtype_var = idx[1]
+    print('---------------------------------------------')
+    print(wtype_var, jtype_var)
+    print('---------------------------------------------')
 
     suffix = wtype_var + "_" + jtype_var + "_" "level_" + str(level)
 
@@ -115,17 +118,17 @@ n_ks  = fit_returnvals[3]['n']
 n_kg  = fit_returnvals[5]['n']
 
 
-std_errors=False
+std_errors=True
 if std_errors==True: 
     table = open(figuredir + "model_fit_se.tex", "w+")
 else: 
     table = open(figuredir + "model_fit.tex", "w+")
-table.write('\\begin{table}[h!] \\centering\n')
-table.write('\\caption{Model fit}\n')
+#table.write('\\begin{table}[h!] \\centering\n')
+#table.write('\\caption{Model fit}\n')
 table.write('\\begin{tabular}{lccccc}\n')
 table.write('\\toprule \n')
-table.write('Worker classification \t & iota \t & occ4 \t & occ4 \t & kmeans  \t & kmeans  \\\\ \n')
-table.write('Market classification \t & gamma \t & sector \t & gamma \t & sector  \t & gamma  \\\\ \n')
+table.write('Worker classification \t & $\iota$ \t & Occ4 \t & Occ4 \t & k-means  \t & k-means  \\\\ \n')
+table.write('Market classification \t & $\gamma$ \t & Sector \t & $\gamma$ \t & Sector  \t & $\gamma$  \\\\ \n')
 table.write('\\midrule \n')
 table.write('Intercept')
 for model in [regs_ig,regs_o4s,regs_o4g,regs_ks,regs_kg]:
@@ -135,7 +138,7 @@ if std_errors==True:
     for model in [regs_ig,regs_o4s,regs_o4g,regs_ks,regs_kg]:
         table.write(' & (' + str(np.round(model.bse[0],3)) +')')
     table.write(' \\\\ \n')
-table.write('$\Delta$ log earnings (model)')
+table.write('Model-implied $\Delta$ log earnings')
 for model in [regs_ig,regs_o4s,regs_o4g,regs_ks,regs_kg]:
     table.write(' & ' + str(np.round(model.params[1],3)))
 table.write(' \\\\ \n')
@@ -154,8 +157,9 @@ for model in [n_ig,n_o4s,n_o4g,n_ks,n_kg]:
 table.write(' \\\\ \n')
 table.write('\\bottomrule \n')
 table.write('\\end{tabular}\n')
-table.write('\\label{table:model_fit}\n')
-table.write('\\end{table}\n')
+
+#table.write('\\label{table:model_fit}\n')
+#table.write('\\end{table}\n')
 
 table.close()
 
