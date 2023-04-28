@@ -14,10 +14,8 @@ import pandas as pd
 import pickle
 import sys
 
-os.chdir('/Users/jfogel/Dropbox (University of Michigan)/Networks/Code/aug2021/')
 
 # Defined in ~/labormkt/MayDraft/code/functions/
-sys.path.append('/Users/jfogel/Dropbox (University of Michigan)/Networks/Code/aug2021')
 import bisbm as bisbm
 # n - Number of nodes
 n_w = 60
