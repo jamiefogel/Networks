@@ -630,7 +630,7 @@ Dots on the left axis represent individual jobs $j$ and dots on the right axis r
 	\begin{subfigure}{\textwidth}
 		\caption{}
 		\begin{tikzpicture}
-		\draw (0, 0) node[inner sep=0] {\includegraphics[width=.8\textwidth]{\animationfigs/intro_figs_part3_2.png}};
+		\draw (0, 0) node[inner sep=0] {\includegraphics[width=.8\textwidth]{../Results/intro_figs_part3_2.png}};
 		\draw (-7.5, 2.3) node[inner sep=0] { $\g=1$};
 		\draw (-7.5, 0) node { $\g=2$};
 		\draw (-7.5, -2.3) node {  $\g=3$};
@@ -642,7 +642,7 @@ Dots on the left axis represent individual jobs $j$ and dots on the right axis r
 		\caption{}
 		\centering
 		\begin{tikzpicture}
-		\draw (0, 0) node[inner sep=0] {\includegraphics[width=.8\textwidth]{\animationfigs/intro_figs_part3_1.png}};
+		\draw (0, 0) node[inner sep=0] {\includegraphics[width=.8\textwidth]{../Results/intro_figs_part3_1.png}};
 		\end{tikzpicture}\\
 	\end{subfigure}
 	\flushleft \footnotesize Dots represent individual workers/jobs; lines represent employment contracts. Network drawn according to 
@@ -682,7 +682,6 @@ Dots on the left axis represent individual jobs $j$ and dots on the right axis r
 
 % XX Cut this paragraph? Sebastian didn't see the point and I'm inclined to agree with him. 
 % The basis for our claim that worker types and markets reflect skills and tasks, respectively, is the fact that the $\mathcal{P}_{\ig}$ term in our likelihood function (equation \ref{eq:BiSBM_max_likelihood}) depends directly on $\Psi$ (see equation \ref{eq:P_ij}), which we have assumed reflects skills and tasks. This all rests upon the assumptions that (i) our model is approximately correct and worker--job match probabilities are largely determined by $\Psi$, and (ii) $\Psi$ reflects productivity resulting from skill-task matches. To the extent that match probabilities are determined by something other than $\Psi$, or that $\Psi$ reflects something other than skills and tasks, the interpretation of the worker types and markets we recover will change. We discuss this further in Section \ref{sec:bisbm_discussion}.
-
 
 
 \subsection{Discussion}
@@ -882,13 +881,13 @@ Our data contain 4,578,210 unique workers, 289,836 unique jobs, and 7,940,483 un
 	\begin{subfigure}{\textwidth}
 		\centering
 		\caption{Workers}
-		\includegraphics[width=0.7\linewidth]{../../Code/aug2021/results/worker_degree_distribution_hist}
+		\includegraphics[width=0.7\linewidth]{../Results/worker_degree_distribution_hist}
 		\label{fig:worker_degree_distribution_hist}
 	\end{subfigure}
 	\begin{subfigure}{\textwidth}
 		\centering
 		\caption{Jobs}
-		\includegraphics[width=0.7\linewidth]{../../Code/aug2021/results/job_degree_distribution_hist}
+		\includegraphics[width=0.7\linewidth]{../Results/job_degree_distribution_hist}
 		\label{fig:job_degree_distribution_hist}
 	\end{subfigure}
 	\label{fig:degree_distribution_hist}
@@ -904,12 +903,10 @@ Table \ref{table:transitions_table} also shows that job changes are frequently a
 
 \begin{table}[h!] \centering
 	\caption{Occupation/Sector/Market Transition Frequencies}
-	\input{../../Code/aug2021/results/transitions_table.tex}  %Created on the RAIS server and exported
+	\input{../Results/transitions_table.tex}  %Created on the RAIS server and exported
 	\footnotesize\flushleft \emph{Notes:} This table presents the fraction of job changes that also involve a change in occupation, sector, market, firm, or establishment. The column ``All Job Changes'' computes the probability that a worker changes occupation, industry, sector, market, firm, or establishment conditional on changing jobs. The column ``Firm Change Only'' presents the same quantities restricting to the set of job changes that also involve a change in firm. The column ``No Firm Change'' restricts to job changes that do \emph{not} involve a change in firm. Since the fraction of job changes that involve a firm change is 0.536, values in the column ``All Job Changes'' equal 0.536 $\times$ ``Firm Change Only'' + (1-0.536) $\times$ ``No Firm Change.'' 5-digit sectors refer to narrow industry codes, while there are 15 IBGE sectors, defined in Table \ref{table:IBGE_sectors}, taken from the Brazilian Institute of Geography and Statistics (IBGE). Values computed using the worker earnings panel described in Section \ref{sec:data} using RAIS data from 2009--2012. 
 	\label{table:transitions_table}
 \end{table}
-
-
 
 
 
@@ -925,19 +922,18 @@ Our network-based classification algorithm identifies 290 worker types ($\i$) an
 	\begin{subfigure}{\textwidth}
 		\centering
 		\caption{Number of Workers Per Worker Type ($\i$)}
-		\includegraphics[width=0.7\linewidth]{../../Code/aug2021/results/iota_size_distribution}
+		\includegraphics[width=0.7\linewidth]{../Results/iota_size_distribution}
 		\label{fig:iota_size_distribution}
 	\end{subfigure}
 	\begin{subfigure}{\textwidth}
 		\centering
 		\caption{Number of Jobs Per Market ($\g$)}
-		\includegraphics[width=0.7\linewidth]{../../Code/aug2021/results/gamma_size_distribution}
+		\includegraphics[width=0.7\linewidth]{../Results/gamma_size_distribution}
 		\label{fig:gamma_size_distribution}
 	\end{subfigure}
 	\label{fig:iota_gamma_size_distribution}
 	\footnotesize\flushleft \emph{Notes:} Figure presents histograms of the number of workers per worker type $\i$ and jobs per market ($\g$). The units of analysis are worker types in the upper panel and markets in the lower panel. Computed using assignments of workers to worker types and jobs to markets as described in Section \ref{sec:bisbm}.
 \end{figure}
-
 
 
 
@@ -976,10 +972,14 @@ Now consider Table \ref{occ_counts_iota557}. Course instructor is the second mos
 In addition to disaggregating workers in the same occupation with different skills, these tables display our  in aggregating workers in different occupations with similar skills. For most of the occupations in these tables, it makes intuitive sense that they should be clustered together. For example, it is not surprising that physical education teachers, sports coaches, and personal trainers would have similar skills.  Relying on occupation codes --- even the highly-aggregated two-digit occupation codes --- would not have grouped these workers together. More generally, we view the fact that our worker types imperfectly align with occupation codes as suggestive evidence of our success in identifying groups of workers with similar skills. Workers with similar skills are likely to be employed in similar occupations, so it would be concerning if our worker types did not overlap with occupations. However, the fact that they only partially overlap with occupations suggests that they capture important dimensions of worker heterogeneity that occupations miss. We develop this argument further in the rest of the paper. 
 
 
-\input{../../Code/aug2021/results/occ_counts_iota360.tex}
-\input{../../Code/aug2021/results/occ_counts_iota557.tex}
+\input{../ImportedResults/occ_counts_iota360.tex}
+\input{../ImportedResults/occ_counts_iota557.tex}
 
 % For details on occupation codes see Networks/Data/RAIS_documentation/CBO - manual - CLASSIFICACAO-BRASILEIRA-DE-OCUPACOES-MEC.pdf and https://docs.google.com/spreadsheets/d/1zeTuwTgRPMnTtiTjn1Od2Ht2eIe55FfV2-eZJthlRMc/edit#gid=1688627484
+
+
+
+\end{document}
 
 
 \subsection{Worker type skill correlations}
