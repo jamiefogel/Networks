@@ -118,11 +118,13 @@ n_ks  = fit_returnvals[3]['n']
 n_kg  = fit_returnvals[5]['n']
 
 
+table.close()
 std_errors=True
 if std_errors==True: 
     table = open(figuredir + "model_fit_se.tex", "w+")
 else: 
     table = open(figuredir + "model_fit.tex", "w+")
+    
 #table.write('\\begin{table}[h!] \\centering\n')
 #table.write('\\caption{Model fit}\n')
 table.write('\\begin{tabular}{lccccc}\n')
@@ -132,24 +134,24 @@ table.write('Market classification \t & $\gamma$ \t & Sector \t & $\gamma$ \t & 
 table.write('\\midrule \n')
 table.write('Intercept')
 for model in [regs_ig,regs_o4s,regs_o4g,regs_ks,regs_kg]:
-    table.write(' & ' + str(np.round(model.params[0],3)))
+    table.write(' & {:.3f}'.format(np.round(model.params[0],3)))
 table.write(' \\\\ \n')
 if std_errors==True:
     for model in [regs_ig,regs_o4s,regs_o4g,regs_ks,regs_kg]:
-        table.write(' & (' + str(np.round(model.bse[0],3)) +')')
+        table.write(' & ( {:.3f} )'.format(np.round(model.bse[0],3)))
     table.write(' \\\\ \n')
 table.write('Model-implied $\Delta$ log earnings')
 for model in [regs_ig,regs_o4s,regs_o4g,regs_ks,regs_kg]:
-    table.write(' & ' + str(np.round(model.params[1],3)))
+    table.write(' & {:.3f}'.format(np.round(model.params[1],3)))
 table.write(' \\\\ \n')
 if std_errors==True:
     for model in [regs_ig,regs_o4s,regs_o4g,regs_ks,regs_kg]:
-        table.write(' & (' + str(np.round(model.bse[1],3)) +')')
+        table.write(' & ({:.3f})'.format(np.round(model.bse[1],3)))
     table.write(' \\\\ \n')
 table.write('\\midrule \n')
 table.write('MSE')
 for model in [mse_ig,mse_o4s,mse_o4g,mse_ks,mse_kg]:
-    table.write(' & ' + str(np.round(model,3)))
+    table.write(' & {:.3f}'.format(np.round(model,3)))
 table.write(' \\\\ \n')
 table.write('Observations')
 for model in [n_ig,n_o4s,n_o4g,n_ks,n_kg]:
