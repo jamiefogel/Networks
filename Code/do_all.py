@@ -105,6 +105,14 @@ classification_list = [('iota','gamma'), ('occ2_first_recode','sector_IBGE'), ('
 ################################################################
 
 #--------------------------
+#  Create intro figs
+#--------------------------
+
+exec(open(root + 'Code/intro_figs.py').read())
+
+
+
+#--------------------------
 #  LOAD DATA AND RUN MLE
 #--------------------------
 
@@ -125,7 +133,7 @@ logfile.write('mle_estimates_filename: '+ mle_estimates_filename +'\n')
 logfile.write('psi_and_k_file: '+ psi_and_k_file +'\n')
 
 # This loads earnings_panel/panel_rio_2009_2012.csv, merges on O*NET stuff, does k-means clustering of occupatinos based on O*NET, and saves earnings_panel/panel_rio_2009_2012.csv
-# exec(open('process_brazil_onet.py').read())
+# exec(open(root + 'Code/process_brazil_onet.py').read())
 
 
 
@@ -133,9 +141,9 @@ logfile.write('psi_and_k_file: '+ psi_and_k_file +'\n')
 # LOAD SOLVE MODEL FUNCTIONS
 #--------------------------------------
 #if a_s_variation == True:
-#    exec(open('solve_model_functions.py').read())
+#    exec(open(root + 'Code/solve_model_functions.py').read())
 #else:
-#    exec(open('solve_model_functions_ps.py').read())   # Can probably be deleted
+#    exec(open(root + 'Code/solve_model_functions_ps.py').read())   # Can probably be deleted
 
 
 
@@ -144,7 +152,7 @@ logfile.write('psi_and_k_file: '+ psi_and_k_file +'\n')
 #--------------------------
 # LOAD BETAS AND A_s
 #--------------------------
-exec(open('load_model_parameters.py').read())
+exec(open(root + 'Code/load_model_parameters.py').read())
 
 if job_type_var == 'sector_IBGE':
     b_gs = torch.diag(x_s * torch.ones(S))
@@ -221,7 +229,7 @@ if run_normalization == True:
     normalization_k(psi_and_k_file,  worker_type_var, job_type_var, mle_estimates, mle_data_sums, S, a_s, b_gs, eta, phi_outopt_scalar, xi_outopt_scalar, level, pre, raw_data_file=mle_data_filename) 
 
 if run_occ_counts == True:
-    exec(open('occ_counts_by_type.py').read())
+    exec(open(root + 'Code/occ_counts_by_type.py').read())
 
 
 #--------------------------------------
@@ -246,7 +254,7 @@ logfile.close()
 #--------------------------
 #  SOLVE MODEL
 #--------------------------
-#exec(open('solve_model.py').read())
+#exec(open(root + 'Code/solve_model.py').read())
 
 
 
@@ -257,8 +265,8 @@ logfile.close()
 
 
 if run_correlogram==True:
-    exec(open('correlogram.py').read())
-    exec(open('concentration_figures.py').read())
+    exec(open(root + 'Code/correlogram.py').read())
+    exec(open(root + 'Code/concentration_figures.py').read())
     
 
 #--------------------------
@@ -267,10 +275,10 @@ if run_correlogram==True:
 
 
 
-exec(open('model_fit.py').read())
-exec(open('reduced_form.py').read())
+exec(open(root + 'Code/model_fit.py').read())
+exec(open(root + 'Code/reduced_form.py').read())
 
-exec(open('shock_case_study.py').read())
+exec(open(root + 'Code/shock_case_study.py').read())
 
 
 
@@ -290,9 +298,9 @@ print(n_kmeans, " kmeans groups remaining after dropping those with fewer than 5
 #  Miscellaneous
 #--------------------------
 
-exec(open('trans_mat_symmetry_analysis.py').read())  # Previously called misc_analysis
-exec(open('classification_error_analysis.py').read())
-#exec(open('akm_exercise.py').read())
+exec(open(root + 'Code/trans_mat_symmetry_analysis.py').read())  # Previously called misc_analysis
+exec(open(root + 'Code/classification_error_analysis.py').read())
+#exec(open(root + 'Code/akm_exercise.py').read())
 
 #--------------------------
 #  OLD
@@ -300,30 +308,30 @@ exec(open('classification_error_analysis.py').read())
 #correlogram(psi_hat, figuredir+'correlograms_' + worker_type_var + '_' + job_type_var + '.png' , figuredir+'correlograms_hist_' + worker_type_var + '_' + job_type_var + '.png' ,sorted=False)
 
 '''
-exec(open('locality_figures_v2.py').read())
+exec(open(root + 'Code/locality_figures_v2.py').read())
 
-exec(open('simulate_shock.py').read())
+exec(open(root + 'Code/simulate_shock.py').read())
 
-exec(open('skill_maps.py').read())
+exec(open(root + 'Code/skill_maps.py').read())
 
-exec(open('shock_decomposition.py').read())
+exec(open(root + 'Code/shock_decomposition.py').read())
 
 
 
-exec(open('model_fit_cross_section.py').read())
+exec(open(root + 'Code/model_fit_cross_section.py').read())
 
-exec(open('actual_adh.py').read())
+exec(open(root + 'Code/actual_adh.py').read())
 '''
 
 
 
-#exec(open('labor_demand_shocks.py').read())
+#exec(open(root + 'Code/labor_demand_shocks.py').read())
 
 
 #--------------------------
 #  DGP
 #--------------------------
 
-#exec(open('dgp_exercise_generate_data.py').read())
-#exec(open('dgp_exercise_analysis.py').read())
+#exec(open(root + 'Code/dgp_exercise_generate_data.py').read())
+#exec(open(root + 'Code/dgp_exercise_analysis.py').read())
 
