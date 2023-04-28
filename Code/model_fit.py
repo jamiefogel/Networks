@@ -161,12 +161,3 @@ table.close()
 
 
 
-
-
-
-try:
-    logfile.write('From file ' + __file__ + '\n\n')
-except: 
-    logfile.write('Running interactively \n\n')
-    
-
