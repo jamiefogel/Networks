@@ -18,7 +18,9 @@ from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error, r2_score
 import shutil
 
-exec(open('solve_model_functions.py').read())
+
+from solve_model_functions import *
+
 
 plt.rcParams.update({
     "text.usetex": True,
