@@ -1,0 +1,57 @@
+
+\definecolor{myblue}{RGB}{80,80,160}
+\definecolor{mygreen}{RGB}{80,160,80}
+
+\begin{tikzpicture}[thick,
+every node/.style={draw,circle},
+isnode/.style={fill=orange},
+gsnode/.style={fill=mygreen},
+ssnode/.style={fill=myblue},
+every fit/.style={rectangle,draw,inner sep=1pt, text height=2cm},
+->,shorten >= 3pt,shorten <= 3pt
+]
+
+% the vertices of S
+\begin{scope}[xshift=1cm, start chain=going right,node distance=7mm]
+\foreach \i in {1,2,3}
+\node[ssnode,on chain] (s\i)  {};
+\end{scope}
+
+% the vertices of G
+\begin{scope}[xshift=1cm,yshift=-2cm,start chain=going right,node distance=7mm]
+\foreach \i in {4,5,...,6}
+\node[gsnode,on chain] (g\i)  {};
+\end{scope}
+
+% the vertices of I
+\begin{scope}[xshift=0.5cm,yshift=-4cm,start chain=going right,node distance=7mm]
+\foreach \i in {9,10,...,12}
+\node[isnode,on chain] (i\i)  {};
+\end{scope}
+
+% the set S
+\node [myblue, fit=(s1) (s3), label={[text=myblue]right:$S$}] {};
+% the set G
+\node [mygreen,fit=(g4) (g6),label={[text=mygreen]right:$\g$}] {};
+% the set I
+\node [orange,fit=(i9) (i12),label={[text=orange]right:Occ2}] {};
+
+%{node[label={[font=\small,text=blue]30:$-1$}] {10}}
+
+% the edges
+\draw (g4) -- (s1);
+\draw (g5) -- (s2);
+\draw (g6) -- (s3);
+\draw (i9)  -- (g4);
+\draw (i10) -- (g4);
+\draw (i11) -- (g4);
+\draw (i12) -- (g4);
+\draw (i9)  -- (g5);
+\draw (i10) -- (g5);
+\draw (i11) -- (g5);
+\draw (i12) -- (g5);
+\draw (i9)  -- (g6);
+\draw (i10) -- (g6);
+\draw (i11) -- (g6);
+\draw (i12) -- (g6);
+\end{tikzpicture}
