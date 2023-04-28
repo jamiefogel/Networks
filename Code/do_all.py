@@ -133,7 +133,8 @@ logfile.write('mle_estimates_filename: '+ mle_estimates_filename +'\n')
 logfile.write('psi_and_k_file: '+ psi_and_k_file +'\n')
 
 # This loads earnings_panel/panel_rio_2009_2012.csv, merges on O*NET stuff, does k-means clustering of occupatinos based on O*NET, and saves earnings_panel/panel_rio_2009_2012.csv
-exec(open(root + 'Code/process_brazil_onet.py').read())
+# Commenting out for now because we want to just use the old version of  earnings_panel/panel_rio_2009_2012.csv. See https://github.com/jamiefogel/Networks/issues/2.
+#exec(open(root + 'Code/process_brazil_onet.py').read())
 
 
 
