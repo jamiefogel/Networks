@@ -1248,8 +1248,6 @@ If our model is able to perfectly predict the actual effects of the Rio Olympics
 
 
 
-\end{document}
-
 
 We further assess our model's predictive ability by comparing it to a series of standard approaches, which use our model but classify worker and job heterogeneity using commonly-used observable variables. Our first two standard approaches classify workers using 4-digit occupation codes instead of our network-based worker types. After dropping occupations with fewer than 5,000 employees for computational reasons,\footnote{This is necessary because we can only use occupations that are observed both pre-shock and post-shock. \iffalse XX provide details here and review exactly why we did this and how sensitive results are.\fi}  we are left with 306 4-digit occupations, yielding a level of disaggregation similar to the 290 worker types. The second two benchmarks characterize worker heterogeneity using k-means clusters of 6-digit occupations based on 225 O*NET skills, where the number of clusters is chosen to match the number of worker types $\i$, however we have to drop some of the resulting clusters because they are very small and are not observed in both the pre-shock and post-shock periods.\footnote{O*NET is defined for the U.S., but we use a crosswalk from the U.S. O*NET to the Brazilian occupation classification system created by Aguinaldo Maciente \citep{Maciente2013}. The clustering method yields a highly skewed cluster size distribution and we must drop some of the smallest clusters because they are not observed in both the pre-shock and post-shock periods. Therefore the actual number of clusters is somewhat smaller than the number of $\i$'s.} We classify job heterogeneity using sector in the first and third benchmark and using our network-based markets in the second and fourth. We present the results of these standard approaches in columns 2--5 of Table \ref{table:model_fit}.
 
@@ -1312,10 +1310,11 @@ Although the focus of this paper is classification of workers rather than identi
 \begin{table}
 	\centering
 	\caption{Effects of exposure to Rio Olympics shock}
-	\input{"../../Code/aug2021/results/real_data_iota_occ4_exposure_regs_ln_wage_N.tex"} %Produced by lots_of_dgps_reduced_form.py, line 293. 
+	\input{"../Results/real_data_iota_occ4_exposure_regs_ln_wage_N.tex"} %Produced by lots_of_dgps_reduced_form.py, line 293. 
 	\label{table:real_data_iota_occ4_exposure_regs_ln_wage_N} 
 	\footnotesize\flushleft \emph{Notes:} Table presents the effect of the 2016 Rio de Janeiro Olympics shock on workers earnings from estimating equation (\ref{eq:bartik_reg}). Independent variables normalized to have mean 0 and standard deviation 1. Workers classified by worker type ($\i$) in columns 1 and 2, and by 4-digit occupation in columns 3 and 4. Standard errors reported in parentheses. Jobs classified by market in columns 1 and 3, and by sector in columns 2 and 4. Estimated using data from the 2009-2012 RAIS worker earnings panel described in Section \ref{sec:data} aggregated to the worker classification level. 
 \end{table}
+
 
 
 \subsection{Reduced form analysis using simulated data}
@@ -1345,10 +1344,11 @@ We repeat the four Bartik-style regressions from the previous section using our 
 \begin{table}
 	\centering
 	\caption{Effects of exposure to \emph{simulated} Rio Olympics shock}
-	\input{"../../Code/aug2021/results/fake_data_rio_iota_occ4_exposure_regs_ln_wage_N.tex"}
+	\input{"../Results/fake_data_rio_iota_occ4_exposure_regs_ln_wage_N.tex"}
 	\label{table:fake_data_rio_iota_occ4_exposure_regs_ln_wage_N}
 		\footnotesize\flushleft \emph{Notes:} Table presents the effect of the \emph{simulated} 2016 Rio de Janeiro Olympics shock on workers earnings from estimating equation (\ref{eq:bartik_reg}). Independent variables normalized to have mean 0 and standard deviation 1. Workers classified by worker type ($\i$) in columns 1 and 2, and by 4-digit occupation in columns 3 and 4. Standard errors reported in parentheses. Jobs classified by market in columns 1 and 3, and by sector in columns 2 and 4. Estimated using data generated using our model as the data generating process, as described  in Section \ref{sec:reduced_form_fake_olympics}, and aggregated to the worker classification level. 
 \end{table}
+
 
 
 \subsection{Simulating many shocks}
@@ -1359,7 +1359,7 @@ In the previous sections we found that the estimated effects of shocks are large
 
 
 
-\input{../../Code/aug2021/results/fake_data_all_sector_shocks_means.tex}  % Created by reduced_form.py
+\input{../Results/fake_data_all_sector_shocks_means.tex}  % Created by reduced_form.py
 
 
 \begin{figure}[htbp]
@@ -1368,7 +1368,7 @@ In the previous sections we found that the estimated effects of shocks are large
 	\begin{subfigure}{\textwidth}
 		\centering
 		\caption{Slope coefficients}
-		\includegraphics[width=.7\textwidth]{../../Code/aug2021/results/fake_data_all_sector_shocks_coef.png} % Created by reduced_form.py
+		\includegraphics[width=.7\textwidth]{../Results/fake_data_all_sector_shocks_coef.png} % Created by reduced_form.py
 		\label{fig:fake_data_all_sector_shocks_coef}
 	\end{subfigure}\\
  	\vfill
@@ -1376,13 +1376,12 @@ In the previous sections we found that the estimated effects of shocks are large
 	\begin{subfigure}{\textwidth}
 		\centering
 		\caption{$R^2$ values}
-		\includegraphics[width=.7\textwidth]{../../Code/aug2021/results/fake_data_all_sector_shocks_r2.png} % Created by reduced_form.py
+		\includegraphics[width=.7\textwidth]{../Results/fake_data_all_sector_shocks_r2.png} % Created by reduced_form.py
 		\label{fig:fake_data_all_sector_shocks_r2}
 	\end{subfigure}
 	\label{fig:fake_data_all_sector_shocks}
 	\footnotesize\flushleft \emph{Notes:} Figure presents estimated regression coefficients and $R^2$ values from estimating the Bartik-style regression, equation (\ref{eq:bartik_reg}), for each of the 30 simulated shocks described in Section \ref{sec:many_shocks}.  
 \end{figure}
-
 
 
 
@@ -1491,15 +1490,16 @@ Table \ref{table:fake_data_AccomFood_iota_occ4_exposure_regs_ln_wage_N} presents
 	\centering
 	\caption{Effects of exposure to simulated Accommodations and Food sector shock}
 	\vspace{-.5cm}
-	\input{"../../Code/aug2021/results/fake_data_AccomFood_iota_occ4_exposure_regs_ln_wage_N.tex"}
+	\input{"../Results/fake_data_AccomFood_iota_occ4_exposure_regs_ln_wage_N.tex"}
 	\label{table:fake_data_AccomFood_iota_occ4_exposure_regs_ln_wage_N}
 	\footnotesize\flushleft \emph{Notes:} Table presents the effect of the \emph{simulated} Accommodations and Food sector shock on workers earnings from estimating equation (\ref{eq:bartik_reg}). The shock is a 50\% reduction in demand for the Accommodations and Food sector's output, holding demand for all other sectors' output constant. Independent variables normalized to have mean 0 and standard deviation 1. Workers classified by worker type ($\i$) in columns 1 and 2, and by 4-digit occupation in columns 3 and 4. Standard errors reported in parentheses. Jobs classified by market in columns 1 and 3, and by sector in columns 2 and 4. Estimated using data generated using our model as the data generating process, as described in Section \ref{sec:reduced_form_fake_olympics}, and aggregated to the worker classification level.  
 \end{table}
 
 
+
 Why does the Bartik instrument have more explanatory power for workers' outcomes when workers are classified by worker types and jobs are classified by markets? On the worker side, it is because, as we argued in Sections \ref{sec:occ_count_tables} and \ref{sec:correlograms}, our worker types do a better job of identifying groups of homogenous workers than do occupations. We see this again by focusing on one of the worker types that was most affected by the shock to the Accommodations and Food sector, worker type $\i=64$. Table \ref{table:shock_case_study_AccomFood_most_shocked_iota_occ_counts_3} tabulates the 10 occupations we most frequently observe type $\i=64$ workers employed in. These occupations tend to be low-pay, low-education service sector occupations. The two most frequent are ``food services assistant'' and ``retail salesperson.'' Our network-based classification method tells us that these retail and food services workers have similar skills despite the fact that they are employed in different occupations. If we had classified workers by occupation and jobs by sector, we would have implicitly assumed that the food services workers were exposed to the Accommodations and Food sector shock, while the retail salespeople were not. In reality, all of these workers were exposed to the shock because they have similar skills;  workers not employed in the shocked sector may still be exposed to and affected by the shock if they are close substitutes for workers in the shocked sector.  As we discussed in Section \ref{sec:reduced_form_real_olympics} and Appendix \ref{app:misclassification}, misclassifying workers such that some workers actually exposed to the shock are assumed not to have been exposed, and vice versa, leads to biased coefficient estimates and attenuated $R^2$ values.
 
-\input{"../../Code/aug2021/results/shock_case_study_AccomFood_most_shocked_iota_occ_counts_3.tex"}
+\input{"../Results/shock_case_study_AccomFood_most_shocked_iota_occ_counts_3.tex"}
 
 
 On the jobs side, classifying jobs by market rather than sector more accurately captures the channels through which shocks propagate from jobs to workers. Bartik instruments based on standard classifications assume that workers supply labor directly to sectors; our classifications allow workers to supply labor directly to markets but only indirectly to sectors, by way of markets (see Figure \ref{fig:us_vs_ADH_tikz}). We illustrate why our approach is prefereable by again focusing on type $\i=64$ workers. We have already established that these workers' skills are employable in both retail occupations and food service occupations, but who hires them? Do they supply labor to a retail market and a food services market? Or is there actually a market that includes jobs in both retail and food services? In Table \ref{table:shock_case_study_AccomFood_sector_share_table_3} we present type $\i=64$ workers' labor supply by sector. Type $\i=64$ workers supply labor to a variety of sectors, including Retail, Wholesale and Vehicle Repair (28\%) and Accommodations and Food (14\%). Since these workers supply labor to such a  variety of sectors, no single sector can reasonably approximate the set of jobs to which they supply labor. By contrast, type $\i=64$ workers' labor supply \emph{is} concentrated within specific network-based markets, $\g$. 
@@ -1507,12 +1507,10 @@ On the jobs side, classifying jobs by market rather than sector more accurately 
 
 Table \ref{table:shock_case_study_AccomFood_gamma_share_table_3} presents the percentage of their labor that type $\i=64$ workers supply to each market, restricting to the top 10. Type $\i=64$ workers supply over 60\% of their labor to a single market, market $\g=47$, and there is no other market to which they supply more than 3.5 percent of their labor. In other words, type $\i=64$ workers' labor supply is highly concentrated within a specific market, but not nearly as concentrated in specific sectors, despite the fact that we have vastly more markets (427) than sectors (15).  This is a specific example of the more general finding of greater concentration of employment within markets than sectors that we presented in Section \ref{sec:hhi}. Worker types' employment is more concentrated within markets than sectors because our markets are designed to identify groups of jobs that compete for similar workers, whereas sectors are defined by product markets. Therefore, our markets more closely approximate the channels through which shocks propagate through the labor market to workers. By contrast, classifying jobs by sectors introduces error by grouping together jobs with heterogeneous changes in labor demand.  Again, as we discussed in Section \ref{sec:reduced_form_real_olympics} and Appendix \ref{app:misclassification}, misclassifying jobs such that jobs that in fact hire dissimilar workers are assumed to hire similar workers, and vice versa, leads to biased coefficient estimates and attenuated $R^2$ values.
 
-
-
 \begin{table}[h!]
 	\centering
 	\caption{Type $\i=64$ workers' labor supply by sector}
-	\input{"../../Code/aug2021/results/shock_case_study_AccomFood_sector_share_table_3.tex"}
+	\input{"../Results/shock_case_study_AccomFood_sector_share_table_3.tex"}
 	\label{table:shock_case_study_AccomFood_sector_share_table_3}
 	\footnotesize \flushleft \emph{Notes:} Table presents the share of type $\i=64$ workers employed in each sector according to data generated by simulating the Accommodations and Food sector shock. The shock is a 50\% reduction in demand for the Accommodations and Food sector's output, holding demand for all other sectors' output constant.
 \end{table}
@@ -1520,7 +1518,7 @@ Table \ref{table:shock_case_study_AccomFood_gamma_share_table_3} presents the pe
 \begin{table}[h!]
 	\centering
 	\caption{Type $\i=64$ workers' labor supply by market ($\g$)}
-	\input{"../../Code/aug2021/results/shock_case_study_AccomFood_gamma_share_table_3.tex"}
+	\input{"../Results/shock_case_study_AccomFood_gamma_share_table_3.tex"}
 	\label{table:shock_case_study_AccomFood_gamma_share_table_3}
 	\footnotesize \flushleft \emph{Notes:} Table presents the share of type $\i=64$ workers employed in each market ($\g$) according to data generated by simulating the Accommodations and Food sector shock. The shock is a 50\% reduction in demand for the Accommodations and Food sector's output, holding demand for all other sectors' output constant. Only the 10 most frequently occurring markets are shown. 
 \end{table}
@@ -2288,7 +2286,7 @@ We demonstrate this point through a simulation. We simulate a shock as described
 \begin{figure}
 	\centering
 	\caption{Coefficient estimates with worker and job misclassification}
-	\includegraphics[width=\textwidth]{../../Code/aug2021/results/misclassification_demo_coef.png}\\
+	\includegraphics[width=\textwidth]{../Results/misclassification_demo_coef.png}\\
 	\label{fig:misclassification_demo_coef}
 \end{figure}
 
@@ -2296,7 +2294,7 @@ We demonstrate this point through a simulation. We simulate a shock as described
 \begin{figure}
 	\centering
 	\caption{$R^2$ values with worker and job misclassification}
-	\includegraphics[width=\textwidth]{../../Code/aug2021/results/misclassification_demo_r2.png}\\
+	\includegraphics[width=\textwidth]{../Results/misclassification_demo_r2.png}\\
 	\label{fig:misclassification_demo_r2}
 \end{figure}
 

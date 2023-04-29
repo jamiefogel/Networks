@@ -1,0 +1,266 @@
+\ifx\undefined\bysame
+\newcommand{\bysame}{\leavevmode\hbox to\leftmargin{\hrulefill\,\,}}
+\fi
+\begin{thebibliography}{xx}
+
+\harvarditem[Acemoglu and Autor]{Acemoglu and Autor}{2011}{AcemogluAutor2011}
+{\bf Acemoglu, Daron and David Autor}, ``Skills, tasks and technologies:
+  Implications for employment and earnings,'' 2011, {\it 4}, 1043--1171.
+
+\harvarditem[Arnold]{Arnold}{2020}{Arnold2020}
+{\bf Arnold, David}, ``Mergers and acquisitions, local labor market
+  concentration, and worker outcomes,'' {\it Job Market Paper. https://scholar.
+  princeton. edu/sites/default/files/dharnold/files/jmp. pdf}, 2020.
+
+\harvarditem[Autor]{Autor}{2013}{Autor2013}
+{\bf Autor, David~H}, ``The 'task approach' to labor markets: an overview,''
+  2013.
+
+\harvarditem[Autor et al.]{Autor, Dorn and Hanson}{2013}{AutorDornHanson2013}
+{\bf \bysame{}, David Dorn, and Gordon~H Hanson}, ``The China syndrome: Local
+  labor market effects of import competition in the United States,'' {\it The
+  American Economic Review}, 2013, {\it 103} (6), 2121--2168.
+
+\harvarditem[Autor et al.]{Autor, Dorn, Hanson and
+  Song}{2014}{AutorDornHansonSong2014}
+{\bf \bysame{}, \bysame{}, \bysame{}, and Jae Song}, ``Trade adjustment:
+  Worker-level evidence,'' {\it The Quarterly Journal of Economics}, 2014, {\it
+  129} (4), 1799--1860.
+
+\harvarditem[Autor et al.]{Autor, Levy and Murnane}{2003}{AutorLevyMurnane2003}
+{\bf Autor, David~H., Frank Levy, and Richard~J. Murnane}, ``{The Skill Content
+  of Recent Technological Change: An Empirical Exploration},'' {\it The
+  Quarterly Journal of Economics}, 2003, {\it 118} (4), 1279--1333.
+
+\harvarditem[Azar et al.]{Azar, Marinescu, Steinbaum and
+  Taska}{2018}{AzarMarinescuSteinbaumTaska2018}
+{\bf Azar, Jose~A., Ioana Marinescu, Marshall~I. Steinbaum, and Bledi Taska},
+  ``Concentration in US Labor Markets: Evidence From Online Vacancy Data,''
+  Working Paper 24395, National Bureau of Economic Research March 2018.
+
+\harvarditem[Azar et al.]{Azar, Marinescu and
+  Steinbaum}{2019}{AzarMarinescuSteinbaum2019}
+{\bf Azar, Jose, Ioana Marinescu, and Marshall Steinbaum}, ``Measuring Labor
+  Market Power Two Ways,'' 2019.
+
+\harvarditem[Bartik]{Bartik}{1991}{Bartik1991}
+{\bf Bartik, Timothy~J}, ``Who benefits from state and local economic
+  development policies?,'' 1991.
+
+\harvarditem[Benmelech et al.]{Benmelech, Bergman and
+  Kim}{2018}{BenmelechBergmanKim2018}
+{\bf Benmelech, Efraim, Nittai Bergman, and Hyunseob Kim}, ``Strong Employers
+  and Weak Employees: How Does Employer Concentration Affect Wages?,'' Working
+  Paper 24307, National Bureau of Economic Research February 2018.
+
+\harvarditem[Berger et al.]{Berger, Herkenhoff and
+  Mongey}{2022}{BergerHerkenhoffMongey2022}
+{\bf Berger, David, Kyle Herkenhoff, and Simon Mongey}, ``Labor Market Power,''
+  {\it American Economic Review}, April 2022, {\it 112} (4), 1147--93.
+
+\harvarditem[Blanchard and Katz]{Blanchard and Katz}{1992}{BlanchardKatz1992}
+{\bf Blanchard, Olivier~J. and Lawrence~F. Katz}, ``Regional Evolutions,'' {\it
+  Brookings Papers on Economic Activity}, 1992, {\it 1}, 1--75.
+
+\harvarditem[Bonhomme et al.]{Bonhomme, Holzheu, Lamadon, Manresa, Manresa,
+  Mogstad and Setzler}{2020}{BonhommeHolzheuLamadonManresaMogstadSetzler2020}
+{\bf Bonhomme, St{\'e}phane, Kerstin Holzheu, Thibaut Lamadon, Elena Manresa,
+  Thibaut Lamadon~Elena Manresa, Magne Mogstad, and Bradley Setzler}, ``How
+  Much Should we Trust Estimates of Firm Effects and Worker Sorting?,'' 2020.
+
+\harvarditem[Bonhomme et al.]{Bonhomme, Lamadon and
+  Manresa}{2019}{BonhommeLamadonManresa2019_distributional}
+{\bf \bysame{}, Thibaut Lamadon, and Elena Manresa}, ``A distributional
+  framework for matched employer employee data,'' {\it Econometrica}, 2019,
+  {\it 87} (3), 699--739.
+
+\harvarditem[Bonhomme et al.]{Bonhomme, Lamadon and
+  Manresa}{2021}{BonhommeLamadonManresa2019_discretizing}
+{\bf \bysame{}, \bysame{}, and \bysame{}}, ``Discretizing Unobserved
+  Heterogeneity,'' {\it arXiv preprint arXiv:2102.02124}, 2021.
+
+\harvarditem[Bound and Holzer]{Bound and Holzer}{2000}{BoundHolzer2000}
+{\bf Bound, John and Harry~J Holzer}, ``Demand shifts, population adjustments,
+  and labor market outcomes during the 1980s,'' {\it Journal of labor
+  Economics}, 2000, {\it 18} (1), 20--54.
+
+\harvarditem[Broda and Weinstein]{Broda and
+  Weinstein}{2006}{BrodaWeinstein2006}
+{\bf Broda, Christian and David~E Weinstein}, ``Globalization and the Gains
+  from Variety,'' {\it The Quarterly journal of economics}, 2006, {\it 121}
+  (2), 541--585.
+
+\harvarditem[Burstein et al.]{Burstein, Morales and
+  Vogel}{2019}{BursteinMoralesVogel2019}
+{\bf Burstein, Ariel, Eduardo Morales, and Jonathan Vogel}, ``Changes in
+  between-group inequality: computers, occupations, and international trade,''
+  {\it American Economic Journal: Macroeconomics}, 2019, {\it 11} (2),
+  348--400.
+
+\harvarditem[Caliendo et al.]{Caliendo, Dvorkin and
+  Parro}{2019}{CaliendoDvorkinParro2019}
+{\bf Caliendo, Lorenzo, Maximiliano Dvorkin, and Fernando Parro}, ``Trade and
+  labor market dynamics: General equilibrium analysis of the china trade
+  shock,'' {\it Econometrica}, 2019, {\it 87} (3), 741--835.
+
+\harvarditem[Card]{Card}{1990}{Card1990}
+{\bf Card, David}, ``The impact of the Mariel boatlift on the Miami labor
+  market,'' {\it ILR Review}, 1990, {\it 43} (2), 245--257.
+
+\harvarditem[Engbom et al.]{Engbom, Gonzaga, Moser and
+  Olivieri}{2021}{EngbomGonzagaMoserOlivieri2021}
+{\bf Engbom, Niklas, Gustavo Gonzaga, Christian Moser, and Roberta Olivieri},
+  ``Earnings Inequality and Dynamics in the Presence of Informality: The Case
+  of Brazil,'' 2021.
+
+\harvarditem[Felix]{Felix}{2021}{Felix2021}
+{\bf Felix, Mayara}, ``Trade, labor market concentration, and wages,'' {\it Job
+  Market Paper}, 2021.
+
+\harvarditem[Frank et al.]{Frank, Autor, Bessen, Brynjolfsson, Cebrian, Deming,
+  Feldman, Groh, Lobo, Moro
+  et~al.}{2019}{FrankAutorBessenBrynjolfssonCebrianDemingFeldmanGrohLoboMoro2019}
+{\bf Frank, Morgan~R, David Autor, James~E Bessen, Erik Brynjolfsson, Manuel
+  Cebrian, David~J Deming, Maryann Feldman, Matthew Groh, Jos{\'e} Lobo,
+  Esteban Moro et~al.}, ``Toward understanding the impact of artificial
+  intelligence on labor,'' {\it Proceedings of the National Academy of
+  Sciences}, 2019, {\it 116} (14), 6531--6539.
+
+\harvarditem[Galle et al.]{Galle, Rodriguez-Clare and
+  Yi}{2017}{GalleRodriguezclareYi2017}
+{\bf Galle, Simon, Andres Rodriguez-Clare, and Moises Yi}, ``Slicing the pie:
+  Quantifying the aggregate and distributional effects of trade,'' Technical
+  Report, National Bureau of Economic Research 2017.
+
+\harvarditem[Gerlach et al.]{Gerlach, Peixoto and
+  Altmann}{2018}{GerlachPeixotoAltmann2018}
+{\bf Gerlach, Martin, Tiago~P Peixoto, and Eduardo~G Altmann}, ``A network
+  approach to topic models,'' {\it Science advances}, 2018, {\it 4} (7),
+  eaaq1360.
+
+\harvarditem[Grigsby]{Grigsby}{2019}{Grigsby2019}
+{\bf Grigsby, John}, ``Skill Heterogeneity and Aggregate Labor Market
+  Dynamics,'' 2019.
+
+\harvarditem[Hu]{Hu}{2008}{Hu2008}
+{\bf Hu, Yingyao}, ``Identification and estimation of nonlinear models with
+  misclassification error using instrumental variables: A general solution,''
+  {\it Journal of Econometrics}, 2008, {\it 144} (1), 27--61.
+
+\harvarditem[Jarosch et al.]{Jarosch, Nimczik and
+  Sorkin}{2019}{JaroschNimczikSorkin2019}
+{\bf Jarosch, Gregor, Jan~Sebastian Nimczik, and Isaac Sorkin}, ``Granular
+  search, market structure, and wages,'' Technical Report, National Bureau of
+  Economic Research 2019.
+
+\harvarditem[Kantenga]{Kantenga}{2018}{Kantenga2018}
+{\bf Kantenga, Kory}, ``The effect of job-polarizing skill demands on the US
+  wage structure,'' 2018.
+
+\harvarditem[Karrer and Newman]{Karrer and Newman}{2011}{KarrerNewman2011}
+{\bf Karrer, Brian and M.~E.~J. Newman}, ``Stochastic blockmodels and community
+  structure in networks,'' {\it Phys. Rev. E}, Jan 2011, {\it 83}, 016107.
+
+\harvarditem[Kim and Vogel]{Kim and Vogel}{2021}{KimVogel2021}
+{\bf Kim, Ryan and Jonathan Vogel}, ``Trade shocks and labor market
+  adjustment,'' {\it American Economic Review: Insights}, 2021, {\it 3} (1),
+  115--30.
+
+\harvarditem[Larremore et al.]{Larremore, Clauset and
+  Jacobs}{2014}{LarremoreClausetJacobs2014}
+{\bf Larremore, Daniel~B, Aaron Clauset, and Abigail~Z Jacobs}, ``Efficiently
+  inferring community structure in bipartite networks,'' {\it Physical Review
+  E}, 2014, {\it 90} (1), 012805.
+
+\harvarditem[Lindenlaub]{Lindenlaub}{2017}{Lindenlaub2017}
+{\bf Lindenlaub, Ilse}, ``Sorting multidimensional types: Theory and
+  application,'' {\it The Review of Economic Studies}, 2017, {\it 84} (2),
+  718--789.
+
+\harvarditem[Lipsius]{Lipsius}{2018}{Lipsius2018}
+{\bf Lipsius, Ben}, ``Labor market concentration does not explain the falling
+  labor share,'' {\it Available at SSRN 3279007}, 2018.
+
+\harvarditem[Maciente]{Maciente}{2013}{Maciente2013}
+{\bf Maciente, Aguinaldo}, ``The determinants of agglomeration in Brazil:
+  input-output, labor and knowledge externalities.'' PhD dissertation,
+  University of Illinois at Urbana-Champaign 2013.
+
+\harvarditem[Mahajan]{Mahajan}{2006}{Mahajan2006}
+{\bf Mahajan, Aprajit}, ``Identification and estimation of regression models
+  with misclassification,'' {\it Econometrica}, 2006, {\it 74} (3), 631--665.
+
+\harvarditem[Mansfield]{Mansfield}{2019}{Mansfield2019}
+{\bf Mansfield, Richard~K}, ``How Local Are US Labor Markets?: Using an
+  Assignment Model to Forecast the Geographic and Skill Incidence of Local
+  Labor Demand Shocks,'' 2019.
+
+\harvarditem[Newman]{Newman}{2018}{Newman2018}
+{\bf Newman, MEJ}, ``Network structure from rich but noisy data,'' {\it Nature
+  Physics}, 2018, p.~1.
+
+\harvarditem[Nimczik]{Nimczik}{2018}{Nimczik2018}
+{\bf Nimczik, Jan~Sebastian}, ``Job Mobility Networks and Endogenous Labor
+  Markets,'' 2018.
+
+\harvarditem[Peixoto]{Peixoto}{2013}{Peixoto2013}
+{\bf Peixoto, Tiago~P}, ``Parsimonious module inference in large networks,''
+  {\it Physical review letters}, 2013, {\it 110} (14), 148701.
+
+\harvarditem[Peixoto]{Peixoto}{2014a}{Peixoto2014_efficient}
+{\bf \bysame{}}, ``Efficient Monte Carlo and greedy heuristic for the inference
+  of stochastic block models,'' {\it Physical Review E}, 2014, {\it 89} (1),
+  012804.
+
+\harvarditem[Peixoto]{Peixoto}{2014b}{Peixoto2014}
+{\bf Peixoto, Tiago~P.}, ``Hierarchical Block Structures and High-Resolution
+  Model Selection in Large Networks,'' {\it Phys. Rev. X}, Mar 2014, {\it 4},
+  011047.
+
+\harvarditem[Peixoto]{Peixoto}{2017}{Peixoto2017}
+{\bf Peixoto, Tiago~P}, ``Nonparametric Bayesian inference of the
+  microcanonical stochastic block model,'' {\it Physical Review E}, 2017, {\it
+  95} (1), 012317.
+
+\harvarditem[Peixoto]{Peixoto}{2019}{Peixoto2019}
+{\bf \bysame{}}, ``Bayesian stochastic blockmodeling,'' {\it Advances in
+  network clustering and blockmodeling}, 2019, pp.~289--332.
+
+\harvarditem[Rinz]{Rinz}{2018}{Rinz2018}
+{\bf Rinz, Kevin}, ``Labor Market Concentration, Earnings Inequality, and
+  Earnings Mobility,'' {\it CARRA Working Paper Series}, 2018, {\it 2018} (10).
+
+\harvarditem[Rosvall and Bergstrom]{Rosvall and
+  Bergstrom}{2007}{RosvallBergstrom2007}
+{\bf Rosvall, Martin and Carl~T Bergstrom}, ``An information-theoretic
+  framework for resolving community structure in complex networks,'' {\it
+  Proceedings of the National Academy of Sciences}, 2007, {\it 104} (18),
+  7327--7331.
+
+\harvarditem[Roy]{Roy}{1951}{Roy1951}
+{\bf Roy, Andrew~Donald}, ``Some thoughts on the distribution of earnings,''
+  {\it Oxford economic papers}, 1951, {\it 3} (2), 135--146.
+
+\harvarditem[Schmutte]{Schmutte}{2014}{Schmutte2014}
+{\bf Schmutte, Ian~M.}, ``Free to Move? A Network Analytic Approach for
+  Learning the Limits to Job Mobility,'' {\it Labour Economics}, 2014, {\it 29}
+  (0), 49 -- 61.
+
+\harvarditem[Schubert et al.]{Schubert, Stansbury and
+  Taska}{2020}{SchubertStansburyTaska2020}
+{\bf Schubert, Gregor, Anna Stansbury, and Bledi Taska}, ``Monopsony and
+  outside options,'' {\it Available at SSRN}, 2020.
+
+\harvarditem[Sorkin]{Sorkin}{2018}{Sorkin2018}
+{\bf Sorkin, Isaac}, ``Ranking firms using revealed preference,'' {\it The
+  quarterly journal of economics}, 2018, {\it 133} (3), 1331--1393.
+
+\harvarditem[Tan]{Tan}{2018}{Tan2018}
+{\bf Tan, Joanne}, ``Multidimensional heterogeneity and matching in a
+  frictional labor market - An application to polarization,'' 2018.
+
+\harvarditem[Yagan]{Yagan}{2017}{Yagan2017}
+{\bf Yagan, Danny}, ``Employment Hysteresis from the Great Recession,''
+  Technical Report, National Bureau of Economic Research 2017.
+
+\end{thebibliography}

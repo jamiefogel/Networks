@@ -22,3 +22,28 @@
 \BOOKMARK [2][-]{subsection.6.2}{Worker type skill correlations}{section.6}% 22
 \BOOKMARK [2][-]{subsection.6.3}{Worker types' labor market concentration}{section.6}% 23
 \BOOKMARK [1][-]{section.7}{General equilibrium effects of Rio de Janeiro Olympics}{}% 24
+\BOOKMARK [1][-]{section.8}{Reduced form estimation of labor market shocks}{}% 25
+\BOOKMARK [2][-]{subsection.8.1}{Analysis of the 2016 Rio de Janeiro Olympics}{section.8}% 26
+\BOOKMARK [2][-]{subsection.8.2}{Reduced form analysis using simulated data}{section.8}% 27
+\BOOKMARK [2][-]{subsection.8.3}{Simulating many shocks}{section.8}% 28
+\BOOKMARK [2][-]{subsection.8.4}{Case study of shock to the ``Accommodations and Food'' sector}{section.8}% 29
+\BOOKMARK [1][-]{section.9}{Conclusion}{}% 30
+\BOOKMARK [1][-]{appendix.A}{Adding geography}{}% 31
+\BOOKMARK [1][-]{appendix.B}{Network theory details}{}% 32
+\BOOKMARK [2][-]{subsection.B.1}{A primer on networks}{appendix.B}% 33
+\BOOKMARK [2][-]{subsection.B.2}{Bipartite Network Details}{appendix.B}% 34
+\BOOKMARK [2][-]{subsection.B.3}{Stochastic block model details}{appendix.B}% 35
+\BOOKMARK [2][-]{subsection.B.4}{Community detection using the stochastic block model}{appendix.B}% 36
+\BOOKMARK [2][-]{subsection.B.5}{Bipartite stochastic block model details}{appendix.B}% 37
+\BOOKMARK [2][-]{subsection.B.6}{Visual representation of linked employer-employee data as a network}{appendix.B}% 38
+\BOOKMARK [1][-]{appendix.C}{Model Solution Appendix}{}% 39
+\BOOKMARK [1][-]{appendix.D}{Choosing number of worker types and markets}{}% 40
+\BOOKMARK [1][-]{appendix.E}{Identification of Labor Supply Parameters}{}% 41
+\BOOKMARK [2][-]{subsection.E.1}{}{appendix.E}% 42
+\BOOKMARK [2][-]{subsection.E.2}{}{appendix.E}% 43
+\BOOKMARK [2][-]{subsection.E.3}{}{appendix.E}% 44
+\BOOKMARK [2][-]{subsection.E.4}{}{appendix.E}% 45
+\BOOKMARK [2][-]{subsection.E.5}{}{appendix.E}% 46
+\BOOKMARK [1][-]{appendix.F}{Measurement error}{}% 47
+\BOOKMARK [1][-]{appendix.G}{Proof that Aij follows a Poisson distribution}{}% 48
+\BOOKMARK [1][-]{appendix.H}{Worker and firm fixed effects}{}% 49
