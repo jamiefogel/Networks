@@ -42,6 +42,7 @@ from normalization_k import normalization_k
 from alphas_func import compute_alphas
 from alphas_func import load_alphas
 from solve_model_functions import *
+from occ_counts_by_type import occ_counts_by_type
 #from correlogram import correlogram
 
 figuredir = root + 'Results/'
@@ -230,7 +231,11 @@ if run_normalization == True:
     normalization_k(psi_and_k_file,  worker_type_var, job_type_var, mle_estimates, mle_data_sums, S, a_s, b_gs, eta, phi_outopt_scalar, xi_outopt_scalar, level, pre, raw_data_file=mle_data_filename) 
 
 if run_occ_counts == True:
-    exec(open(root + 'Code/occ_counts_by_type.py').read())
+    [w_dict, j_dict] = occ_counts_by_type(mle_data_filename, root + 'Data/translated_occ_codes/translated_occ_codes_english_only.csv', level=0, w_output=root + '/Data/Derived/occ_counts/panel_rio_2009_2012_occ_counts_by_i_level_' + str(level) + '.csv', j_output=root + '/Data/Derived/occ_counts/panel_rio_2009_2012_occ_counts_by_g_level_' + str(level) + '.csv')
+    pickle.dump((w_dict, j_dict), open(root + '/Data/Derived/occ_counts/occ_counts.p', 'wb'))
+
+
+
 
 
 #--------------------------------------
@@ -280,6 +285,7 @@ exec(open(root + 'Code/model_fit.py').read())
 exec(open(root + 'Code/reduced_form.py').read())
 
 exec(open(root + 'Code/shock_case_study.py').read())
+exec(open(root + 'Code/shock_case_study_AccomFood.py').read())
 
 
 

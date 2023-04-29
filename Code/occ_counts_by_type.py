@@ -9,10 +9,10 @@ Created on Tue Jun  8 10:18:03 2021
 
 import pandas as pd
 
-def occ_counts_by_type(data, level, w_output=None, j_output=None):
+def occ_counts_by_type(data, occ_codes_file, level, w_output=None, j_output=None):
     #panel refers to the data set called 'balanced' in functions.py
     # Read in translated occupation codes
-    cw = pd.read_csv('~/Networks/Data/translated_occ_codes/translated_occ_codes_english_only.csv')
+    cw = pd.read_csv(occ_codes_file)
     
     panel = pd.read_csv(data, usecols=['iota','gamma','cbo2002'])
     
@@ -50,14 +50,4 @@ def occ_counts_by_type(data, level, w_output=None, j_output=None):
     j_dict = {int(g): j_occs_by_g.loc[j_occs_by_g['gamma']==g] for g in j_occs_by_g.gamma.unique()}
 
     return [w_dict, j_dict]
-
-# Usage
-
-
-[w_dict, j_dict] = occ_counts_by_type(mle_data_filename, level=0, w_output=homedir + '/Networks/Code/aug2021/dump/panel_rio_2009_2012_occ_counts_by_i_level_' + str(level) + '.csv', j_output=homedir + '/Networks/Code/aug2021/dump/panel_rio_2009_2012_occ_counts_by_g_level_' + str(level) + '.csv')
-                   
-
-pickle.dump((w_dict, j_dict), open(homedir + '/Networks/Code/aug2021/dump/occ_counts.p', 'wb'))
-(w_dict, j_dict) = pickle.load(open(homedir + '/Networks/Code/aug2021/dump/occ_counts.p', "rb"), encoding='bytes')
-
 
