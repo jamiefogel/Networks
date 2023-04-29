@@ -13,8 +13,8 @@ from stargazer.stargazer import Stargazer, LineLocation
 import matplotlib.pyplot as plt
 
 
-equi_china = pickle.load(open(homedir + "/Networks/Code/jmp_version/dgp/dgp_equi_china.p", "rb"))
-fake_data_china_filename = homedir + "/Networks/Code/jmp_version/dgp/fake_data_china_rio_2009_2012_level_" + str(level) + ".csv"
+equi_china = pickle.load(open(root + "Data/dgp/dgp_equi_china.p", "rb"))
+fake_data_china_filename = root + "Data//dgp/fake_data_china_rio_2009_2012_level_" + str(level) + ".csv"
 
 
 shock_source = 'data'
@@ -262,8 +262,8 @@ if 1==1:
     ax.set_ylabel('$R^2$')
  
 
-pickle.dump(df_iota,   open(homedir + "/Networks/Code/jmp_version/results/df_iota_"+ shock_source + ".p", "wb"))
-df_iota = pickle.load( open(homedir + "/Networks/Code/jmp_version/results/df_iota_"+ shock_source + ".p", "rb"))
+pickle.dump(df_iota,   open(root + "Results/df_iota_"+ shock_source + ".p", "wb"))
+df_iota = pickle.load( open(root + "Results/df_iota_"+ shock_source + ".p", "rb"))
 
    
 
@@ -517,8 +517,8 @@ if 1==1:
     ax.set_ylabel('$R^2$')
 
 
-pickle.dump(df_gamma,   open(homedir + "/Networks/Code/jmp_version/results/df_gamma_"+ shock_source + ".p", "wb"))
-df_gamma = pickle.load( open(homedir + "/Networks/Code/jmp_version/results/df_gamma_"+ shock_source + ".p", "rb"))
+pickle.dump(df_gamma,   open(root + "Results/df_gamma_"+ shock_source + ".p", "wb"))
+df_gamma = pickle.load( open(root + "Results/df_gamma_"+ shock_source + ".p", "rb"))
 
 
 
@@ -759,8 +759,8 @@ if 1==1:
      
      
         
-pickle.dump(df_ig,   open(homedir + "/Networks/Code/jmp_version/results/df_ig_"+ shock_source + ".p", "wb"))
-df_ig = pickle.load( open(homedir + "/Networks/Code/jmp_version/results/df_ig_"+ shock_source + ".p", "rb"))
+pickle.dump(df_ig,   open(root + "Results/df_ig_"+ shock_source + ".p", "wb"))
+df_ig = pickle.load( open(root + "Results/df_ig_"+ shock_source + ".p", "rb"))
 
 
 
