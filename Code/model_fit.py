@@ -117,8 +117,12 @@ n_o4g = fit_returnvals[4]['n']
 n_ks  = fit_returnvals[3]['n']
 n_kg  = fit_returnvals[5]['n']
 
-
-table.close()
+# Ensure that the I/O is closed
+try: 
+    table.close()
+except:
+    pass
+    
 std_errors=True
 if std_errors==True: 
     table = open(figuredir + "model_fit_se.tex", "w+")

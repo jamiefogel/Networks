@@ -325,7 +325,7 @@ pickle.dump(r2_df,    open(root + "Results/r2_df_30_shocks.p",   "wb"))
 pickle.dump(coef_df,  open(root + "Results/coef_df_30_shocks.p", "wb"))
 
 r2_df   = pickle.load(open(root + "Results/r2_df_30_shocks.p",   "rb"), encoding='bytes')
-coef_df = pickle.load(open(root + "Results/oef_df_30_shocks.p", "rb"), encoding='bytes')
+coef_df = pickle.load(open(root + "Results/coef_df_30_shocks.p", "rb"), encoding='bytes')
 
 
 fig, ax = plt.subplots()

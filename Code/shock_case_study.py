@@ -35,24 +35,24 @@ create_data = False
 #                 )
     
 #     phi_const = equi_const['w_g'] * psi_hat
-#     pickle.dump(equi_const,  open(homedir + "/Networks/Code/jmp_version/dgp/dgp_equi_const.p", "wb"))
+#     pickle.dump(equi_const,  open(root + "Data/dgp/dgp_equi_const.p", "wb"))
       
     
 #     fake_data_const     = dgp(mle_data_filename, mle_data_sums, phi_const,     mle_estimates['sigma_hat'], equi_const,     2009, 2009, replaceyear='2014')
     
-#     fake_data_pre_filename = homedir + "/Networks/Code/jmp_version/dgp/fake_data_pre_rio_2009_2012_level_" + str(level) + ".csv"
+#     fake_data_pre_filename = root + "Data/dgp/fake_data_pre_rio_2009_2012_level_" + str(level) + ".csv"
 #     fake_data_pre = pd.read_csv(fake_data_pre_filename)
     
     
     
-#     fake_data_const_filename = homedir + "/Networks/Code/jmp_version/dgp/fake_data_const_rio_2009_2012_level_" + str(level) + ".csv"
+#     fake_data_const_filename = root + "Data/dgp/fake_data_const_rio_2009_2012_level_" + str(level) + ".csv"
 #     fake_data_const = fake_data_const.append(fake_data_pre)
 #     fake_data_const.sort_values(by=['wid_masked','year'], inplace=True)
 #     fake_data_const.to_csv(fake_data_const_filename)
 #     fake_data_const = pd.read_csv(fake_data_const_filename)
     
 # Create fake data for accomodations and food shock
-if 1==0:
+if 1==1:
     shock = torch.ones(S)
     shock[7] = .5 # Accomodations and food
     a_s_AccomFood = a_s_pre * shock
@@ -78,16 +78,16 @@ if 1==0:
                 )
     
     phi_AccomFood = equi_AccomFood['w_g'] * psi_hat
-    pickle.dump(equi_AccomFood,  open(homedir + "/Networks/Code/jmp_version/dgp/dgp_equi_AccomFood.p", "wb"))
+    pickle.dump(equi_AccomFood,  open(root + "Data/dgp/dgp_equi_AccomFood.p", "wb"))
       
     
     fake_data_AccomFood     = dgp(mle_data_filename, mle_data_sums, phi_AccomFood,     mle_estimates['sigma_hat'], equi_AccomFood,     2009, 2009, replaceyear='2014')
     
-    fake_data_pre_filename = homedir + "/Networks/Code/jmp_version/dgp/fake_data_pre_rio_2009_2012_level_" + str(level) + ".csv"
+    fake_data_pre_filename = root + "Data/dgp/fake_data_pre_rio_2009_2012_level_" + str(level) + ".csv"
     fake_data_pre = pd.read_csv(fake_data_pre_filename)
     
     
-    fake_data_AccomFood_filename = homedir + "/Networks/Code/jmp_version/dgp/fake_data_AccomFood_rio_2009_2012_level_" + str(level) + ".csv"
+    fake_data_AccomFood_filename = root + "Data/dgp/fake_data_AccomFood_rio_2009_2012_level_" + str(level) + ".csv"
     fake_data_AccomFood = fake_data_AccomFood.append(fake_data_pre)
     fake_data_AccomFood.sort_values(by=['wid_masked','year'], inplace=True)
     fake_data_AccomFood.to_csv(fake_data_AccomFood_filename)
@@ -120,16 +120,16 @@ if 1==0:
 #                 )
     
 #     phi_AccomFood = equi_AccomFood['w_g'] * psi_hat
-#     pickle.dump(equi_AccomFood,  open(homedir + "/Networks/Code/jmp_version/dgp/dgp_equi_AccomFood.p", "wb"))
+#     pickle.dump(equi_AccomFood,  open(root + "Data/dgp/dgp_equi_AccomFood.p", "wb"))
       
     
 #     fake_data_AccomFood     = dgp(mle_data_filename, mle_data_sums, phi_AccomFood,     mle_estimates['sigma_hat'], equi_AccomFood,     2009, 2009, replaceyear='2014')
     
-#     fake_data_pre_filename = homedir + "/Networks/Code/jmp_version/dgp/fake_data_pre_rio_2009_2012_level_" + str(level) + ".csv"
+#     fake_data_pre_filename = root + "Data/dgp/fake_data_pre_rio_2009_2012_level_" + str(level) + ".csv"
 #     fake_data_pre = pd.read_csv(fake_data_pre_filename)
     
     
-#     fake_data_AccomFood_filename = homedir + "/Networks/Code/jmp_version/dgp/fake_data_AccomFood_rio_2009_2012_level_" + str(level) + ".csv"
+#     fake_data_AccomFood_filename = root + "Data/dgp/fake_data_AccomFood_rio_2009_2012_level_" + str(level) + ".csv"
 #     fake_data_AccomFood = fake_data_AccomFood.append(fake_data_pre)
 #     fake_data_AccomFood.sort_values(by=['wid_masked','year'], inplace=True)
 #     fake_data_AccomFood.to_csv(fake_data_AccomFood_filename)
@@ -162,17 +162,17 @@ if 1==0:
 #                 )
     
 #     phi_Manuf = equi_Manuf['w_g'] * psi_hat
-#     pickle.dump(equi_Manuf,  open(homedir + "/Networks/Code/jmp_version/dgp/dgp_equi_Manuf.p", "wb"))
+#     pickle.dump(equi_Manuf,  open(root + "Data/dgp/dgp_equi_Manuf.p", "wb"))
       
     
 #     fake_data_Manuf     = dgp(mle_data_filename, mle_data_sums, phi_Manuf,     mle_estimates['sigma_hat'], equi_Manuf,     2009, 2009, replaceyear='2014')
     
-#     fake_data_pre_filename = homedir + "/Networks/Code/jmp_version/dgp/fake_data_pre_rio_2009_2012_level_" + str(level) + ".csv"
+#     fake_data_pre_filename = root + "Data/dgp/fake_data_pre_rio_2009_2012_level_" + str(level) + ".csv"
 #     fake_data_pre = pd.read_csv(fake_data_pre_filename)
     
     
     
-#     fake_data_Manuf_filename = homedir + "/Networks/Code/jmp_version/dgp/fake_data_Manuf_rio_2009_2012_level_" + str(level) + ".csv"
+#     fake_data_Manuf_filename = root + "Data/dgp/fake_data_Manuf_rio_2009_2012_level_" + str(level) + ".csv"
 #     fake_data_Manuf = fake_data_Manuf.append(fake_data_pre)
 #     fake_data_Manuf.sort_values(by=['wid_masked','year'], inplace=True)
 #     fake_data_Manuf.to_csv(fake_data_Manuf_filename)
@@ -205,17 +205,17 @@ if 1==0:
 #                 )
     
 #     phi_Utilities = equi_Utilities['w_g'] * psi_hat
-#     pickle.dump(equi_Utilities,  open(homedir + "/Networks/Code/jmp_version/dgp/dgp_equi_Utilities.p", "wb"))
+#     pickle.dump(equi_Utilities,  open(root + "Data/dgp/dgp_equi_Utilities.p", "wb"))
       
     
 #     fake_data_Utilities     = dgp(mle_data_filename, mle_data_sums, phi_Utilities,     mle_estimates['sigma_hat'], equi_Utilities,     2009, 2009, replaceyear='2014')
     
-#     fake_data_pre_filename = homedir + "/Networks/Code/jmp_version/dgp/fake_data_pre_rio_2009_2012_level_" + str(level) + ".csv"
+#     fake_data_pre_filename = root + "Data/dgp/fake_data_pre_rio_2009_2012_level_" + str(level) + ".csv"
 #     fake_data_pre = pd.read_csv(fake_data_pre_filename)
     
     
     
-#     fake_data_Utilities_filename = homedir + "/Networks/Code/jmp_version/dgp/fake_data_Utilities_rio_2009_2012_level_" + str(level) + ".csv"
+#     fake_data_Utilities_filename = root + "Data/dgp/fake_data_Utilities_rio_2009_2012_level_" + str(level) + ".csv"
 #     fake_data_Utilities = fake_data_Utilities.append(fake_data_pre)
 #     fake_data_Utilities.sort_values(by=['wid_masked','year'], inplace=True)
 #     fake_data_Utilities.to_csv(fake_data_Utilities_filename)
@@ -248,17 +248,17 @@ if 1==0:
 #                 )
     
 #     phi_Utilities = equi_Utilities['w_g'] * psi_hat
-#     pickle.dump(equi_Utilities,  open(homedir + "/Networks/Code/jmp_version/dgp/dgp_equi_Utilities.p", "wb"))
+#     pickle.dump(equi_Utilities,  open(root + "Data/dgp/dgp_equi_Utilities.p", "wb"))
       
     
 #     fake_data_Utilities     = dgp(mle_data_filename, mle_data_sums, phi_Utilities,     mle_estimates['sigma_hat'], equi_Utilities,     2009, 2009, replaceyear='2014')
     
-#     fake_data_pre_filename = homedir + "/Networks/Code/jmp_version/dgp/fake_data_pre_rio_2009_2012_level_" + str(level) + ".csv"
+#     fake_data_pre_filename = root + "Data/dgp/fake_data_pre_rio_2009_2012_level_" + str(level) + ".csv"
 #     fake_data_pre = pd.read_csv(fake_data_pre_filename)
     
     
     
-#     fake_data_Utilities_filename = homedir + "/Networks/Code/jmp_version/dgp/fake_data_Utilities_rio_2009_2012_level_" + str(level) + ".csv"
+#     fake_data_Utilities_filename = root + "Data/dgp/fake_data_Utilities_rio_2009_2012_level_" + str(level) + ".csv"
 #     fake_data_Utilities = fake_data_Utilities.append(fake_data_pre)
 #     fake_data_Utilities.sort_values(by=['wid_masked','year'], inplace=True)
 #     fake_data_Utilities.to_csv(fake_data_Utilities_filename)
@@ -291,17 +291,17 @@ if 1==0:
 #                 )
     
 #     phi_Transport = equi_Transport['w_g'] * psi_hat
-#     pickle.dump(equi_Transport,  open(homedir + "/Networks/Code/jmp_version/dgp/dgp_equi_Transport.p", "wb"))
+#     pickle.dump(equi_Transport,  open(root + "Data/dgp/dgp_equi_Transport.p", "wb"))
       
     
 #     fake_data_Transport     = dgp(mle_data_filename, mle_data_sums, phi_Transport,     mle_estimates['sigma_hat'], equi_Transport,     2009, 2009, replaceyear='2014')
     
-#     fake_data_pre_filename = homedir + "/Networks/Code/jmp_version/dgp/fake_data_pre_rio_2009_2012_level_" + str(level) + ".csv"
+#     fake_data_pre_filename = root + "Data/dgp/fake_data_pre_rio_2009_2012_level_" + str(level) + ".csv"
 #     fake_data_pre = pd.read_csv(fake_data_pre_filename)
     
     
     
-#     fake_data_Transport_filename = homedir + "/Networks/Code/jmp_version/dgp/fake_data_Transport_rio_2009_2012_level_" + str(level) + ".csv"
+#     fake_data_Transport_filename = root + "Data/dgp/fake_data_Transport_rio_2009_2012_level_" + str(level) + ".csv"
 #     fake_data_Transport = fake_data_Transport.append(fake_data_pre)
 #     fake_data_Transport.sort_values(by=['wid_masked','year'], inplace=True)
 #     fake_data_Transport.to_csv(fake_data_Transport_filename)
@@ -334,17 +334,17 @@ if 1==0:
 #                 )
     
 #     phi_InfoComm = equi_InfoComm['w_g'] * psi_hat
-#     pickle.dump(equi_InfoComm,  open(homedir + "/Networks/Code/jmp_version/dgp/dgp_equi_InfoComm.p", "wb"))
+#     pickle.dump(equi_InfoComm,  open(root + "Data/dgp/dgp_equi_InfoComm.p", "wb"))
       
     
 #     fake_data_InfoComm     = dgp(mle_data_filename, mle_data_sums, phi_InfoComm,     mle_estimates['sigma_hat'], equi_InfoComm,     2009, 2009, replaceyear='2014')
     
-#     fake_data_pre_filename = homedir + "/Networks/Code/jmp_version/dgp/fake_data_pre_rio_2009_2012_level_" + str(level) + ".csv"
+#     fake_data_pre_filename = root + "Data/dgp/fake_data_pre_rio_2009_2012_level_" + str(level) + ".csv"
 #     fake_data_pre = pd.read_csv(fake_data_pre_filename)
     
     
     
-#     fake_data_InfoComm_filename = homedir + "/Networks/Code/jmp_version/dgp/fake_data_InfoComm_rio_2009_2012_level_" + str(level) + ".csv"
+#     fake_data_InfoComm_filename = root + "Data/dgp/fake_data_InfoComm_rio_2009_2012_level_" + str(level) + ".csv"
 #     fake_data_InfoComm = fake_data_InfoComm.append(fake_data_pre)
 #     fake_data_InfoComm.sort_values(by=['wid_masked','year'], inplace=True)
 #     fake_data_InfoComm.to_csv(fake_data_InfoComm_filename)
@@ -377,17 +377,17 @@ if 1==0:
 #                 )
     
 #     phi_Finance = equi_Finance['w_g'] * psi_hat
-#     pickle.dump(equi_Finance,  open(homedir + "/Networks/Code/jmp_version/dgp/dgp_equi_Finance.p", "wb"))
+#     pickle.dump(equi_Finance,  open(root + "Data/dgp/dgp_equi_Finance.p", "wb"))
       
     
 #     fake_data_Finance     = dgp(mle_data_filename, mle_data_sums, phi_Finance,     mle_estimates['sigma_hat'], equi_Finance,     2009, 2009, replaceyear='2014')
     
-#     fake_data_pre_filename = homedir + "/Networks/Code/jmp_version/dgp/fake_data_pre_rio_2009_2012_level_" + str(level) + ".csv"
+#     fake_data_pre_filename = root + "Data/dgp/fake_data_pre_rio_2009_2012_level_" + str(level) + ".csv"
 #     fake_data_pre = pd.read_csv(fake_data_pre_filename)
     
     
     
-#     fake_data_Finance_filename = homedir + "/Networks/Code/jmp_version/dgp/fake_data_Finance_rio_2009_2012_level_" + str(level) + ".csv"
+#     fake_data_Finance_filename = root + "Data/dgp/fake_data_Finance_rio_2009_2012_level_" + str(level) + ".csv"
 #     fake_data_Finance = fake_data_Finance.append(fake_data_pre)
 #     fake_data_Finance.sort_values(by=['wid_masked','year'], inplace=True)
 #     fake_data_Finance.to_csv(fake_data_Finance_filename)
@@ -420,17 +420,17 @@ if 1==0:
 #                 )
     
 #     phi_RealEstate = equi_RealEstate['w_g'] * psi_hat
-#     pickle.dump(equi_RealEstate,  open(homedir + "/Networks/Code/jmp_version/dgp/dgp_equi_RealEstate.p", "wb"))
+#     pickle.dump(equi_RealEstate,  open(root + "Data/dgp/dgp_equi_RealEstate.p", "wb"))
       
     
 #     fake_data_RealEstate     = dgp(mle_data_filename, mle_data_sums, phi_RealEstate,     mle_estimates['sigma_hat'], equi_RealEstate,     2009, 2009, replaceyear='2014')
     
-#     fake_data_pre_filename = homedir + "/Networks/Code/jmp_version/dgp/fake_data_pre_rio_2009_2012_level_" + str(level) + ".csv"
+#     fake_data_pre_filename = root + "Data/dgp/fake_data_pre_rio_2009_2012_level_" + str(level) + ".csv"
 #     fake_data_pre = pd.read_csv(fake_data_pre_filename)
     
     
     
-#     fake_data_RealEstate_filename = homedir + "/Networks/Code/jmp_version/dgp/fake_data_RealEstate_rio_2009_2012_level_" + str(level) + ".csv"
+#     fake_data_RealEstate_filename = root + "Data/dgp/fake_data_RealEstate_rio_2009_2012_level_" + str(level) + ".csv"
 #     fake_data_RealEstate = fake_data_RealEstate.append(fake_data_pre)
 #     fake_data_RealEstate.sort_values(by=['wid_masked','year'], inplace=True)
 #     fake_data_RealEstate.to_csv(fake_data_RealEstate_filename)
@@ -463,17 +463,17 @@ if 1==0:
 #                 )
     
 #     phi_ProfSciTech = equi_ProfSciTech['w_g'] * psi_hat
-#     pickle.dump(equi_ProfSciTech,  open(homedir + "/Networks/Code/jmp_version/dgp/dgp_equi_ProfSciTech.p", "wb"))
+#     pickle.dump(equi_ProfSciTech,  open(root + "Data/dgp/dgp_equi_ProfSciTech.p", "wb"))
       
     
 #     fake_data_ProfSciTech     = dgp(mle_data_filename, mle_data_sums, phi_ProfSciTech,     mle_estimates['sigma_hat'], equi_ProfSciTech,     2009, 2009, replaceyear='2014')
     
-#     fake_data_pre_filename = homedir + "/Networks/Code/jmp_version/dgp/fake_data_pre_rio_2009_2012_level_" + str(level) + ".csv"
+#     fake_data_pre_filename = root + "Data/dgp/fake_data_pre_rio_2009_2012_level_" + str(level) + ".csv"
 #     fake_data_pre = pd.read_csv(fake_data_pre_filename)
     
     
     
-#     fake_data_ProfSciTech_filename = homedir + "/Networks/Code/jmp_version/dgp/fake_data_ProfSciTech_rio_2009_2012_level_" + str(level) + ".csv"
+#     fake_data_ProfSciTech_filename = root + "Data/dgp/fake_data_ProfSciTech_rio_2009_2012_level_" + str(level) + ".csv"
 #     fake_data_ProfSciTech = fake_data_ProfSciTech.append(fake_data_pre)
 #     fake_data_ProfSciTech.sort_values(by=['wid_masked','year'], inplace=True)
 #     fake_data_ProfSciTech.to_csv(fake_data_ProfSciTech_filename)
@@ -506,17 +506,17 @@ if 1==0:
 #                 )
     
 #     phi_Public = equi_Public['w_g'] * psi_hat
-#     pickle.dump(equi_Public,  open(homedir + "/Networks/Code/jmp_version/dgp/dgp_equi_Public.p", "wb"))
+#     pickle.dump(equi_Public,  open(root + "Data/dgp/dgp_equi_Public.p", "wb"))
       
     
 #     fake_data_Public     = dgp(mle_data_filename, mle_data_sums, phi_Public,     mle_estimates['sigma_hat'], equi_Public,     2009, 2009, replaceyear='2014')
     
-#     fake_data_pre_filename = homedir + "/Networks/Code/jmp_version/dgp/fake_data_pre_rio_2009_2012_level_" + str(level) + ".csv"
+#     fake_data_pre_filename = root + "Data/dgp/fake_data_pre_rio_2009_2012_level_" + str(level) + ".csv"
 #     fake_data_pre = pd.read_csv(fake_data_pre_filename)
     
     
     
-#     fake_data_Public_filename = homedir + "/Networks/Code/jmp_version/dgp/fake_data_Public_rio_2009_2012_level_" + str(level) + ".csv"
+#     fake_data_Public_filename = root + "Data/dgp/fake_data_Public_rio_2009_2012_level_" + str(level) + ".csv"
 #     fake_data_Public = fake_data_Public.append(fake_data_pre)
 #     fake_data_Public.sort_values(by=['wid_masked','year'], inplace=True)
 #     fake_data_Public.to_csv(fake_data_Public_filename)
@@ -548,17 +548,17 @@ if 1==0:
 #                 )
     
 #     phi_ProfSciTech = equi_ProfSciTech['w_g'] * psi_hat
-#     pickle.dump(equi_ProfSciTech,  open(homedir + "/Networks/Code/jmp_version/dgp/dgp_equi_ProfSciTech.p", "wb"))
+#     pickle.dump(equi_ProfSciTech,  open(root + "Data/dgp/dgp_equi_ProfSciTech.p", "wb"))
       
     
 #     fake_data_ProfSciTech     = dgp(mle_data_filename, mle_data_sums, phi_ProfSciTech,     mle_estimates['sigma_hat'], equi_ProfSciTech,     2009, 2009, replaceyear='2014')
     
-#     fake_data_pre_filename = homedir + "/Networks/Code/jmp_version/dgp/fake_data_pre_rio_2009_2012_level_" + str(level) + ".csv"
+#     fake_data_pre_filename = root + "Data/dgp/fake_data_pre_rio_2009_2012_level_" + str(level) + ".csv"
 #     fake_data_pre = pd.read_csv(fake_data_pre_filename)
     
     
     
-#     fake_data_ProfSciTech_filename = homedir + "/Networks/Code/jmp_version/dgp/fake_data_ProfSciTech_rio_2009_2012_level_" + str(level) + ".csv"
+#     fake_data_ProfSciTech_filename = root + "Data/dgp/fake_data_ProfSciTech_rio_2009_2012_level_" + str(level) + ".csv"
 #     fake_data_ProfSciTech = fake_data_ProfSciTech.append(fake_data_pre)
 #     fake_data_ProfSciTech.sort_values(by=['wid_masked','year'], inplace=True)
 #     fake_data_ProfSciTech.to_csv(fake_data_ProfSciTech_filename)
@@ -591,24 +591,24 @@ if 1==0:
 #                 )
     
 #     phi_PrivHealthEduc = equi_PrivHealthEduc['w_g'] * psi_hat
-#     pickle.dump(equi_PrivHealthEduc,  open(homedir + "/Networks/Code/jmp_version/dgp/dgp_equi_PrivHealthEduc.p", "wb"))
+#     pickle.dump(equi_PrivHealthEduc,  open(root + "Data/dgp/dgp_equi_PrivHealthEduc.p", "wb"))
       
     
 #     fake_data_PrivHealthEduc     = dgp(mle_data_filename, mle_data_sums, phi_PrivHealthEduc,     mle_estimates['sigma_hat'], equi_PrivHealthEduc,     2009, 2009, replaceyear='2014')
     
-#     fake_data_pre_filename = homedir + "/Networks/Code/jmp_version/dgp/fake_data_pre_rio_2009_2012_level_" + str(level) + ".csv"
+#     fake_data_pre_filename = root + "Data/dgp/fake_data_pre_rio_2009_2012_level_" + str(level) + ".csv"
 #     fake_data_pre = pd.read_csv(fake_data_pre_filename)
     
     
     
-#     fake_data_PrivHealthEduc_filename = homedir + "/Networks/Code/jmp_version/dgp/fake_data_PrivHealthEduc_rio_2009_2012_level_" + str(level) + ".csv"
+#     fake_data_PrivHealthEduc_filename = root + "Data/dgp/fake_data_PrivHealthEduc_rio_2009_2012_level_" + str(level) + ".csv"
 #     fake_data_PrivHealthEduc = fake_data_PrivHealthEduc.append(fake_data_pre)
 #     fake_data_PrivHealthEduc.sort_values(by=['wid_masked','year'], inplace=True)
 #     fake_data_PrivHealthEduc.to_csv(fake_data_PrivHealthEduc_filename)
 #     fake_data_PrivHealthEduc = pd.read_csv(fake_data_PrivHealthEduc_filename)
    
 # # Create fake data for Arts, culture, sports and recreation and other svcs
-# if 1==1:
+if 1==1:
     shock = torch.ones(S)
     shock[14] = .5 # 
     a_s_ArtsCultureSportsRec = a_s_pre * shock
@@ -634,17 +634,17 @@ if 1==0:
                 )
     
     phi_ArtsCultureSportsRec = equi_ArtsCultureSportsRec['w_g'] * psi_hat
-    pickle.dump(equi_ArtsCultureSportsRec,  open(homedir + "/Networks/Code/jmp_version/dgp/dgp_equi_ArtsCultureSportsRec.p", "wb"))
+    pickle.dump(equi_ArtsCultureSportsRec,  open(root + "Data/dgp/dgp_equi_ArtsCultureSportsRec.p", "wb"))
       
     
     fake_data_ArtsCultureSportsRec     = dgp(mle_data_filename, mle_data_sums, phi_ArtsCultureSportsRec,     mle_estimates['sigma_hat'], equi_ArtsCultureSportsRec,     2009, 2009, replaceyear='2014')
     
-    fake_data_pre_filename = homedir + "/Networks/Code/jmp_version/dgp/fake_data_pre_rio_2009_2012_level_" + str(level) + ".csv"
+    fake_data_pre_filename = root + "Data/dgp/fake_data_pre_rio_2009_2012_level_" + str(level) + ".csv"
     fake_data_pre = pd.read_csv(fake_data_pre_filename)
     
     
     
-    fake_data_ArtsCultureSportsRec_filename = homedir + "/Networks/Code/jmp_version/dgp/fake_data_ArtsCultureSportsRec_rio_2009_2012_level_" + str(level) + ".csv"
+    fake_data_ArtsCultureSportsRec_filename = root + "Data/dgp/fake_data_ArtsCultureSportsRec_rio_2009_2012_level_" + str(level) + ".csv"
     fake_data_ArtsCultureSportsRec = fake_data_ArtsCultureSportsRec.append(fake_data_pre)
     fake_data_ArtsCultureSportsRec.sort_values(by=['wid_masked','year'], inplace=True)
     fake_data_ArtsCultureSportsRec.to_csv(fake_data_ArtsCultureSportsRec_filename)
@@ -652,41 +652,41 @@ if 1==0:
    
     
    
-equi_pre = pickle.load(open(homedir + "/Networks/Code/jmp_version/dgp/dgp_equi_pre.p", "rb"))
+equi_pre = pickle.load(open(root + "Data/dgp/dgp_equi_pre.p", "rb"))
 
-# equi_const			        = pickle.load(  open(homedir + "/Networks/Code/jmp_version/dgp/dgp_equi_const.p", "rb"))
-equi_AccomFood           	= pickle.load(  open(homedir + "/Networks/Code/jmp_version/aug2021/dgp_equi_AccomFood.p", "rb")) # Use August version because regenerating data creates slight differences
-# equi_Extractive          	= pickle.load(  open(homedir + "/Networks/Code/jmp_version/dgp/dgp_equi_Extractive.p", "rb"))
-# equi_Manuf          	    = pickle.load(  open(homedir + "/Networks/Code/jmp_version/dgp/dgp_equi_Manuf.p", "rb"))
-# equi_Utilities           	= pickle.load(  open(homedir + "/Networks/Code/jmp_version/dgp/dgp_equi_Utilities.p", "rb"))
-# equi_Vehicles            	= pickle.load(  open(homedir + "/Networks/Code/jmp_version/dgp/dgp_equi_Vehicles.p", "rb"))
-# equi_Transport           	= pickle.load(  open(homedir + "/Networks/Code/jmp_version/dgp/dgp_equi_Transport.p", "rb"))
-# equi_InfoComm            	= pickle.load(  open(homedir + "/Networks/Code/jmp_version/dgp/dgp_equi_InfoComm.p", "rb"))
-# equi_Finance             	= pickle.load(  open(homedir + "/Networks/Code/jmp_version/dgp/dgp_equi_Finance.p", "rb"))
-# equi_RealEstate          	= pickle.load(  open(homedir + "/Networks/Code/jmp_version/dgp/dgp_equi_RealEstate.p", "rb"))
-# equi_ProfSciTech         	= pickle.load(  open(homedir + "/Networks/Code/jmp_version/dgp/dgp_equi_ProfSciTech.p", "rb"))
-# equi_Public              	= pickle.load(  open(homedir + "/Networks/Code/jmp_version/dgp/dgp_equi_Public.p", "rb"))
-# equi_PrivHealthEduc      	= pickle.load(  open(homedir + "/Networks/Code/jmp_version/dgp/dgp_equi_PrivHealthEduc.p", "rb"))
-# equi_ArtsCultureSportsRec	= pickle.load(  open(homedir + "/Networks/Code/jmp_version/dgp/dgp_equi_ArtsCultureSportsRec.p", "rb"))
+# equi_const			        = pickle.load(  open(root + "Data/dgp/dgp_equi_const.p", "rb"))
+equi_AccomFood           	= pickle.load(  open(root + "Data/dgp/dgp_equi_AccomFood.p", "rb")) # Use August version because regenerating data creates slight differences
+# equi_Extractive          	= pickle.load(  open(root + "Data/dgp/dgp_equi_Extractive.p", "rb"))
+# equi_Manuf          	    = pickle.load(  open(root + "Data/dgp/dgp_equi_Manuf.p", "rb"))
+# equi_Utilities           	= pickle.load(  open(root + "Data/dgp/dgp_equi_Utilities.p", "rb"))
+# equi_Vehicles            	= pickle.load(  open(root + "Data/dgp/dgp_equi_Vehicles.p", "rb"))
+# equi_Transport           	= pickle.load(  open(root + "Data/dgp/dgp_equi_Transport.p", "rb"))
+# equi_InfoComm            	= pickle.load(  open(root + "Data/dgp/dgp_equi_InfoComm.p", "rb"))
+# equi_Finance             	= pickle.load(  open(root + "Data/dgp/dgp_equi_Finance.p", "rb"))
+# equi_RealEstate          	= pickle.load(  open(root + "Data/dgp/dgp_equi_RealEstate.p", "rb"))
+# equi_ProfSciTech         	= pickle.load(  open(root + "Data/dgp/dgp_equi_ProfSciTech.p", "rb"))
+# equi_Public              	= pickle.load(  open(root + "Data/dgp/dgp_equi_Public.p", "rb"))
+# equi_PrivHealthEduc      	= pickle.load(  open(root + "Data/dgp/dgp_equi_PrivHealthEduc.p", "rb"))
+# equi_ArtsCultureSportsRec	= pickle.load(  open(root + "Data/dgp/dgp_equi_ArtsCultureSportsRec.p", "rb"))
 
-# fake_data_const_filename		= homedir + '/Networks/Code/jmp_version/dgp/fake_data_const_rio_2009_2012_level_' + str(level) + '.csv'
-fake_data_AccomFood_filename		= homedir + '/Networks/Code/aug2021/dgp/fake_data_AccomFood_rio_2009_2012_level_' + str(level) + '.csv' # Use August version because regenerating data creates slight differences
-# fake_data_Extractive_filename	       	= homedir + '/Networks/Code/jmp_version/dgp/fake_data_Extractive_rio_2009_2012_level_' + str(level) + '.csv'
-# fake_data_Manuf_filename	       	= homedir + '/Networks/Code/jmp_version/dgp/fake_data_Manuf_rio_2009_2012_level_' + str(level) + '.csv'
-# fake_data_Utilities_filename		= homedir + '/Networks/Code/jmp_version/dgp/fake_data_Utilities_rio_2009_2012_level_' + str(level) + '.csv'
-# fake_data_Vehicles_filename		= homedir + '/Networks/Code/jmp_version/dgp/fake_data_Vehicles_rio_2009_2012_level_' + str(level) + '.csv'
-# fake_data_Transport_filename		= homedir + '/Networks/Code/jmp_version/dgp/fake_data_Transport_rio_2009_2012_level_' + str(level) + '.csv'
-# fake_data_InfoComm_filename		= homedir + '/Networks/Code/jmp_version/dgp/fake_data_InfoComm_rio_2009_2012_level_' + str(level) + '.csv'
-# fake_data_Finance_filename		= homedir + '/Networks/Code/jmp_version/dgp/fake_data_Finance_rio_2009_2012_level_' + str(level) + '.csv'
-# fake_data_RealEstate_filename		= homedir + '/Networks/Code/jmp_version/dgp/fake_data_RealEstate_rio_2009_2012_level_' + str(level) + '.csv'
-# fake_data_ProfSciTech_filename		= homedir + '/Networks/Code/jmp_version/dgp/fake_data_ProfSciTech_rio_2009_2012_level_' + str(level) + '.csv'
-# fake_data_Public_filename		= homedir + '/Networks/Code/jmp_version/dgp/fake_data_Public_rio_2009_2012_level_' + str(level) + '.csv'
-# fake_data_PrivHealthEduc_filename	= homedir + '/Networks/Code/jmp_version/dgp/fake_data_PrivHealthEduc_rio_2009_2012_level_' + str(level) + '.csv'
-# fake_data_ArtsCultureSportsRec_filename = homedir + '/Networks/Code/jmp_version/dgp/fake_data_ArtsCultureSportsRec_rio_2009_2012_level_' + str(level) + '.csv'
+# fake_data_const_filename		= root + 'Data/dgp/fake_data_const_rio_2009_2012_level_' + str(level) + '.csv'
+fake_data_AccomFood_filename		= root + 'Data/dgp/fake_data_AccomFood_rio_2009_2012_level_' + str(level) + '.csv' # Use August version because regenerating data creates slight differences
+# fake_data_Extractive_filename	    = root + 'Data/dgp/fake_data_Extractive_rio_2009_2012_level_' + str(level) + '.csv'
+# fake_data_Manuf_filename	       	= root + 'Data/dgp/fake_data_Manuf_rio_2009_2012_level_' + str(level) + '.csv'
+# fake_data_Utilities_filename		= root + 'Data/dgp/fake_data_Utilities_rio_2009_2012_level_' + str(level) + '.csv'
+# fake_data_Vehicles_filename		= root + 'Data/dgp/fake_data_Vehicles_rio_2009_2012_level_' + str(level) + '.csv'
+# fake_data_Transport_filename		= root + 'Data/dgp/fake_data_Transport_rio_2009_2012_level_' + str(level) + '.csv'
+# fake_data_InfoComm_filename		= root + 'Data/dgp/fake_data_InfoComm_rio_2009_2012_level_' + str(level) + '.csv'
+# fake_data_Finance_filename		= root + 'Data/dgp/fake_data_Finance_rio_2009_2012_level_' + str(level) + '.csv'
+# fake_data_RealEstate_filename		= root + 'Data/dgp/fake_data_RealEstate_rio_2009_2012_level_' + str(level) + '.csv'
+# fake_data_ProfSciTech_filename		= root + 'Data/dgp/fake_data_ProfSciTech_rio_2009_2012_level_' + str(level) + '.csv'
+# fake_data_Public_filename		= root + 'Data/dgp/fake_data_Public_rio_2009_2012_level_' + str(level) + '.csv'
+# fake_data_PrivHealthEduc_filename	= root + 'Data/dgp/fake_data_PrivHealthEduc_rio_2009_2012_level_' + str(level) + '.csv'
+# fake_data_ArtsCultureSportsRec_filename = root + 'Data/dgp/fake_data_ArtsCultureSportsRec_rio_2009_2012_level_' + str(level) + '.csv'
    
 stubs = ['const', 'AccomFood', 'Extractive', 'Manuf', 'Utilities', 'Vehicles', 'Transport', 'InfoComm', 'Finance', 'RealEstate', 'ProfSciTech', 'Public', 'PrivHealthEduc', 'ArtsCultureSportsRec']
 for s in stubs:
-    print("fake_data_",s,"_filename = homedir + '/Networks/Code/jmp_version/dgp/fake_data_",s,"_rio_2009_2012_level_' + str(level) + '.csv'")
+    print("fake_data_",s,"_filename = root + 'Data/dgp/fake_data_",s,"_rio_2009_2012_level_' + str(level) + '.csv'")
 
 from bartik_analysis import bartik_analysis
 
@@ -708,16 +708,16 @@ bartik_analysis(fake_data_AccomFood_filename,    equi_shock=equi_AccomFood,  equ
 
 
 
-# # This analysis done on the version of '/Users/jfogel/Networks/Code/jmp_version/dgp/fake_data_const_rio_2009_2012_level_0.csv' last modified on August 2, 2021 at 12:37pm. 
+# # This analysis done on the version of '/Users/jfogel../Data/dgp/fake_data_const_rio_2009_2012_level_0.csv' last modified on August 2, 2021 at 12:37pm. 
    
 
 from case_study_func import case_study
 
-# fake_data_china_filename = homedir + "/Networks/Code/jmp_version/dgp/fake_data_china_rio_2009_2012_level_" + str(level) + ".csv"
-# equi_china = pickle.load(open(homedir + "/Networks/Code/jmp_version/dgp/dgp_equi_china.p", "rb"))
+# fake_data_china_filename = root + "Data/dgp/fake_data_china_rio_2009_2012_level_" + str(level) + ".csv"
+# equi_china = pickle.load(open(root + "Data/dgp/dgp_equi_china.p", "rb"))
 
-# fake_data_const_filename = homedir + "/Networks/Code/jmp_version/dgp/fake_data_const_rio_2009_2012_level_" + str(level) + ".csv"
-# equi_const = pickle.load(open(homedir + "/Networks/Code/jmp_version/dgp/dgp_equi_const.p", "rb"))
+# fake_data_const_filename = root + "Data/dgp/fake_data_const_rio_2009_2012_level_" + str(level) + ".csv"
+# equi_const = pickle.load(open(root + "Data/dgp/dgp_equi_const.p", "rb"))
 
 
 
