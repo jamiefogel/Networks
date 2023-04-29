@@ -1,0 +1,12 @@
+Running do_all.py on 2023/04/28 at 13:26:14
+From file /Users/jfogel/NetworksGit/Code/do_all.py
+
+run_mle: True
+run_query_sums: True
+run_normalization: True
+worker_type_var: iota
+job_type_var: gamma
+
+
+eta: 2
+

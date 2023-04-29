@@ -1,0 +1,3 @@
+Running do_all.py on 2023/04/28 at 06:34:16
+Running interactively 
+
