@@ -19,7 +19,7 @@ homedir = os.path.expanduser('~')
 root = homedir + '/NetworksGit/'
 sys.path.append(root + 'Code/Modules')
 
-
+os.chdir(root)
 
 logdir = root + '/Logs/' + dt_string
 os.mkdir(logdir)
@@ -285,7 +285,6 @@ exec(open(root + 'Code/model_fit.py').read())
 exec(open(root + 'Code/reduced_form.py').read())
 
 exec(open(root + 'Code/shock_case_study.py').read())
-exec(open(root + 'Code/shock_case_study_AccomFood.py').read())
 
 
 

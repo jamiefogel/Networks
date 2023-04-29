@@ -405,4 +405,4 @@ def case_study(mle_data_filename, fake_data_filename, equi_shock, equi_pre, psi_
     print("fname_stub")
 
     if fname_stub=="shock_case_study_AccomFood":
-        exec(open('shock_case_study_AccomFood.py').read())
+        exec(open('Code/shock_case_study_AccomFood.py').read())

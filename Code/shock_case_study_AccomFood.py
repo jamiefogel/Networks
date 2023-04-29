@@ -18,7 +18,12 @@ import os
 from model_fit_func import compute_expected_Phi
 
 
-(w_dict, j_dict) = pickle.load(open(homedir + '/Networks/Code/aug2021/dump/occ_counts.p', "rb"), encoding='bytes')
+print('------------------------------------------------------------------------------------')
+print('Running shock_case_study_AccomFood')
+print('------------------------------------------------------------------------------------')
+
+
+(w_dict, j_dict) = pickle.load(open('Data/Derived/occ_counts/occ_counts.p', "rb"), encoding='bytes')
 
 # We don't use these. Only use the 4th most shocked, defined below
 # Occupation counts for the most shocked iotas
@@ -26,16 +31,16 @@ from model_fit_func import compute_expected_Phi
 # for i in range(0,9):
 #     print(i+1)
 #     #(w_dict, j_dict) = occ_counts_by_type(mle_data_filename, 0)
-#     #pickle.dump((w_dict, j_dict), open(figuredir+fname_stub+'_occ_counts.p', 'wb'))
-#     #(w_dict, j_dict) = pickle.load(open(figuredir+fname_stub+'_occ_counts.p', "rb"), encoding='bytes')
+#     #pickle.dump((w_dict, j_dict), open('Results/'+fname_stub+'_occ_counts.p', 'wb'))
+#     #(w_dict, j_dict) = pickle.load(open('Results/'+fname_stub+'_occ_counts.p', "rb"), encoding='bytes')
 #     print(w_dict[most_shocked_iotas[i]].head(20))
 #     print('')
 #     w_dict[most_shocked_iotas[i]]['cbo2002'] = w_dict[most_shocked_iotas[i]]['cbo2002'].astype(int)
 #     w_dict[most_shocked_iotas[i]]['share'] = np.round(w_dict[most_shocked_iotas[i]]['share'],3)
-#     w_dict[most_shocked_iotas[i]].head(10).to_latex(index=False, buf=figuredir + fname_stub + "_most_shocked_iota_occ_counts_" + str(i) + ".tex", label='table:'+fname_stub + '_most_shocked_iota_occ_counts_' + str(i), caption=r'Occupation counts for $\iota=$'+str(most_shocked_iotas[i]), columns=['cbo2002','description', 'share'], header=['Occ Code','Occ Description','Occ share'], multicolumn=False)
+#     w_dict[most_shocked_iotas[i]].head(10).to_latex(index=False, buf='Results/' + fname_stub + "_most_shocked_iota_occ_counts_" + str(i) + ".tex", label='table:'+fname_stub + '_most_shocked_iota_occ_counts_' + str(i), caption=r'Occupation counts for $\iota=$'+str(most_shocked_iotas[i]), columns=['cbo2002','description', 'share'], header=['Occ Code','Occ Description','Occ share'], multicolumn=False)
 
 #     df = pd.DataFrame({'Sector':sector_labels_abbr,'Share (%)':np.round(sector_probabilities_by_iota.loc[sector_probabilities_by_iota.iota==most_shocked_iotas[i]].drop(columns=['iota','hhi']).values,3).flatten()*100})
-#     df.sort_values(by='Share (%)', ascending=False).to_latex(figuredir+fname_stub+'_sector_share_table_' + str(i) +'.tex', index=False)
+#     df.sort_values(by='Share (%)', ascending=False).to_latex('Results/'+fname_stub+'_sector_share_table_' + str(i) +'.tex', index=False)
 #     print( df.sort_values(by='Share (%)', ascending=False))
 #     print('')
 
@@ -43,7 +48,7 @@ from model_fit_func import compute_expected_Phi
 #     df_g = pd.DataFrame(equi_pre['p_ig'][most_shocked_iotas[i]-1,:]).reset_index().rename(columns={'index':'gamma',0:'p_ig'}).sort_values(by='p_ig', ascending=False) #94% work in gamma=106, gamma=2, or non-employment
 
 #     df_g_print =pd.DataFrame(np.round(df_g.loc[df_g.gamma!=0].p_ig/df_g.loc[df_g.gamma!=0].p_ig.sum(),3)*100).reset_index().head(10).rename(columns={'index':'Market ($\gamma$)','p_ig':'Share (\%)'})
-#     df_g_print.to_latex(figuredir+fname_stub+'_gamma_share_table_' + str(i) + '.tex', index=False, escape=False)
+#     df_g_print.to_latex('Results/'+fname_stub+'_gamma_share_table_' + str(i) + '.tex', index=False, escape=False)
 #     print(df_g_print, '\n')
 
 
@@ -74,7 +79,7 @@ ax.scatter(delta_earn, sector_shares_iota[sector_index], s=1)
 ax.text(0.8, 0.9, 'Corr = ' + str(np.round(corr,3)), verticalalignment='top', transform=ax.transAxes) 
 ax.set_xlabel('Change in earnings (by worker type)')
 ax.set_ylabel('Share of worker type employed in shocked sector')
-ax.figure.savefig(figuredir+fname_stub+'_iota_scatter.png')
+ax.figure.savefig('Results/'+fname_stub+'_iota_scatter.png')
 
 # We use this one
 highlight_index = most_shocked_iotas[3]-1
@@ -85,7 +90,7 @@ ax.annotate(r'$\iota=$'+str(highlight_index+1), xy=(delta_earn[highlight_index],
 ax.text(0.8, 0.9, 'Corr = ' + str(np.round(corr,3)), verticalalignment='top', transform=ax.transAxes) 
 ax.set_xlabel('Change in earnings (by worker type)')
 ax.set_ylabel('Share of worker type employed in shocked sector')
-ax.figure.savefig(figuredir+fname_stub+'_iota_scatter_highlight.png')
+ax.figure.savefig('Results/'+fname_stub+'_iota_scatter_highlight.png')
 
 
 
@@ -99,7 +104,7 @@ i = 3
 # We use this one
 # Sector shares
 df = pd.DataFrame({'Sector':sector_labels_abbr,'Share (%)':np.round(sector_probabilities_by_iota.loc[sector_probabilities_by_iota.iota==most_shocked_iotas[i]].drop(columns=['iota','hhi']).values,3).flatten()*100})
-df.sort_values(by='Share (%)', ascending=False).to_latex(figuredir+fname_stub+'_sector_share_table_' + str(i) +'.tex', index=False)
+df.sort_values(by='Share (%)', ascending=False).to_latex('Results/'+fname_stub+'_sector_share_table_' + str(i) +'.tex', index=False)
 print( df.sort_values(by='Share (%)', ascending=False))
 print('')
 
@@ -107,7 +112,7 @@ print('')
 # Occ counts
 w_dict[most_shocked_iotas[i]]['cbo2002'] = w_dict[most_shocked_iotas[i]]['cbo2002'].astype(int)
 w_dict[most_shocked_iotas[i]]['share'] = np.round(w_dict[most_shocked_iotas[i]]['share'],3)
-w_dict[most_shocked_iotas[i]].head(10).to_latex(index=False, buf=figuredir + fname_stub + "_most_shocked_iota_occ_counts_" + str(i) + ".tex", label='table:'+fname_stub + '_most_shocked_iota_occ_counts_' + str(i), caption=r'Occupation counts for $\iota=$'+str(most_shocked_iotas[i]), columns=['cbo2002','description', 'share'], header=['Occ Code','Occ Description','Occ share'], multicolumn=False)
+w_dict[most_shocked_iotas[i]].head(10).to_latex(index=False, buf='Results/' + fname_stub + "_most_shocked_iota_occ_counts_" + str(i) + ".tex", label='table:'+fname_stub + '_most_shocked_iota_occ_counts_' + str(i), caption=r'Occupation counts for $\iota=$'+str(most_shocked_iotas[i]), columns=['cbo2002','description', 'share'], header=['Occ Code','Occ Description','Occ share'], multicolumn=False)
 
 
 # Gamma counts for iota of interest
@@ -116,7 +121,7 @@ df_g = pd.DataFrame(equi_pre['p_ig'][most_shocked_iotas[i]-1,:]).reset_index().r
 
 # We use this one
 df_g_print =pd.DataFrame(np.round(df_g.loc[df_g.gamma!=0].p_ig/df_g.loc[df_g.gamma!=0].p_ig.sum(),3)*100).reset_index().head(10).rename(columns={'index':'Market ($\gamma$)','p_ig':'Share (\%)'})
-df_g_print.to_latex(figuredir+fname_stub+'_gamma_share_table_' + str(i) + '.tex', index=False, escape=False)
+df_g_print.to_latex('Results/'+fname_stub+'_gamma_share_table_' + str(i) + '.tex', index=False, escape=False)
 print(df_g_print, '\n')
 
 gamma_of_interest = df_g_print['Market ($\gamma$)'][0]
@@ -127,7 +132,7 @@ df_w.sort_values(by='delta_w_g', inplace=True)
 df_w['delta_w_g']       = (df_w['delta_w_g']-1)*100
 df_w['delta_w_g_round'] = np.round(df_w['delta_w_g'],2)
 df_w_print = df_w[['gamma','delta_w_g_round']].head(20).rename(columns={'gamma':'Market ($\gamma$)','delta_w_g_round':'Earnings decline (\%)'})
-df_w_print.head(10).to_latex(figuredir+fname_stub+'_most_shocked_gammas_table.tex', index=False, escape=False, caption='10 markets with the largest shock-induced wage decrease')
+df_w_print.head(10).to_latex('Results/'+fname_stub+'_most_shocked_gammas_table.tex', index=False, escape=False, caption='10 markets with the largest shock-induced wage decrease')
 print('Most-shocked gammas:')
 print(df_w_print, '\n')
 
@@ -164,7 +169,7 @@ df_l_gs_rescaled[[sector_index,'gamma']].sort_values(by=sector_index, ascending=
 
 
 df_l_gs_rescaled_print = df_l_gs_rescaled[[sector_index,'gamma']].sort_values(by=sector_index, ascending=False).rename(columns={'gamma':'Market ($\gamma$)',sector_index:'Share (\%)'}).head(15)
-df_l_gs_rescaled_print.to_latex(figuredir+fname_stub+'_gamma_supply_to_sector_table.tex', index=False, escape=False)
+df_l_gs_rescaled_print.to_latex('Results/'+fname_stub+'_gamma_supply_to_sector_table.tex', index=False, escape=False)
 
 row = equi_pre['l_gs_demand'].numpy()[gamma_of_interest-1,:]
 np.round(row/row.sum(),3)
@@ -188,7 +193,7 @@ ax.scatter(df_bar_chart['delta_w_g'], df_bar_chart[sector_index], s=1)
 ax.text(0.78, 0.9, 'Corr = ' + str(np.round(corr,3)), verticalalignment='top', transform=ax.transAxes) 
 ax.set_xlabel('Change in $w_{\gamma}$ (by market)')
 ax.set_ylabel("Share of market's tasks supplied to shocked sector")
-ax.figure.savefig(figuredir+fname_stub+'_gamma_scatter.png')
+ax.figure.savefig('Results/'+fname_stub+'_gamma_scatter.png')
 
 
 # Scatterplot of gamma manufacturing shares and delta w_g
@@ -201,14 +206,14 @@ ax.annotate(r'$\gamma=$'+str(g_highlight_index+1), xy=(df_bar_chart['delta_w_g']
 ax.text(0.78, 0.9, 'Corr = ' + str(np.round(corr,3)), verticalalignment='top', transform=ax.transAxes) 
 ax.set_xlabel('Change in $w_{\gamma}$ (by market)')
 ax.set_ylabel("Share of market's tasks supplied to shocked sector")
-ax.figure.savefig(figuredir+fname_stub+'_gamma_scatter_highlight_' + str(gamma_of_interest) + '.png')
+ax.figure.savefig('Results/'+fname_stub+'_gamma_scatter_highlight_' + str(gamma_of_interest) + '.png')
 
 
 g = gamma_of_interest
 print('Occupation counts for the most shocked gammas:')
 j_dict[most_shocked_gammas[g]]['cbo2002'] = j_dict[most_shocked_gammas[g]]['cbo2002'].astype(int)
 j_dict[most_shocked_gammas[g]]['share'] = np.round(j_dict[most_shocked_gammas[g]]['share'],3)
-j_dict[most_shocked_gammas[g]].head(10).to_latex(index=False, buf=figuredir + fname_stub + "_most_shocked_gamma_occ_counts_" + str(g) + ".tex", label='table:'+fname_stub + '_most_shocked_gamma_occ_counts_' + str(g), caption=r'Occupation counts for $\gamma=$'+str(most_shocked_gammas[g]), columns=['cbo2002','description', 'share'], header=['Occ Code','Occ Description','Occ share'], multicolumn=False)
+j_dict[most_shocked_gammas[g]].head(10).to_latex(index=False, buf='Results/' + fname_stub + "_most_shocked_gamma_occ_counts_" + str(g) + ".tex", label='table:'+fname_stub + '_most_shocked_gamma_occ_counts_' + str(g), caption=r'Occupation counts for $\gamma=$'+str(most_shocked_gammas[g]), columns=['cbo2002','description', 'share'], header=['Occ Code','Occ Description','Occ share'], multicolumn=False)
 
 
 
@@ -218,7 +223,7 @@ ax.set_xlabel('Worker types (sorted by shocked sector share)')
 ax.set_ylabel('Shcoked sector share of Employment')
 ax.set_xticklabels([])
 ax.set_xticks([])
-ax.figure.savefig(figuredir+fname_stub+'_iota_shocked_sector_share.png')
+ax.figure.savefig('Results/'+fname_stub+'_iota_shocked_sector_share.png')
 
 
 
@@ -236,7 +241,7 @@ ax.set_ylabel('Sector employment HHI')
 ax.set_xticklabels([])
 ax.set_xticks([])
 ax.set_ylim(0,1)
-ax.figure.savefig(figuredir+fname_stub+'_iota_sector_hhi.png')
+ax.figure.savefig('Results/'+fname_stub+'_iota_sector_hhi.png')
 
 
 fig, ax = plt.subplots()
@@ -246,7 +251,7 @@ ax.set_ylabel('Market employment HHI')
 ax.set_xticklabels([])
 ax.set_xticks([])
 ax.set_ylim(0,1)
-ax.figure.savefig(figuredir+fname_stub+'_iota_gamma_hhi.png')
+ax.figure.savefig('Results/'+fname_stub+'_iota_gamma_hhi.png')
 
 
 fig, ax = plt.subplots()
@@ -258,12 +263,12 @@ ax.set_xticklabels([])
 ax.set_xticks([])
 ax.set_ylim(0,1)
 ax.legend()
-ax.figure.savefig(figuredir+fname_stub+'_iota_gamma_sector_hhi.png', dpi=300)
+ax.figure.savefig('Results/'+fname_stub+'_iota_gamma_sector_hhi.png', dpi=300)
 
 
 
 j_dict[47]['share'] = np.round(j_dict[47]['share'],3)
-j_dict[47].head(10).to_latex(index=False, buf=figuredir + fname_stub + "_gamma_47_occ_counts.tex", label='table:'+fname_stub + '_gamma_47_occ_counts', columns=['cbo2002','description', 'share'], header=['Occ Code','Occ Description','Occ share'], multicolumn=False)
+j_dict[47].head(10).to_latex(index=False, buf='Results/' + fname_stub + "_gamma_47_occ_counts.tex", label='table:'+fname_stub + '_gamma_47_occ_counts', columns=['cbo2002','description', 'share'], header=['Occ Code','Occ Description','Occ share'], multicolumn=False)
 
 
 
