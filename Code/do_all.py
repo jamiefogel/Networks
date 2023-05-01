@@ -18,6 +18,7 @@ print("date and time =", dt_string)
 homedir = os.path.expanduser('~')
 root = homedir + '/NetworksGit/'
 sys.path.append(root + 'Code/Modules')
+figuredir = root + 'Results/'
 
 os.chdir(root)
 
@@ -45,7 +46,6 @@ from solve_model_functions import *
 from occ_counts_by_type import occ_counts_by_type
 #from correlogram import correlogram
 
-figuredir = root + 'Results/'
 
 ################################################################
 ## STRUCTURAL OBJECTS
