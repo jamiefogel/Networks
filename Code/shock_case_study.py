@@ -713,8 +713,11 @@ bartik_analysis(fake_data_AccomFood_filename,    equi_shock=equi_AccomFood,  equ
 
 from case_study_func import case_study
 
+# XX I'm not sure this stuff logically belongs in this script. It is used in classification_error_analysis.py.
 fake_data_china_filename = root + "Data/dgp/fake_data_china_rio_2009_2012_level_" + str(level) + ".csv"
 equi_china = pickle.load(open(root + "Data/dgp/dgp_equi_china.p", "rb"))
+fake_data_china     = dgp(mle_data_filename, mle_data_sums, phi_china,     mle_estimates['sigma_hat'], equi_china,     2009, 2009, replaceyear='2014')
+
 
 fake_data_const_filename = root + "Data/dgp/fake_data_const_rio_2009_2012_level_" + str(level) + ".csv"
 # equi_const = pickle.load(open(root + "Data/dgp/dgp_equi_const.p", "rb"))
