@@ -713,16 +713,16 @@ bartik_analysis(fake_data_AccomFood_filename,    equi_shock=equi_AccomFood,  equ
 
 from case_study_func import case_study
 
-# fake_data_china_filename = root + "Data/dgp/fake_data_china_rio_2009_2012_level_" + str(level) + ".csv"
-# equi_china = pickle.load(open(root + "Data/dgp/dgp_equi_china.p", "rb"))
+fake_data_china_filename = root + "Data/dgp/fake_data_china_rio_2009_2012_level_" + str(level) + ".csv"
+equi_china = pickle.load(open(root + "Data/dgp/dgp_equi_china.p", "rb"))
 
-# fake_data_const_filename = root + "Data/dgp/fake_data_const_rio_2009_2012_level_" + str(level) + ".csv"
+fake_data_const_filename = root + "Data/dgp/fake_data_const_rio_2009_2012_level_" + str(level) + ".csv"
 # equi_const = pickle.load(open(root + "Data/dgp/dgp_equi_const.p", "rb"))
 
 
 
 # case_study(mle_data_filename, fake_data_const_filename, equi_const, equi_pre, psi_hat, mle_estimates, figuredir, 'shock_case_study_const', 5)
-# case_study(mle_data_filename, fake_data_china_filename, equi_china, equi_pre, psi_hat, mle_estimates, figuredir, 'shock_case_study_china', 3)
+case_study(mle_data_filename, fake_data_china_filename, equi_china, equi_pre, psi_hat, mle_estimates, figuredir, 'shock_case_study_china', 3)
 # case_study(mle_data_filename, fake_data_Extractive_filename, equi_Extractive, equi_pre, psi_hat, mle_estimates, figuredir, 'shock_case_study_Extractive', 2)
 # case_study(mle_data_filename, fake_data_Utilities_filename, equi_Utilities, equi_pre, psi_hat, mle_estimates, figuredir, 'shock_case_study_Utilities', 4)
 # case_study(mle_data_filename, fake_data_Vehicles_filename, equi_Vehicles, equi_pre, psi_hat, mle_estimates, figuredir, 'shock_case_study_Vehicles', 6)
