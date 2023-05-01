@@ -169,6 +169,38 @@ if 1==1:
 
 
 
+# "China" shock
+if 1==1:
+        
+    shock = torch.ones(S)
+    shock[2] = .5 # Manufacturing industries
+    a_s_china = a_s_pre * shock
+
+    equi_china = solve_model(eta,
+                mle_data_sums['I'],
+                mle_data_sums['G'],
+                S,
+                a_s_china,
+                b_gs,
+                mle_data_sums['m_i'],
+                nu_hat = mle_estimates['nu_hat'],
+                sigma_hat = mle_estimates['sigma_hat'],
+                xi_hat = mle_estimates['xi_hat'],
+                xi_outopt = xi_outopt,
+                phi_outopt = phi_outopt,
+                psi_hat = psi_hat,
+                maxiter = 1e6,  # maximum number of iterations
+                factor = 1e-3,  # dampening factor
+                tol = 1e-4,     # precision level in the model solution
+                decimals = 4,   # printed output rounding decimals
+                silent = solve_GE_silently
+                )
+    
+    phi_china = equi_china['w_g'] * psi_hat
+    pickle.dump(equi_china,  open(homedir + "/Networks/Code/jmp_version/dgp/dgp_equi_china.p", "wb"))
+  
+    
+
 
 fake_data_pre       = dgp(mle_data_filename, mle_data_sums, phi_pre,       mle_estimates['sigma_hat'], equi_pre,       2009, 2009)
 # The version we used for the current figures didn't get saved. This is a new version of fake_data_free
