@@ -717,6 +717,10 @@ from case_study_func import case_study
 fake_data_china_filename = root + "Data/dgp/fake_data_china_rio_2009_2012_level_" + str(level) + ".csv"
 equi_china = pickle.load(open(root + "Data/dgp/dgp_equi_china.p", "rb"))
 fake_data_china     = dgp(mle_data_filename, mle_data_sums, phi_china,     mle_estimates['sigma_hat'], equi_china,     2009, 2009, replaceyear='2014')
+fake_data_china = fake_data_china.append(fake_data_pre)
+fake_data_china.sort_values(by=['wid_masked','year'], inplace=True)
+fake_data_china.to_csv(fake_data_china_filename)
+fake_data_china = pd.read_csv(fake_data_china_filename)
 
 
 fake_data_const_filename = root + "Data/dgp/fake_data_const_rio_2009_2012_level_" + str(level) + ".csv"
