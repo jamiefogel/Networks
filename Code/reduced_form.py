@@ -197,7 +197,7 @@ if 1==1:
                 )
     
     phi_china = equi_china['w_g'] * psi_hat
-    pickle.dump(equi_china,  open(homedir + "/Networks/Code/jmp_version/dgp/dgp_equi_china.p", "wb"))
+    pickle.dump(equi_china,  open(root + "Data/dgp/dgp_equi_china.p", "wb"))
   
     
 
