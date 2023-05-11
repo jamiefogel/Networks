@@ -11,19 +11,11 @@ tex_file="$1"
 figures_path=$(grep -oE '\\def\\figures\{[^}]+\}' "$tex_file" | sed -E 's/.*\{(.*)\}.*/\1/')
 
 # Extract the list of files and replace \figures with the actual filepath
-file_list=$(egrep -o '\\input\{[^}]+\}|\\includegraphics(?:\[[^]]+\])?\{[^}]+\}' "$tex_file" | awk -v figures_path="$figures_path" -F'[{]' '{ 
-    if ($0 ~ /^\\def\\figures\{.*\}/) { 
-        sub(/\\def\\figures\{/, "", $0); 
-        sub(/\}/, "", $0); 
-        figures_path=$0; 
-    } 
-    else { 
-        sub(/.*[{]/, "", $0); 
-        sub(/[}].*/, "", $0); 
-        gsub(/\\figures/, figures_path, $0); 
-        print $0; 
-    } 
-}')
+file_list=$(egrep -o '\\input\{[^}]+\}|\\includegraphics(?:\[[^]]+\])?\{[^}]+\}' "$tex_file" | sed -E -e 's/.*\{(.*)\}.*/\1/')
 
 # Write the file list to a text file
 echo "$file_list" > file_list.txt
+
+
+
+#-e '/^\\def\\figures\{.*\}/{s/.*\{(.*)\}.*/\1/; h;}' -e "/\\includegraphics/{s/\\includegraphics(\[.*\])?\{(.*)\}/\2/; x; G; s/(.*)\n(.*)/$figures_path\/\2/;"
