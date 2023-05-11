@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# Syntax: ./file_list.sh input_filename [output_filename]
+
 if [ $# -lt 1 ]; then
   echo "Please provide the input filename as an argument."
   exit 1
