@@ -13,6 +13,16 @@ file_list=$(egrep -o '\\input\{[^}]+\}|\\includegraphics(?:\[[^]]+\])?\{[^}]+\}'
 # Check if output file is provided
 if [ $# -eq 2 ]; then
   output_file="$2"
+
+  # Check if the output file already exists
+  if [ -e "$output_file" ]; then
+    read -p "The output file '$output_file' already exists. Do you want to overwrite it? (y/n): " overwrite_choice
+    if [ "$overwrite_choice" != "y" ]; then
+      echo "Operation cancelled."
+      exit 0
+    fi
+  fi
+
   echo "$file_list" > "$output_file"
 else
   echo "$file_list"
