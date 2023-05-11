@@ -1,9 +1,12 @@
 #!/bin/bash
 
-if [ $# -eq 0 ]; then
-  echo "Please provide the filename of the TeX file as an argument."
+if [ $# -ne 2 ]; then
+  echo "Please provide the input filename and output filename as arguments."
   exit 1
 fi
+
+tex_file="$1"
+output_file="$2"
 
 tex_file="$1"
 
@@ -14,8 +17,7 @@ figures_path=$(grep -oE '\\def\\figures\{[^}]+\}' "$tex_file" | sed -E 's/.*\{(.
 file_list=$(egrep -o '\\input\{[^}]+\}|\\includegraphics(?:\[[^]]+\])?\{[^}]+\}' "$tex_file" | sed -E -e 's/.*\{(.*)\}.*/\1/')
 
 # Write the file list to a text file
-echo "$file_list" > file_list.txt
-
+echo "$file_list" > "$output_file"
 
 
 #-e '/^\\def\\figures\{.*\}/{s/.*\{(.*)\}.*/\1/; h;}' -e "/\\includegraphics/{s/\\includegraphics(\[.*\])?\{(.*)\}/\2/; x; G; s/(.*)\n(.*)/$figures_path\/\2/;"
