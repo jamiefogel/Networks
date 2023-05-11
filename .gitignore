@@ -3,3 +3,6 @@ Data/*
 Results/error_analysis_*
 Results/*
 .DS_Store
+*.aux
+*.ist
+*.log
