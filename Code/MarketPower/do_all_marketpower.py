@@ -17,6 +17,9 @@ import sys
 import matplotlib.pyplot as plt
 
 
+from IPython.display import display, Math, Latex
+display((Math(r'P(Purchase|Male)= \frac{Numero\ total\ de\ compras\ hechas\ por\ hombres\}{Total\ de\ hombres\ en\ el\ grupo\} = \frac{Purchase\cap Male}{Male}')))
+
 homedir = os.path.expanduser('~')
 root = homedir + '/NetworksGit/'
 
@@ -76,6 +79,10 @@ psi_and_k_file         = root + "MLE_estimates/panel_rio_2009_2012_psi_normalize
 
 
 
+theta = 1/.985
+nu = 1/1.257
+
+
 # Compute the each group B's share of group A
 def a_probs_b(a,b,data, hhi=False):
     crosstab_b_a = pd.crosstab(index = data[b], columns = data[a])
@@ -87,3 +94,5 @@ def a_probs_b(a,b,data, hhi=False):
 s_ij = a_probs_b('iota','jid_masked',   data_full.loc[(data_full.iota!=-1) & (data_full.gamma!=-1) & (data_full.gamma!=-0)])
 s_ig = a_probs_b('iota','gamma',        data_full.loc[(data_full.iota!=-1) & (data_full.gamma!=-1) & (data_full.gamma!=-0)])
 s_jg = a_probs_b('jid_masked','gamma',  data_full.loc[(data_full.iota!=-1) & (data_full.gamma!=-1) & (data_full.gamma!=-0)])
+
+Elasticity_s_ij_w_j = (1/theta) * ( (1/nu)*(1-s_ig)*s_ij + (1-s_ij))
