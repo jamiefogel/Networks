@@ -165,11 +165,11 @@ class bisbm():
 
 
 
-                
+
     #################################################################################
     #
     #################################################################################
-    def export_blocks(self, output=None, joutput=None, woutput=None):
+    def export_blocks(self, output=None, joutput=None, woutput=None, max_level=None):
 
         df=pd.DataFrame()
         df['worker_node']=self.g.vp.kind.a
@@ -178,9 +178,15 @@ class bisbm():
         num_job_blocks = []
         num_worker_blocks = []
 
-        for l in range(self.L):
+        if max_level==None:
+            mlevel = self.L
+        else:
+            mlevel = max_level+1
+            
+        for l in range(mlevel):
             # I don't know why copy=True is necessary but without it some of the 0s get converted to very large numbers for some reason
-            temp = pd.DataFrame(self.state.project_level(l).get_blocks().a, columns=['blocks_level_'], copy=True)
+            #Old version: temp = pd.DataFrame(self.state.project_level(l).get_blocks().a, columns=['blocks_level_'], copy=True)
+            temp = pd.DataFrame(pd.DataFrame({'temp_blocks':self.state.project_level(l).get_blocks().a, 'worker_node':df.worker_node}, copy=True).groupby(['worker_node','temp_blocks']).ngroup(), columns=['blocks_level_'])
             # Store the number of worker and job blocks at each level
             jmax = temp[['blocks_level_']][df['worker_node']==0].max()[0]
             wmax = temp[['blocks_level_']][df['worker_node']==1].max()[0]
@@ -198,7 +204,6 @@ class bisbm():
 
         job_blocks    = df[df['worker_node']==0].drop(columns=['worker_node']).rename(columns={"id":"jid","id_py":"jid_py"}).rename(columns=lambda cname: "job_"+cname if (cname!="jid_py" and cname!="jid") else cname )
         worker_blocks = df[df['worker_node']==1].drop(columns=['worker_node']).rename(columns={"id":"wid","id_py":"wid_py"}).rename(columns=lambda cname: "worker_"+cname if (cname!="wid_py" and cname!="wid") else cname )
-
         edgelist_w_blocks = self.edgelist.merge(job_blocks,on='jid_py',validate='m:1')
         edgelist_w_blocks = edgelist_w_blocks.merge(worker_blocks,on='wid_py',validate='m:1')
         edgelist_w_blocks = edgelist_w_blocks.drop(columns=['wid_y','jid_y']).rename(columns={'wid_x':'wid','jid_x':'jid'}) #The merge creates duplicate ID columns
