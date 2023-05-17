@@ -10,8 +10,15 @@ import scipy.sparse as sp
 import copy
 
 homedir = os.path.expanduser('~')
-os.chdir(homedir + '/labormkt/labormkt_rafaelpereira/aug2022/code/')
+os.chdir(homedir + '/labormkt/labormkt_rafaelpereira/NetworksGit/Code/IPEA/')
 
+
+homedir = os.path.expanduser('~')
+root = homedir + '/labormkt/labormkt_rafaelpereira/NetworksGit/'
+sys.path.append(root + 'Code/Modules')
+figuredir = root + 'Results/'
+
+os.chdir(root)
 
 import bisbm
 from pull_one_year import pull_one_year
