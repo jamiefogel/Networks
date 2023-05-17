@@ -6,3 +6,4 @@ Results/*
 *.aux
 *.ist
 *.log
+*.py#
