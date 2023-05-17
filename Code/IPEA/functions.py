@@ -10,49 +10,6 @@ data = homedir+'/labormkt/labormkt_rafaelpereira/april2021/data'
 dump = homedir+'/labormkt/labormkt_rafaelpereira/april2021/dump'
 export=homedir+'/labormkt/labormkt_rafaelpereira/april2021/export'
 
-def pull_one_year(year, vars, municipality_codes, savefile, nrows=None):
-    print(year)
-    now = datetime.now()
-    currenttime = now.strftime('%H:%M:%S')
-    print('Starting ', year, ' at ', currenttime)
-    if year in [2018, 2019]:
-        sep = ';'
-    else:
-        sep=','
-    filename = '~/rais/RAIS/csv/brasil' + str(year) + '.csv'
-    raw_data = pd.read_csv(filename, usecols=vars, sep=sep, parse_dates=['data_adm','data_deslig','data_nasc'], infer_datetime_format=True, dtype={'id_estab':str, 'pis':str, 'cbo2002':str}, nrows=nrows)
-    raw_data = raw_data[raw_data['codemun'].isin(municipality_codes)]   # Restrict to Rio
-    print(raw_data.shape)
-    raw_data = raw_data.dropna(subset=['pis','id_estab','cbo2002'])
-    print(raw_data.shape)
-    raw_data = raw_data[~raw_data['tipo_vinculo'].isin([30,31,35])]
-    print(raw_data.shape)
-    raw_data['year'] = year
-    raw_data['yob'] = raw_data['year'] - raw_data['idade']
-    raw_data['occ4'] = raw_data['cbo2002'].str[0:4]
-    raw_data['jid'] = raw_data['id_estab'] + '_' + raw_data['occ4']
-    #raw_data['jid6'] = raw_data['id_estab'] + '_' + raw_data['cbo2002']
-    raw_data.rename(columns={'pis':'wid'}, inplace=True)
-    raw_data['ind2'] = np.floor(raw_data['clas_cnae20']/1000).astype(int)
-    raw_data['sector_IBGE'] = np.nan
-    raw_data['sector_IBGE'].loc[( 1<=raw_data['ind2']) & (raw_data['ind2'] <= 3)] = 1  
-    raw_data['sector_IBGE'].loc[( 5<=raw_data['ind2']) & (raw_data['ind2'] <= 9)] = 2 
-    raw_data['sector_IBGE'].loc[(10<=raw_data['ind2']) & (raw_data['ind2'] <=33)] = 3 
-    raw_data['sector_IBGE'].loc[(35<=raw_data['ind2']) & (raw_data['ind2'] <=39)] = 4 
-    raw_data['sector_IBGE'].loc[(41<=raw_data['ind2']) & (raw_data['ind2'] <=43)] = 5 
-    raw_data['sector_IBGE'].loc[(45<=raw_data['ind2']) & (raw_data['ind2'] <=47)] = 6 
-    raw_data['sector_IBGE'].loc[(49<=raw_data['ind2']) & (raw_data['ind2'] <=53)] = 7 
-    raw_data['sector_IBGE'].loc[(55<=raw_data['ind2']) & (raw_data['ind2'] <=56)] = 8 
-    raw_data['sector_IBGE'].loc[(58<=raw_data['ind2']) & (raw_data['ind2'] <=63)] = 9 
-    raw_data['sector_IBGE'].loc[(64<=raw_data['ind2']) & (raw_data['ind2'] <=66)] = 10
-    raw_data['sector_IBGE'].loc[(68<=raw_data['ind2']) & (raw_data['ind2'] <=68)] = 11
-    raw_data['sector_IBGE'].loc[(69<=raw_data['ind2']) & (raw_data['ind2'] <=82)] = 12
-    raw_data['sector_IBGE'].loc[(84<=raw_data['ind2']) & (raw_data['ind2'] <=84)] = 13
-    raw_data['sector_IBGE'].loc[(85<=raw_data['ind2']) & (raw_data['ind2'] <=88)] = 14
-    raw_data['sector_IBGE'].loc[(90<=raw_data['ind2']) & (raw_data['ind2'] <=97)] = 15
-    pickle.dump( raw_data, open(savefile, "wb" ) )
-
-
 
 def create_earnings_panel(modelname, appended, firstyear_panel, lastyear_panel, sbm_modelname=None):
     if sbm_modelname==None:
