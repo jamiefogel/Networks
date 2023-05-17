@@ -1,20 +1,10 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Tue Jun  8 10:18:03 2021
-
-@author: jfogel
-"""
-
 
 import pandas as pd
 
-def occ_counts_by_type(data, occ_codes_file, level, w_output=None, j_output=None):
+def occ_counts_by_type(panel, level, modelname):
     #panel refers to the data set called 'balanced' in functions.py
     # Read in translated occupation codes
-    cw = pd.read_csv(occ_codes_file)
-    
-    panel = pd.read_csv(data, usecols=['iota','gamma','cbo2002'])
+    cw = pd.read_csv('/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/ExternalData/translated_occ_codes_english_only.csv')
     
     wblock_var = 'iota'
     jblock_var = 'gamma'
@@ -39,15 +29,13 @@ def occ_counts_by_type(data, occ_codes_file, level, w_output=None, j_output=None
     w_occs_by_i.sort_values(['iota' ,'counts'], ascending=[True,False], inplace=True)
     j_occs_by_g.sort_values(['gamma','counts'], ascending=[True,False], inplace=True)
     
-    if w_output is not None:
-        w_occs_by_i.to_csv(w_output)
-        
-    if j_output is not None:
-        j_occs_by_g.to_csv(j_output)
-        
+    w_output = '/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/aug2022/data/occ_counts/' + modelname + '_occ_counts_by_i_level_' + str(level)+ '.csv'
+    j_output = '/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/aug2022/data/occ_counts/' + modelname + '_occ_counts_by_g_level_' + str(level)+ '.csv'
     
+    w_occs_by_i.to_csv(w_output, index=False)
+    j_occs_by_g.to_csv(j_output, index=False)
+        
     w_dict = {int(i): w_occs_by_i.loc[w_occs_by_i['iota']==i]  for i in w_occs_by_i.iota.unique()}
     j_dict = {int(g): j_occs_by_g.loc[j_occs_by_g['gamma']==g] for g in j_occs_by_g.gamma.unique()}
 
     return [w_dict, j_dict]
-
