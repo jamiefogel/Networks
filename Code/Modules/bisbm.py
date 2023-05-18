@@ -213,22 +213,22 @@ class bisbm():
         self.num_worker_blocks = num_worker_blocks
         
         if output is not None:
-            if re.search('.csv', output) is not None:
+            if output.endswith(".csv"):
                 edgelist_w_blocks.to_csv(output, index=False)
-            if re.search('.p', output) is not None:
+            if output.endswith(".p"):
                 pickle.dump( edgelist_w_blocks, open(output, "wb" ) )
                 #edgelist_w_blocks.to_pickle(output)
 
         if joutput is not None:
-            if re.search('.csv', joutput) is not None:
+            if joutput.endswith(".csv"):
                 job_blocks.to_csv(joutput, index=False)
-            if re.search('.p', joutput) is not None:
+            if joutput.endswith(".p"):
                 job_blocks.to_pickle(joutput)
 
         if woutput is not None:
-            if re.search('.csv', woutput) is not None:
+            if woutput.endswith(".csv"):
                 worker_blocks.to_csv(woutput, index=False)
-            if re.search('.p', woutput) is not None:
+            if woutput.endswith(".p"):
                 worker_blocks.to_pickle(woutput)
 
 
