@@ -108,7 +108,7 @@ def create_earnings_panel(modelname, appended, firstyear_panel, lastyear_panel, 
     balanced['wid_masked'] = balanced.groupby('wid').grouper.group_info[0]
     balanced['jid_masked'] = balanced.groupby('jid').grouper.group_info[0]
     print('Pickling the BALANCED dataframe')
-    balanced.to_pickle('../Data/panel_'+modelname+'.p')
+    balanced.to_pickle('../Data/derived/panel_'+modelname+'.p')
     print('Exporting each level of the model to CSV')
     for l in range(model.L):
         print('Exporting level ', l)
