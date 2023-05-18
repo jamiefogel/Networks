@@ -1,16 +1,10 @@
-'''
-Should be defined elsewhere, I think
+
 from datetime import datetime
 import pickle
 import pandas as pd
 import numpy as np
 import os
 import bisbm
-homedir = os.path.expanduser('~')
-data = homedir+'/labormkt/labormkt_rafaelpereira/april2021/data'
-dump = homedir+'/labormkt/labormkt_rafaelpereira/april2021/dump'
-export=homedir+'/labormkt/labormkt_rafaelpereira/april2021/export'
-'''
 
 def create_earnings_panel(modelname, appended, firstyear_panel, lastyear_panel, sbm_modelname=None):
     if sbm_modelname==None:
@@ -20,7 +14,7 @@ def create_earnings_panel(modelname, appended, firstyear_panel, lastyear_panel, 
     appended['data_adm'] = pd.to_datetime(appended['data_adm'])
     
     # Load CPI data
-    cpi = pd.read_csv(root + '../Data/raw/BRACPIALLMINMEI.csv', parse_dates=['date'], names=['date','cpi'], header=0)
+    cpi = pd.read_csv('../Data/raw/BRACPIALLMINMEI.csv', parse_dates=['date'], names=['date','cpi'], header=0)
     cpi['year'] = cpi['date'].dt.year
     cpi['month'] = cpi['date'].dt.month
     
@@ -65,9 +59,9 @@ def create_earnings_panel(modelname, appended, firstyear_panel, lastyear_panel, 
     ####################################33
     # Merge on worker and job blocks
     
-    model = pickle.load(   open(root + '../Data/derived/sbm_output/model_'+sbm_modelname+'.p', "rb" ) )        
-    job_blocks    = pd.read_csv(root + '../Data/derived/sbm_output/model_'+sbm_modelname+'_jblocks.csv')
-    worker_blocks = pd.read_csv(root + '../Data/derived/sbm_output/model_'+sbm_modelname+'_wblocks.csv', dtype={'wid':str})
+    model = pickle.load(   open('../Data/derived/sbm_output/model_'+sbm_modelname+'.p', "rb" ) )        
+    job_blocks    = pd.read_csv('../Data/derived/sbm_output/model_'+sbm_modelname+'_jblocks.csv')
+    worker_blocks = pd.read_csv('../Data/derived/sbm_output/model_'+sbm_modelname+'_wblocks.csv', dtype={'wid':str})
     
     gammas = job_blocks[['jid']]
     iotas = worker_blocks[['wid']]
@@ -114,13 +108,13 @@ def create_earnings_panel(modelname, appended, firstyear_panel, lastyear_panel, 
     balanced['wid_masked'] = balanced.groupby('wid').grouper.group_info[0]
     balanced['jid_masked'] = balanced.groupby('jid').grouper.group_info[0]
     print('Pickling the BALANCED dataframe')
-    balanced.to_pickle(root + '../Data/panel_'+modelname+'.p')
+    balanced.to_pickle('../Data/panel_'+modelname+'.p')
     print('Exporting each level of the model to CSV')
     for l in range(model.L):
         print('Exporting level ', l)
         gname = 'gamma_level_' + str(l)
         iname = 'iota_level_' + str(l)
-        balanced.rename(columns={iname:'iota',gname:'gamma'}).to_csv(root + '../Data/derived/export/panel_'+modelname+'_level_'+str(l)+'.csv.gz', index=False, compression='gzip', columns = ['wid_masked', 'jid_masked', 'year', 'cbo2002', 'cbo2002_first', 'clas_cnae20', 'clas_cnae20_first', 'sector_IBGE', 'c', 'real_hrly_wage_dec', 'ln_real_hrly_wage_dec', 'yob', 'iota', 'gamma'])
+        balanced.rename(columns={iname:'iota',gname:'gamma'}).to_csv('../Data/derived/export/panel_'+modelname+'_level_'+str(l)+'.csv.gz', index=False, compression='gzip', columns = ['wid_masked', 'jid_masked', 'year', 'cbo2002', 'cbo2002_first', 'clas_cnae20', 'clas_cnae20_first', 'sector_IBGE', 'c', 'real_hrly_wage_dec', 'ln_real_hrly_wage_dec', 'yob', 'iota', 'gamma'])
 
 
 
