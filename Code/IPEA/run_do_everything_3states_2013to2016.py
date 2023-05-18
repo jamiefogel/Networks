@@ -23,10 +23,10 @@ from pull_one_year import pull_one_year
 
 
 
-run_sbm = False
+run_sbm = True
 run_pull=True
 run_append = True
-maxrows=None
+maxrows=100000
 
 # This should create data pulls identical to 3states_2013to2016 except with the addition of clas_cnae20, ind2 and sector_IBGE. But I want to confirm that before saving over the old.
 #modelname = '3states_2013to2016'
