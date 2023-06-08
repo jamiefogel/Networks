@@ -11,9 +11,7 @@ import sys
 
 homedir = os.path.expanduser('~')
 root = homedir + '/labormkt/labormkt_rafaelpereira/NetworksGit/'
-
 sys.path.append(root + 'Code/Modules')
-figuredir = root + 'Results/'
 os.chdir(root)
 
 import bisbm
@@ -23,10 +21,10 @@ from pull_one_year import pull_one_year
 
 
 
-run_sbm = True
+run_sbm = False
 run_pull=True
 run_append = True
-maxrows=100000
+maxrows=None
 
 # This should create data pulls identical to 3states_2013to2016 except with the addition of clas_cnae20, ind2 and sector_IBGE. But I want to confirm that before saving over the old.
 #modelname = '3states_2013to2016'
