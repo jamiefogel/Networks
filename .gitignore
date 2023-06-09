@@ -7,3 +7,4 @@ Results/*
 *.ist
 *.log
 *.py#
+Code/.DS_Store
