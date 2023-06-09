@@ -3,8 +3,8 @@ import pickle
 import pandas as pd
 import numpy as np
 import os
-from scipy.sparse import coo_matrix
-import scipy.sparse as sparse
+#from scipy.sparse import coo_matrix
+#import scipy.sparse as sparse
 #import graph_tool.all as gt
 import sys
 
@@ -24,6 +24,11 @@ os.chdir('/home/bm/Dropbox (University of Michigan)/_papers/Networks/RAIS_export
 # are we holding the degree distribution of each job fixed in our predictions? i.e. is the # number of transitions predicted for a job equal to its degree?
 # we want to create a way to verify the sorting of the adjacency matrices ag, ao, ajid --- have the indices used in their sorting
 
+
+
+###################################
+### DATA LOAD
+###################################
 
 # ADJACENCY MATRICES
 # Loading the following adjacency matrices:
@@ -52,7 +57,12 @@ cg = pickle.load(open('pred_flows_gamma_cw.p', 'rb'))
 co = pickle.load(open('pred_flows_occ2Xmeso_cw.p', 'rb'))
 cjid = pd.read_pickle(open('pred_flows_jid_cw.p', 'rb'))
 
-# Data prep
+
+###################################
+### DATA PREP
+###################################
+
+# Renaming index to avoid errors later
 cjid = cjid.rename({'index':'idx'}, axis=1)
 
 
@@ -96,20 +106,14 @@ cjid['pred_prob_diag_gamma'] = cjid.loc[:,['gamma','pred_prob_diag']].groupby('g
 
 
 
+###################################
+### PREDICTION ERROR FUNCTION
+###################################
 
-#pred_matrix = pd.DataFrame(None)
-
-######## START LOOP HERE: FOR ALL JOBS
-j = 0
-print_percentage = .00025
-print_increment = int(np.round(J // (100/print_percentage)))
-print_increment = 1
-
-pred_error = []
 
 # Function to output the probability prediction error of transitioning from job 'j' to all other jobs, based on a market configuration given by the objects ag and cg
     # it returns a vector of length j
-def prediction_error(j,cjid, cg, ajid, ag, D_insample,D_outsample, print_increment,J, start_time):
+def prediction_error(j,cjid, cg, ajid, ag, D_insample,D_outsample,J):
     # get the market of job j
     g = cjid['gamma'][j]
    
@@ -144,71 +148,80 @@ def prediction_error(j,cjid, cg, ajid, ag, D_insample,D_outsample, print_increme
     cjid['self_pred_prob_distributed'] = (cjid['degree'][j] + cjid['degree']) / (cjid['cardinality_gamma']) / (2**(np.sum(cjid['gamma']==g)-1)) * cjid['pred_prob_diag_gamma']  * (cjid['gamma']==g)
     
     # finalizing the predicted probability after distributing the self edge probabilities
+    cjid.loc[j,'pred_prob'] = 0
     pred = cjid['pred_prob'] #+ cjid['self_pred_prob_distributed']
-    pred[j] = 0   # the diagonal should be zero (i.e. no flows from a job to itself)
    
     # Compute two vectors of length J with the L1 and L2 errors
         # compare the predicted flows from j to all other j' to the actual number of transitions in the job-to-job adjacency matrix ajid
     error1 = np.sum(np.abs((pred.sort_index()*D_outsample).values - ajid.getrow(j)))
     error2 = np.sum(np.square((pred.sort_index()*D_outsample).values - ajid.getrow(j)))
     
-    # this would be to track time
-    # OUTSTANDING PROBLEM: when this function is being passed using the multiprocessing package below, it is not printing anything
-    # POSSIBLE SOLUTION: move the printing out of this function and inside the multiprocessing loop below
-    if j % print_increment == 0:
-    #if 0 == 0:        
-        # calculate the percentage progress and print it
-        progress_percent = np.round(j / J * 100,1)
-        now = datetime.now()
-        elapsed_time = now - start_time  # calculate the elapsed time
-        # intermediate step saving outputs
-        #pred_error_pd = pd.DataFrame(errors)
-        #pred_error_pd.to_csv('pred_error.csv')
-        
-        print('j = ' + str(j) + ' / ' + str(J) + ', ' + f"{progress_percent}% complete. Elapsed time: {elapsed_time}. Time: {now}")
-    
     return([error1, error2,j])
 
 
+###################################
+### LOOP OVER ALL JOBS, COMPUTING THE TRANSITIONS FROM EACH JOB TO ALL OTHER JOBS, AND THE PREDICTION ERROR BASED ON ACTUAL VS PREDICTED
+###################################
+
+### TEMPORARY VALUE JUST TO TEST
+J = 200
+core = int(sys.argv[1])
+total_cores = int(sys.argv[2])
+#core = 2
+#total_cores = 4
+
+workload_size = J // total_cores
+
+# for c in range(1,total_cores+1):
+#     first_job = (c-1)*workload_size
+#     last_job = c*workload_size-1
+#     if c == total_cores:
+#         last_job = J
+#     print(str(first_job) + ' - ' + str(last_job) + ', core = ' + str(c))
+
+first_job = (core-1)*workload_size
+last_job = core*workload_size-1
+if core == total_cores:
+    last_job = J
+print(str(first_job) + ' - ' + str(last_job) + ', core = ' + str(core))
+
+# Obs: NO PARALLELIZATION IN THIS LOOP
+results = []
+start_time = datetime.now()  # get the start time
+print_increment = 5
+
+# Open the file in append mode
+file_path = 'core' + str(core) + '_log.txt'
+file = open(file_path, 'w')
+file.close()
+
+for j in range(first_job,last_job+1):
+    result = prediction_error(j,cjid, cg, ajid, ag, D_insample,D_outsample,J)
+    results.append(result)
+
+    # this would be to track time
+    if j % print_increment == 0:
+        # calculate the percentage progress and print it
+        progress_percent = np.round((j-first_job) / (last_job-first_job) * 100,1)
+        now = datetime.now()
+        elapsed_time = now - start_time  # calculate the elapsed time
+        # intermediate step saving outputs
+        results_temp = pd.DataFrame(results)
+        results_temp.to_csv('results_core' + str(core) + '.csv')    
+        status = 'j = ' + str(j) + ' / ' + str(last_job) + ', ' + f"{progress_percent}% complete. Elapsed time: {elapsed_time}. Time: {now}\n"
+        print(status)
+        # Append the current step to the file
+        file = open(file_path, 'a')
+        file.write(status)
+        file.close()
+
+progress_percent = np.round((j-first_job) / (last_job-first_job) * 100,1)
+status = 'j = ' + str(j) + ' / ' + str(last_job) + ', ' + f"{progress_percent}% complete. Elapsed time: {elapsed_time}. Time: {now}\n"
+print(status)
+file = open(file_path, 'a')
+file.write(status)
+file.close()
 
 
-# COMPUTING THE JOB TO JOB TRANSITIONS LOOPING OVER ALL JOBS WITH THE HELP OF MULTIPROCESSING PACKAGE
-    # the function prediction_error above computes the transition prediction error for each job. We loop over all jobs with parallelization below
-    # OUTSTANDING PROBLEM: on the windows server (on spyder), it uses more cores. On the linux server, it doesn't seem to be using the number of cores specified below
-import multiprocessing
-
-# print the maximum amount of cores that could be used with multiprocessing
-multiprocessing.cpu_count()
-
-
-if __name__ == '__main__':
-    J = 200
-    pool = multiprocessing.Pool(processes=7)
-    results = []
-    start_time = datetime.now()  # get the start time
-    
-    for j in range(J):
-        result = pool.apply_async(prediction_error, args=(j, cjid, cg, ajid, ag , D_insample, D_outsample, print_increment, J, start_time))
-        results.append(result)
-    pool.close()
-    pool.join()
-
-    # Retrieve the results
-    pred_error = []
-    pred_error_sq = []
-    for result in results:
-        errors = result.get()
-        pred_error.append(errors[0])
-        pred_error_sq.append(errors[1])
-   
-    print(pred_error)
-    print(pred_error_sq)
-
-### THIS IS A BLOCK TO RUN THE COMMAND NORMALLY, WITHOUT PARALLELIZATION
-# results_no_parallel = []
-# start_time = datetime.now()  # get the start time
-
-# for j in range(J):
-#     result = prediction_error(j, cjid, cg, ajid, ag , D_insample, D_outsample, print_increment, J, start_time)
-#     results_no_parallel.append(result)
-
+results_temp = pd.DataFrame(results)
+results_temp.to_csv('results_core' + str(core) + '.csv')    
