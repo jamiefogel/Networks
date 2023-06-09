@@ -10,14 +10,14 @@ import sys
 
 # DIRECTORY WHERE THE DATA IS
 # Automatically chooses the folder between windows vs linux servers
-# if os.name == 'nt':
-#     homedir = os.path.expanduser('//storage6/usuarios')  # for running this code on windows
-# else:
-#     homedir = os.path.expanduser('~/labormkt')
+if os.name == 'nt':
+    homedir = os.path.expanduser('//storage6/usuarios')  # for running this code on windows
+else:
+    homedir = os.path.expanduser('~/labormkt')
 
 # This should be deleted in the future
-# os.chdir(homedir + '/labormkt_rafaelpereira/aug2022/dump/')
-os.chdir('/home/bm/Dropbox (University of Michigan)/_papers/Networks/RAIS_exports/job_transitions')
+os.chdir(homedir + '/labormkt_rafaelpereira/aug2022/dump/')
+#os.chdir('/home/bm/Dropbox (University of Michigan)/_papers/Networks/RAIS_exports/job_transitions')
 
 
 ## QUESTIONS/COMMENTS
@@ -191,7 +191,7 @@ start_time = datetime.now()  # get the start time
 print_increment = 5
 
 # Open the file in append mode
-file_path = 'core' + str(core) + '_log.txt'
+file_path = 'job_transitions_results/' 'core' + str(core) + '_log.txt'
 file = open(file_path, 'w')
 file.close()
 
@@ -207,8 +207,8 @@ for j in range(first_job,last_job+1):
         elapsed_time = now - start_time  # calculate the elapsed time
         # intermediate step saving outputs
         results_temp = pd.DataFrame(results)
-        results_temp.to_csv('results_core' + str(core) + '.csv')    
-        status = 'j = ' + str(j) + ' / ' + str(last_job) + ', ' + f"{progress_percent}% complete. Elapsed time: {elapsed_time}. Time: {now}\n"
+        results_temp.to_csv('job_transitions_results/results_core' + str(core) + '.csv')    
+        status = 'j = ' + str(j) + ' / ' + str(last_job) + ', ' + f"{progress_percent}% complete. Elapsed time: {elapsed_time}. Time: {now}\r\n"
         print(status)
         # Append the current step to the file
         file = open(file_path, 'a')
@@ -216,7 +216,7 @@ for j in range(first_job,last_job+1):
         file.close()
 
 progress_percent = np.round((j-first_job) / (last_job-first_job) * 100,1)
-status = 'j = ' + str(j) + ' / ' + str(last_job) + ', ' + f"{progress_percent}% complete. Elapsed time: {elapsed_time}. Time: {now}\n"
+status = 'j = ' + str(j) + ' / ' + str(last_job) + ', ' + f"{progress_percent}% complete. Elapsed time: {elapsed_time}. Time: {now}\r\n"
 print(status)
 file = open(file_path, 'a')
 file.write(status)
