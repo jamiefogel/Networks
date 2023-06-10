@@ -177,11 +177,11 @@ def prediction_error(j,cjid, c_mkt, ajid, a_mkt, D_insample,D_outsample,J,mkt):
 ###################################
 
 ### TEMPORARY VALUE JUST TO TEST
-J = 200
-core = 3
-total_cores = 8
-#core = int(sys.argv[1])
-#total_cores = int(sys.argv[2])
+#J = 108
+#core = 3
+#total_cores = 11
+core = int(sys.argv[1])
+total_cores = int(sys.argv[2])
 
 
 workload_size = J // total_cores
@@ -197,31 +197,46 @@ first_job = (core-1)*workload_size
 last_job = core*workload_size-1
 if core == total_cores:
     last_job = J
-print(str(first_job) + ' - ' + str(last_job) + ', core = ' + str(core))
+header = str(first_job) + ' - ' + str(last_job) + ', core = ' + str(core) + '\r\n'
+print(header)
+print(' \r\n')
 
 # Obs: NO PARALLELIZATION IN THIS LOOP
 results = []
+results_cols = ['j', 'l1_g', 'l2_g', 'l1_o', 'l2_o']
+
 start_time = datetime.now()  # get the start time
-print_increment = 5
+print_increment = 200
 
 # Open the file in append mode
-file_path = 'job_transitions_results/' 'core' + str(core) + '_multiple_mkts_log.txt'
+file_path = 'job_transitions_results/core' + str(core) + '_multiple_mkts_log.txt'
 file = open(file_path, 'w')
 file.close()
 
-for j in range(first_job,last_job+1):
-    result = prediction_error(j,cjid, cmkts['o'], ajid, amkts['o'], D_insample,D_outsample,J, 'occ2Xmeso')
-    results.append(result)
+file = open(file_path, 'a')
+file.write(header)
+file.write(' \r\n')
+file.close()
+
+result_temp = {}
+
+for j in range(first_job,last_job+1):    
+    
+    for mkt in mkts:
+        m = mkt[0]
+        result_temp[m] = prediction_error(j,cjid, cmkts[m], ajid, amkts[m], D_insample,D_outsample,J, mkt)
+        
+    results.append([j] + result_temp['g'] + result_temp['o'])
 
     # this would be to track time
-    if j % print_increment == 0:
+    if (j-first_job) % print_increment == 0:
         # calculate the percentage progress and print it
-        progress_percent = np.round((j-first_job) / (last_job-first_job) * 100,1)
+        progress_percent = np.round((j-first_job) / (last_job-first_job) * 100,2)
         now = datetime.now()
         elapsed_time = now - start_time  # calculate the elapsed time
         # intermediate step saving outputs
-        results_temp = pd.DataFrame(results)
-        results_temp.to_csv('job_transitions_results/results_core' + str(core) + '_multiple_mkts.csv')    
+        results_temp = pd.DataFrame(results, columns = results_cols)
+        results_temp.to_csv('job_transitions_results/results_core' + str(core) + '_multiple_mkts.csv', index=False)    
         status = 'j = ' + str(j) + ' / ' + str(last_job) + ', ' + f"{progress_percent}% complete. Elapsed time: {elapsed_time}. Time: {now}\r\n"
         print(status)
         # Append the current step to the file
@@ -229,7 +244,9 @@ for j in range(first_job,last_job+1):
         file.write(status)
         file.close()
 
-progress_percent = np.round((j-first_job) / (last_job-first_job) * 100,1)
+progress_percent = np.round((j-first_job) / (last_job-first_job) * 100,2)
+now = datetime.now()
+elapsed_time = now - start_time  # calculate the elapsed time
 status = 'j = ' + str(j) + ' / ' + str(last_job) + ', ' + f"{progress_percent}% complete. Elapsed time: {elapsed_time}. Time: {now}\r\n"
 print(status)
 file = open(file_path, 'a')
@@ -237,5 +254,5 @@ file.write(status)
 file.close()
 
 
-results_temp = pd.DataFrame(results)
-results_temp.to_csv('results_core' + str(core) + '_multiple_mkts.csv')    
+results_temp = pd.DataFrame(results, columns = results_cols)
+results_temp.to_csv('job_transitions_results/results_core' + str(core) + '_multiple_mkts.csv', index=False)    
