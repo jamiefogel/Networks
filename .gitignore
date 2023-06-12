@@ -8,3 +8,4 @@ Results/*
 *.log
 *.py#
 Code/.DS_Store
+*.tmp
