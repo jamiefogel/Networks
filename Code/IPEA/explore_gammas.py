@@ -18,12 +18,14 @@ from pull_one_year import pull_one_year
 
 
 homedir = os.path.expanduser('~')
-os.chdir(homedir + '/labormkt/labormkt_rafaelpereira/aug2022/code/')
+root = homedir + '/labormkt/labormkt_rafaelpereira/NetworksGit/'
+sys.path.append(root + 'Code/Modules')
+os.chdir(root)
 
 
 state_codes = [31, 33, 35]
 
-region_codes = pd.read_csv(homedir + '/labormkt/labormkt_rafaelpereira/aug2022/external/munic_microregion_rm.csv', encoding='latin1')
+region_codes = pd.read_csv('./Data/raw/munic_microregion_rm.csv', encoding='latin1')
 region_codes = region_codes.loc[region_codes.code_uf.isin(state_codes)]
 state_cw = region_codes[['code_meso','uf']].drop_duplicates()
 muni_meso_cw = pd.DataFrame({'code_meso':region_codes.code_meso,'codemun':region_codes.code_munic//10})
@@ -42,7 +44,7 @@ for l in range(0,1):
     columns = columns + ['job_blocks_level_'+str(l)]
     rename['job_blocks_level_'+str(l)] = 'gamma'
 
-gammas = pd.read_csv('../data/model_' + modelname + '_jblocks.csv', usecols=columns).rename(columns=rename)
+gammas = pd.read_csv('./Data/derived/sbm_output/model_' + modelname + '_jblocks.csv', usecols=columns).rename(columns=rename)
 #model = pickle.load(open('../data/model_'+modelname+'.p', "rb" ))
 
 
@@ -178,7 +180,7 @@ handles = [plt.plot([], [], marker="o", ls="", color=color)[0] for color in np.u
 labels = list(colors.keys())
 #plt.legend(handles, labels, title='ind', bbox_to_anchor=(1.05, 1), loc='upper left')
 plt.legend(handles, labels, title='ind', loc='best')
-plt.savefig('../results/hhi_scatterplot_' + var1 + '_' + var2 +' .pdf', format='pdf')
+plt.savefig('./Results/hhi_scatterplot_' + var1 + '_' + var2 +' .pdf', format='pdf')
 plt.close()
 
 
@@ -225,7 +227,7 @@ ax.scatter(gamma_hhis.hhi_codemun, gamma_hhis.hhi_occ4, s=5)
 ax.annotate("Correlation = {:.2f}".format(corr), xy=(0.05, 0.95), xycoords='axes fraction')
 ax.set_xlabel('codemun')            
 ax.set_ylabel('occ4')
-plt.savefig('hhi_scatterplot_codemun_occ4.pdf', format='pdf')
+plt.savefig('./Results/hhi_scatterplot_codemun_occ4.pdf', format='pdf')
 plt.close()
 # Why do we have a strong positive correlation:
 # - High education workers are concentrated workers are concentrated in occupations and are concentrated in specific municipalities, even though these municipalities may be geographically dispersed. The problem is the HHI won't capture the geographic dispersion.
@@ -280,7 +282,7 @@ munis['lon'] = munis.geometry.centroid.x
 munis['lat'] = munis.geometry.centroid.y
 munis['codemun'] = munis.code_muni//10
 
-df_trans = pd.read_pickle('../dump/pred_flows_df_trans.p')
+df_trans = pd.read_pickle('./Data/derived/predicting_flows/pred_flows_df_trans.p')
 
 # Assign each jid its modal municipality code based on 2016 data
 raw = pd.read_csv('~/rais/RAIS/csv/brasil2016.csv', usecols=['id_estab','cbo2002','codemun'], sep=';', dtype={'id_estab':str, 'cbo2002':str})
@@ -379,8 +381,8 @@ gammas_w_attributes['spatial_var_km_rank'] = gammas_w_attributes['spatial_var_km
 gammas_w_attributes['dist_mean_rank'] = gammas_w_attributes['dist_mean'].rank(method='dense', pct=True)
 
 
-gammas_w_attributes.to_pickle('../dump/explore_gammas_gammas_w_attributes.p')
-gammas_w_attributes = pd.read_pickle('../dump/explore_gammas_gammas_w_attributes.p')
+gammas_w_attributes.to_pickle('./Data/dump/explore_gammas_gammas_w_attributes.p')
+gammas_w_attributes = pd.read_pickle('./Data/dump/explore_gammas_gammas_w_attributes.p')
 
                                                                                            
 
@@ -404,7 +406,7 @@ mesos = pd.concat([meso_sp, meso_rj, meso_mg], ignore_index=True)
 state_cw.loc[state_cw.uf=='São Paulo']
 
 
-df = pd.read_pickle('../dump/pred_flows_df.p')
+df = pd.read_pickle('./Data/predicting_flows/pred_flows_df.p')
 
 # Calculate share of jid observations for each gamma in each code_meso
 pivot_df = pd.pivot_table(df.loc[df.gamma!=-1], index='code_meso', columns='gamma', aggfunc='size', fill_value=0)
@@ -513,7 +515,7 @@ def plot_mesos(gamma):
     textstr = 'Mean education: {:.2f};                   Rank: {:.2f} \nMean monthly earnings: {:.2f};     Rank: {:.2f} \nMean move distance (km): {:.2f};     Rank: {:.2f}\nSpatial variance (km): {:.2f};          Rank: {:.2f}'.format(educ,educ_rank,earn,earn_rank,dist,dist_rank,var,var_rank)
     fig.text(0.05, 0.08, textstr, ha='left', va='center')
     plt.axis('off')
-    plt.savefig("../results/meso_maps/map_mesos_gamma_"+str(gamma)+".pdf")
+    plt.savefig("./Results/meso_maps/map_mesos_gamma_"+str(gamma)+".pdf")
 
 for g in range(0,1154):
     print(g)

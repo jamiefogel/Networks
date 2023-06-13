@@ -14,7 +14,7 @@ def create_earnings_panel(modelname, appended, firstyear_panel, lastyear_panel, 
     appended['data_adm'] = pd.to_datetime(appended['data_adm'])
     
     # Load CPI data
-    cpi = pd.read_csv('../Data/raw/BRACPIALLMINMEI.csv', parse_dates=['date'], names=['date','cpi'], header=0)
+    cpi = pd.read_csv('./Data/raw/BRACPIALLMINMEI.csv', parse_dates=['date'], names=['date','cpi'], header=0)
     cpi['year'] = cpi['date'].dt.year
     cpi['month'] = cpi['date'].dt.month
     
@@ -59,9 +59,9 @@ def create_earnings_panel(modelname, appended, firstyear_panel, lastyear_panel, 
     ####################################33
     # Merge on worker and job blocks
     
-    model = pickle.load(   open('../Data/derived/sbm_output/model_'+sbm_modelname+'.p', "rb" ) )        
-    job_blocks    = pd.read_csv('../Data/derived/sbm_output/model_'+sbm_modelname+'_jblocks.csv')
-    worker_blocks = pd.read_csv('../Data/derived/sbm_output/model_'+sbm_modelname+'_wblocks.csv', dtype={'wid':str})
+    model = pickle.load(   open('./Data/derived/sbm_output/model_'+sbm_modelname+'.p', "rb" ) )        
+    job_blocks    = pd.read_csv('./Data/derived/sbm_output/model_'+sbm_modelname+'_jblocks.csv')
+    worker_blocks = pd.read_csv('./Data/derived/sbm_output/model_'+sbm_modelname+'_wblocks.csv', dtype={'wid':str})
     
     gammas = job_blocks[['jid']]
     iotas = worker_blocks[['wid']]
@@ -108,13 +108,13 @@ def create_earnings_panel(modelname, appended, firstyear_panel, lastyear_panel, 
     balanced['wid_masked'] = balanced.groupby('wid').grouper.group_info[0]
     balanced['jid_masked'] = balanced.groupby('jid').grouper.group_info[0]
     print('Pickling the BALANCED dataframe')
-    balanced.to_pickle('../Data/derived/panel_'+modelname+'.p')
+    balanced.to_pickle('./Data/derived/panel_'+modelname+'.p')
     print('Exporting each level of the model to CSV')
     for l in range(model.L):
         print('Exporting level ', l)
         gname = 'gamma_level_' + str(l)
         iname = 'iota_level_' + str(l)
-        balanced.rename(columns={iname:'iota',gname:'gamma'}).to_csv('../Data/derived/export/panel_'+modelname+'_level_'+str(l)+'.csv.gz', index=False, compression='gzip', columns = ['wid_masked', 'jid_masked', 'year', 'cbo2002', 'cbo2002_first', 'clas_cnae20', 'clas_cnae20_first', 'sector_IBGE', 'c', 'real_hrly_wage_dec', 'ln_real_hrly_wage_dec', 'yob', 'iota', 'gamma'])
+        balanced.rename(columns={iname:'iota',gname:'gamma'}).to_csv('./Data/derived/export/panel_'+modelname+'_level_'+str(l)+'.csv.gz', index=False, compression='gzip', columns = ['wid_masked', 'jid_masked', 'year', 'cbo2002', 'cbo2002_first', 'clas_cnae20', 'clas_cnae20_first', 'sector_IBGE', 'c', 'real_hrly_wage_dec', 'ln_real_hrly_wage_dec', 'yob', 'iota', 'gamma'])
 
 
 
@@ -156,13 +156,13 @@ def do_everything(firstyear_panel, lastyear_panel, firstyear_sbm, lastyear_sbm, 
         # It's kinda inefficient to pickle the edgelist then load it from pickle but kept this for flexibility
         bipartite_edgelist = appended.loc[(appended['year']>=firstyear_sbm) & (appended['year']<=lastyear_sbm)][['wid','jid']].drop_duplicates(subset=['wid','jid'])
         jid_occ_cw = appended.loc[(appended['year']>=firstyear_sbm) & (appended['year']<=lastyear_sbm)][['jid','cbo2002']].drop_duplicates(subset=['jid','cbo2002'])
-        pickle.dump( bipartite_edgelist,  open('../data/bipartite_edgelist_'+modelname+'.p', "wb" ) )
+        pickle.dump( bipartite_edgelist,  open('./Data/bipartite_edgelist_'+modelname+'.p', "wb" ) )
         model = bisbm.bisbm()                                                                       
-        model.create_graph(filename='../data/bipartite_edgelist_'+modelname+'.p',min_workers_per_job=5)
+        model.create_graph(filename='./Data/bipartite_edgelist_'+modelname+'.p',min_workers_per_job=5)
         model.fit(n_init=1)
         # In theory it makes more sense to save these as pickles than as csvs but I keep getting an error loading the pickle and the csv works fine
-        model.export_blocks(output='../data/model_'+modelname+'_blocks.csv', joutput='../data/model_'+modelname+'_jblocks.csv', woutput='../data/model_'+modelname+'_wblocks.csv')
-        pickle.dump( model, open('../data/model_'+modelname+'.p', "wb" ) )
+        model.export_blocks(output='./Data/model_'+modelname+'_blocks.csv', joutput='./Data/model_'+modelname+'_jblocks.csv', woutput='./Data/model_'+modelname+'_wblocks.csv')
+        pickle.dump( model, open('./Data/model_'+modelname+'.p', "wb" ) )
         
     
         
