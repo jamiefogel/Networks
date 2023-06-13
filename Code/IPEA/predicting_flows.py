@@ -43,26 +43,26 @@ if maxrows!=None:
 # 2004 appears to be the first year in which we have job start end dates (data_adm and data_deslig)
 
 # CPI: 06/2015=100
-cpi = pd.read_csv('../Data/raw/BRACPIALLMINMEI.csv', parse_dates=['date'], names=['date','cpi'], header=0)
+cpi = pd.read_csv('./Data/raw/BRACPIALLMINMEI.csv', parse_dates=['date'], names=['date','cpi'], header=0)
 cpi['cpi'] = cpi.cpi/100
 cpi['date'] = cpi['date'].dt.to_period('M')
 
 ''' Don't need to re-run every time
 # Load original bisbm model
-estimated_sbm = pickle.load( open('../data/model_3states_2013to2016.p', "rb" ))
+estimated_sbm = pickle.load( open('./Data/model_3states_2013to2016.p', "rb" ))
 
 # Load state from mcmc sweeps and create a new bisbm object
-[state_mcmc,i] = pickle.load( open('../data/state_mcmc_iters.p', "rb" ))
+[state_mcmc,i] = pickle.load( open('./Data/state_mcmc_iters.p', "rb" ))
 estimated_sbm_mcmc = copy.deepcopy(estimated_sbm)
 estimated_sbm_mcmc.state = state_mcmc
-estimated_sbm_mcmc.export_blocks(output='../data/model_3states_2013to2016_mcmc_blocks.csv', joutput='../data/model_3states_2013to2016_mcmc_jblocks.csv', woutput='../data/model_3states_2013to2016_mcmc_wblocks.csv')
-pickle.dump( estimated_sbm_mcmc, open('../data/model_3states_2013to2016_mcmc.p', "wb" ), protocol=4 )
+estimated_sbm_mcmc.export_blocks(output='./Data/model_3states_2013to2016_mcmc_blocks.csv', joutput='./Data/model_3states_2013to2016_mcmc_jblocks.csv', woutput='./Data/model_3states_2013to2016_mcmc_wblocks.csv')
+pickle.dump( estimated_sbm_mcmc, open('./Data/model_3states_2013to2016_mcmc.p', "wb" ), protocol=4 )
 '''
 
-estimated_sbm_mcmc = pickle.load( open('../Data/derived/sbm_output/model_3states_2013to2016_mcmc.p', "rb" ) )
-gammas = pd.read_csv('../Data/derived/sbm_output/model_3states_2013to2016_mcmc_jblocks.csv', usecols=['jid','job_blocks_level_0']).rename(columns={'job_blocks_level_0':'gamma'})
+estimated_sbm_mcmc = pickle.load( open('./Data/derived/sbm_output/model_3states_2013to2016_mcmc.p', "rb" ) )
+gammas = pd.read_csv('./Data/derived/sbm_output/model_3states_2013to2016_mcmc_jblocks.csv', usecols=['jid','job_blocks_level_0']).rename(columns={'job_blocks_level_0':'gamma'})
 gammas['gamma'] = gammas.gamma.fillna(-1)
-iotas = pd.read_csv('../Data/derived/sbm_output/model_3states_2013to2016_mcmc_wblocks.csv', usecols=['wid','worker_blocks_level_0'], dtype={'wid': object}).rename(columns={'worker_blocks_level_0':'iota'})
+iotas = pd.read_csv('./Data/derived/sbm_output/model_3states_2013to2016_mcmc_wblocks.csv', usecols=['wid','worker_blocks_level_0'], dtype={'wid': object}).rename(columns={'worker_blocks_level_0':'iota'})
 iotas['iota'] = iotas.iota.fillna(-1)
     
 ########################################################################################
@@ -101,30 +101,30 @@ if run_df==True:
         raw = raw.merge(iotas, on='wid', how='left')
         raw['iota'] = raw.iota.fillna(-1)
         raw = raw.drop(columns=['yob','occ4','tipo_vinculo','idade','codemun','id_estab'])
-        raw.to_pickle('../Data/derived/' + modelname + '_raw_' + str(year) + '.p')
+        raw.to_pickle('./Data/derived/' + modelname + '_raw_' + str(year) + '.p')
         gc.collect()
     
-    raw2013 = pd.read_pickle('../Data/derived/' + modelname + '_raw_2013.p')
-    raw2014 = pd.read_pickle('../Data/derived/' + modelname + '_raw_2014.p')
-    raw2015 = pd.read_pickle('../Data/derived/' + modelname + '_raw_2015.p')
-    raw2016 = pd.read_pickle('../Data/derived/' + modelname + '_raw_2016.p')
-    raw2017 = pd.read_pickle('../Data/derived/' + modelname + '_raw_2017.p')
-    raw2018 = pd.read_pickle('../Data/derived/' + modelname + '_raw_2018.p')
+    raw2013 = pd.read_pickle('./Data/derived/' + modelname + '_raw_2013.p')
+    raw2014 = pd.read_pickle('./Data/derived/' + modelname + '_raw_2014.p')
+    raw2015 = pd.read_pickle('./Data/derived/' + modelname + '_raw_2015.p')
+    raw2016 = pd.read_pickle('./Data/derived/' + modelname + '_raw_2016.p')
+    raw2017 = pd.read_pickle('./Data/derived/' + modelname + '_raw_2017.p')
+    raw2018 = pd.read_pickle('./Data/derived/' + modelname + '_raw_2018.p')
     df = pd.concat([raw2013,raw2014,raw2015,raw2016], axis=0)
     df = df.sort_values(by=['wid','start_date'])
     df['jid_prev'] = df.groupby('wid')['jid'].shift(1)
     df['gamma_prev'] = df.groupby('wid')['gamma'].shift(1)
     df['occ2Xmeso_prev'] = df.groupby('wid')['occ2Xmeso'].shift(1)
-    df.to_pickle('../Data/derived/predicting_flows/' + modelname + '_df.p')
+    df.to_pickle('./Data/derived/predicting_flows/' + modelname + '_df.p')
     
     
     # Restrict to obs with non-missing gammas, occ2Xmesos, jid, and jid_prev.
     # XX should I actually be cutting on non-missing jid_prev? I think I should actually wait to do that until making the unipartite transition matrices below. For the bipartite there is no reason why we need to have observed a previous jid. 
     df_trans = df[(df['gamma'].notnull()) & (df['gamma'] != -1) & (df['gamma'].notnull()) & (df['iota'] != -1) & (df['occ2Xmeso'].notnull()) & (df['jid'].notnull())][['jid','jid_prev','wid','iota','gamma','gamma_prev','occ2Xmeso','occ2Xmeso_prev']]
-    df_trans.to_pickle('../Data/derived/predicting_flows/' + modelname + '_df_trans.p')
+    df_trans.to_pickle('./Data/derived/predicting_flows/' + modelname + '_df_trans.p')
 
 
-df_trans = pd.read_pickle('../Data/derived/predicting_flows/' + modelname + '_df_trans.p')
+df_trans = pd.read_pickle('./Data/derived/predicting_flows/' + modelname + '_df_trans.p')
 
 ########################################################################################
 ########################################################################################
@@ -146,9 +146,9 @@ g_occ2Xmeso = gt.Graph(directed=False)
 # Add Edges
 cond = (df_trans.jid!=df_trans.jid_prev) & (df_trans.jid_prev.notnull()) & (df_trans.gamma_prev.notnull()) & (df_trans.occ2Xmeso_prev.notnull())
 g_gamma_vertices     = g_gamma.add_edge_list(    df_trans.loc[cond][['gamma_prev',    'gamma'    ]].values, hashed=True)
-pickle.dump( g_gamma, open('../Data/derived/predicting_flows/' + modelname + '_g_gamma.p', "wb" ) )
+pickle.dump( g_gamma, open('./Data/derived/predicting_flows/' + modelname + '_g_gamma.p', "wb" ) )
 g_occ2Xmeso_vertices = g_occ2Xmeso.add_edge_list(df_trans.loc[cond][['occ2Xmeso_prev','occ2Xmeso']].values, hashed=True)
-pickle.dump( g_occ2Xmeso, open('../Data/derived/predicting_flows/' + modelname + '_g_occ2Xmeso.p', "wb" ) )
+pickle.dump( g_occ2Xmeso, open('./Data/derived/predicting_flows/' + modelname + '_g_occ2Xmeso.p', "wb" ) )
 
 
 # Just printing the crosswalk between the original vertex IDs (gammas or occ2Xmesos) and the vertex IDs created by graph-tool. This isn't really necessary, just saving it for reference.
@@ -192,8 +192,8 @@ g_iota_occ2Xmeso = gt.Graph(directed=False)
 g_iota_gamma = gt.Graph(directed=False)
 g_iota_occ2Xmeso.add_edge_list(df_trans.drop_duplicates(subset=['wid','jid'])[['iota','occ2Xmeso']].values, hashed=True)
 g_iota_gamma.add_edge_list(df_trans.drop_duplicates(subset=['wid','jid'])[['iota','gamma']].values, hashed=True)
-pickle.dump( g_iota_gamma, open('../Data/derived/predicting_flows/' + modelname + '_g_iota_gamma.p', "wb" ) )
-pickle.dump( g_iota_occ2Xmeso, open('../Data/derived/predicting_flows/' + modelname + '_g_iota_occ2Xmeso.p', "wb" ) )
+pickle.dump( g_iota_gamma, open('./Data/derived/predicting_flows/' + modelname + '_g_iota_gamma.p', "wb" ) )
+pickle.dump( g_iota_occ2Xmeso, open('./Data/derived/predicting_flows/' + modelname + '_g_iota_occ2Xmeso.p', "wb" ) )
 
 
 
@@ -222,7 +222,7 @@ def add_ids_as_property(graph, ids):
     graph.vp["ids"] = id_prop
     return graph, id_prop
 
-pickle.dump( g_jid, open('../Data/derived/predicting_flows/' + modelname + '_g_jid.p', "wb" ) )    
+pickle.dump( g_jid, open('./Data/derived/predicting_flows/' + modelname + '_g_jid.p', "wb" ) )    
     
 jid_cw = pd.DataFrame({'jid':g_jid.vp.jid.get_2d_array([0]).ravel(),'degree':g_jid.degree_property_map('total').a}).reset_index()
 a = df_trans[['jid','gamma','occ2Xmeso']].drop_duplicates(subset=['jid','gamma','occ2Xmeso'])
@@ -243,7 +243,7 @@ for g in g_gamma.vertices():
     gamma[g] = g_gamma_vertices[g]
 
 gamma_cw = pd.DataFrame({'gamma':g_gamma.vp.gamma.get_2d_array([0]).ravel().astype('float'),'cardinality_gamma':g_gamma.degree_property_map('total').a}).reset_index()
-gamma_cw.to_pickle('../Data/derived/predicting_flows/' + modelname + '_gamma_cw.p')
+gamma_cw.to_pickle('./Data/derived/predicting_flows/' + modelname + '_gamma_cw.p')
 
 occ2Xmeso = g_occ2Xmeso.new_vertex_property("string")
 g_occ2Xmeso.vp["occ2Xmeso"] = occ2Xmeso
@@ -251,13 +251,13 @@ for g in g_occ2Xmeso.vertices():
     occ2Xmeso[g] = g_occ2Xmeso_vertices[g]
 
 occ2Xmeso_cw = pd.DataFrame({'occ2Xmeso':g_occ2Xmeso.vp.occ2Xmeso.get_2d_array([0]).ravel(),'cardinality_occ2Xmeso':g_occ2Xmeso.degree_property_map('total').a}).reset_index()
-occ2Xmeso_cw.to_pickle('../Data/derived/predicting_flows/' + modelname + '_occ2Xmeso_cw.p')
+occ2Xmeso_cw.to_pickle('./Data/derived/predicting_flows/' + modelname + '_occ2Xmeso_cw.p')
 
 
 jid_cw = jid_cw.merge(gamma_cw[['gamma','cardinality_gamma']], on='gamma', how='outer', validate='m:1')
 jid_cw = jid_cw.merge(occ2Xmeso_cw[['occ2Xmeso','cardinality_occ2Xmeso']], on='occ2Xmeso', how='outer', validate='m:1')
 jid_cw = jid_cw.sort_values(by='index')
-jid_cw.to_pickle('../Data/derived/predicting_flows/' + modelname + '_jid_cw.p')
+jid_cw.to_pickle('./Data/derived/predicting_flows/' + modelname + '_jid_cw.p')
 
 '''
 # Just checking stuff. I confirmed that the degrees computed by summing rows and columns of the adjacency matrix equal the degrees computed using degree_property_map('total')
@@ -276,8 +276,8 @@ adj[2,:].sum()
 ########################################################################################
 ########################################################################################
 
-raw2017 = pd.read_pickle('../Data/derived/' + modelname + '_raw_2017.p')
-raw2018 = pd.read_pickle('../Data/derived/' + modelname + '_raw_2018.p')
+raw2017 = pd.read_pickle('./Data/derived/' + modelname + '_raw_2017.p')
+raw2018 = pd.read_pickle('./Data/derived/' + modelname + '_raw_2018.p')
 df_1718 = pd.concat([raw2017,raw2018], axis=0)
 df_1718 = df_1718.sort_values(by=['wid','start_date'])
 df_1718['jid_prev'] = df_1718.groupby('wid')['jid'].shift(1)
@@ -288,7 +288,7 @@ edgelist_gt = df_1718.loc[df_1718['jid']!=df_1718['jid_prev']][['jid','jid_prev'
 g_gt = gt.Graph(directed=False)
 # Add Edges
 ids = g_gt.add_edge_list(edgelist_gt.values, hashed=True)
-pickle.dump( g_gt, open('../Data/derived/predicting_flows/' + modelname + '_g_gt.p', "wb" ) )
+pickle.dump( g_gt, open('./Data/derived/predicting_flows/' + modelname + '_g_gt.p', "wb" ) )
 
 
 
@@ -341,12 +341,12 @@ edgelist_grouped['jid_code'] = edgelist_grouped['jid'].cat.codes
 edgelist_sparse = sp.coo_matrix((edgelist_grouped['count'].values, (edgelist_grouped['jid_prev_code'].values, edgelist_grouped['jid_code'].values)))
 # XX Need to save a crsswalk of jid and jid_code and ensure we have the rows and columns in the correct order
 
-pickle.dump(edgelist_sparse, open('../Data/derived/predicting_flows/' + modelname + '_edgelist_sparse.p', "wb" ) )
+pickle.dump(edgelist_sparse, open('./Data/derived/predicting_flows/' + modelname + '_edgelist_sparse.p', "wb" ) )
 
 # convert to csr format if necessary
 edgelist_sparse = edgelist_sparse.tocsr()
 
-pickle.dump(edgelist_sparse, open('../Data/derived/predicting_flows/' + modelname + '_edgelist_sparse_csr.p', "wb" ) )
+pickle.dump(edgelist_sparse, open('./Data/derived/predicting_flows/' + modelname + '_edgelist_sparse_csr.p', "wb" ) )
 
 # sample_graph is how we draw a new network
 # Next steps: generate the probabilities from which we generate networks.
