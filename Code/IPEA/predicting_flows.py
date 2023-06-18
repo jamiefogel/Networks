@@ -32,8 +32,8 @@ muni_meso_cw = pd.DataFrame({'code_meso':region_codes.code_meso,'codemun':region
 firstyear = 2013
 lastyear = 2018
 
-maxrows = 100000
-#maxrows=None
+#maxrows = 100000
+maxrows=None
 
 #modelname='junk'
 modelname = 'pred_flows'

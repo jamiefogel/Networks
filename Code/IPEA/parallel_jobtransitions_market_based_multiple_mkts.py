@@ -1,3 +1,14 @@
+'''
+Inputs: 
+    - pred_flows_g_gamma.p        g->g adjacency matrix (1155x1155)
+    - pred_flows_g_occ2Xmeso.p    o->o adjacency matrix (1508x1508) 
+    - pred_flows_g_jid.p          j->j adjacency matrix (3456611x3456611)
+    - pred_flows_gamma_cw.p
+    - pred_flows_occ2Xmeso_cw.p
+    - pred_flows_jid_cw.p
+
+'''
+
 from datetime import datetime
 import pickle
 import pandas as pd

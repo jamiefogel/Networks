@@ -37,7 +37,8 @@ for i in [1,2]:
     combined_df['diff_l'+str(i)] = combined_df['l'+str(i)+'_g'] - combined_df['l'+str(i)+'_o']
 
     print('Summary stats for difference between Gamma and Occ2XMeso prediction errors, L'+str(i)+' norm')
-    combined_df['diff_l'+str(i)].describe() 
+    summary_stats = combined_df['diff_l'+str(i)].describe()
+    print(summary_stats)
 
 
     # Drop the 10, 100,and 1000 largest and smallest obs to see if findings are skewed by outlier
