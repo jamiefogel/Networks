@@ -372,3 +372,61 @@ for v, bipartite_label in enumerate(part):
 g_projected = gt.Graph(gt.GraphView(g_temp, vfilt=part.a==1), prune=True)
 
 gt.graph_draw(g_projected)
+
+
+
+
+
+
+
+##########################
+# Trying to compute the iota-gamma probability matrix for predicting flows (6/26/2023)
+
+block_probs = estimated_sbm_mcmc.state.get_levels()[1].get_matrix().toarray()
+
+# Everything below this is just sanity checks to ensure that the code is doing what we think it's doing
+
+
+# Summing all elements in block_probs gives the number of edges in the bipartite matrix times 2. 
+print(block_probs.sum())
+print(estimated_sbm_mcmc.g.num_edges()*2)
+
+np.savetxt('./Data/derived/dump/block_probs.csv', block_probs, delimiter=',')
+
+# Why are there 2006 non-empty blocks at level 0 but only 2004 at level 1? Should I be using level 0 or level 1 for getting the adjacency matrix?
+estimated_sbm_mcmc.state.get_levels()[0].get_B()
+estimated_sbm_mcmc.state.get_levels()[0].get_nonempty_B()
+
+estimated_sbm_mcmc.state.get_levels()[1].get_B()
+estimated_sbm_mcmc.state.get_levels()[1].get_nonempty_B()
+
+estimated_sbm_mcmc.g.num_edges()
+estimated_sbm_mcmc.num_job_blocks[0]
+estimated_sbm_mcmc.num_worker_blocks[0]
+block_probs[0:1155,0:1155].sum()
+block_probs[1155:2006,0:1155].sum()
+block_probs[0:1155,1155:2006].sum()
+block_probs[1155:2006,1155:2006].sum()
+
+
+
+estimated_sbm_mcmc.state.get_levels()[0].get_bg()
+estimated_sbm_mcmc.state.get_levels()[0].get_ers().a
+
+
+# This works. It creates a 2006x2006 matrix where 2006=G+I (G=1154, I=852). Each element is the number of matches for the corresponding iota-gamma pair. 
+block_edge_counts_big = estimated_sbm_mcmc.state.get_levels()[0].get_matrix()
+# Find the row indices that contain at least one non-zero element
+nonzero_rows = block_edge_counts_big.getnnz(axis=1).nonzero()[0]
+# Find the column indices that contain at least one non-zero element
+nonzero_columns = block_edge_counts_big.getnnz(axis=0).nonzero()[0]
+# Extract the non-zero rows and columns
+block_edge_counts = block_edge_counts_big[nonzero_rows][:, nonzero_columns].toarray()
+
+print(block_edge_counts)
+
+# Just confirming stuff
+block_edge_counts[0:1154,0:1154].sum()
+block_edge_counts[1154:2006,0:1155].sum()
+block_edge_counts[0:1154,1154:2006].sum()
+block_edge_counts[1154:2006,1154:2006].sum()
