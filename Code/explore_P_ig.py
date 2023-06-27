@@ -47,3 +47,21 @@ nonzero_rows = np.nonzero(np.any(a_big, axis=1))[0]
 nonzero_columns = np.nonzero(np.any(a_big, axis=0))[0]
 a = a_big[nonzero_rows][:, nonzero_columns]
 print(a)
+
+
+import scipy.sparse as sp
+
+# Create a sparse CSR matrix
+matrix = sp.csr_matrix([[1, 0, 0],
+                        [0, 0, 0],
+                        [0, 0, 1]])
+
+
+a_big = state.get_levels()[0].get_matrix()
+# Find the row indices that contain at least one non-zero element
+nonzero_rows = a_big.getnnz(axis=1).nonzero()[0]
+# Find the column indices that contain at least one non-zero element
+nonzero_columns = a_big.getnnz(axis=0).nonzero()[0]
+# Extract the non-zero rows and columns
+result = a_big[nonzero_rows][:, nonzero_columns]
+print(result.toarray())
