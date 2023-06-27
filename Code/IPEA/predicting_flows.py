@@ -427,6 +427,43 @@ print(block_edge_counts)
 
 # Just confirming stuff
 block_edge_counts[0:1154,0:1154].sum()
-block_edge_counts[1154:2006,0:1155].sum()
+block_edge_counts[1154:2006,0:1154].sum()
 block_edge_counts[0:1154,1154:2006].sum()
 block_edge_counts[1154:2006,1154:2006].sum()
+
+
+np.array_equal(block_edge_counts, block_edge_counts.T)
+
+# Take the row sums, reshape them to be a column vector using [:, np.newaxis], and then divide each row by the row sum to convert the counts into probabilities. 
+P_ig = block_edge_counts / block_edge_counts.sum(axis=1)[:, np.newaxis]
+
+
+
+P_ig[0:1154,0:1154].sum()      
+P_ig[1154:2006,0:1154].sum()   
+P_ig[0:1154,1154:2006].sum()   
+P_ig[1154:2006,1154:2006].sum()
+
+
+######################################
+# XX This is what I need to save and incorprate into the main code base
+
+####
+# Creating a IxG matrix
+I = estimated_sbm_mcmc.num_worker_blocks[0]
+G = estimated_sbm_mcmc.num_job_blocks[0]
+
+block_edge_counts_big = estimated_sbm_mcmc.state.get_levels()[0].get_matrix()
+# Find the row indices that contain at least one non-zero element
+nonzero_rows = block_edge_counts_big.getnnz(axis=1).nonzero()[0]
+# Find the column indices that contain at least one non-zero element
+nonzero_columns = block_edge_counts_big.getnnz(axis=0).nonzero()[0]
+# Extract the non-zero rows and columns
+block_edge_counts = block_edge_counts_big[nonzero_rows][:, nonzero_columns].toarray()[G:I+G,0:G]
+
+
+# Take the row sums, reshape them to be a column vector using [:, np.newaxis], and then divide each row by the row sum to convert the counts into probabilities. 
+P_ig = block_edge_counts / block_edge_counts.sum(axis=1)[:, np.newaxis]
+
+P_ig.sum()
+P_ig.sum(axis=1)
