@@ -453,17 +453,41 @@ P_ig[1154:2006,1154:2006].sum()
 I = estimated_sbm_mcmc.num_worker_blocks[0]
 G = estimated_sbm_mcmc.num_job_blocks[0]
 
-block_edge_counts_big = estimated_sbm_mcmc.state.get_levels()[0].get_matrix()
+# this matrix will have one row and column for each node in the bipartite network, but most rows/columns will be empty. The next step is to extract only the non-empty rows and columns. The result will be of size (I+G)x(I+G)
+A_ig_big = estimated_sbm_mcmc.state.get_levels()[0].get_matrix()
 # Find the row indices that contain at least one non-zero element
-nonzero_rows = block_edge_counts_big.getnnz(axis=1).nonzero()[0]
+nonzero_rows = A_ig_big.getnnz(axis=1).nonzero()[0]
 # Find the column indices that contain at least one non-zero element
-nonzero_columns = block_edge_counts_big.getnnz(axis=0).nonzero()[0]
-# Extract the non-zero rows and columns
-block_edge_counts = block_edge_counts_big[nonzero_rows][:, nonzero_columns].toarray()[G:I+G,0:G]
+nonzero_columns = A_ig_big.getnnz(axis=0).nonzero()[0]
+# Extract the non-zero rows and columns and then extract the lower left block.
+# - The upper left and lower right are all 0s
+# - The upper right is the transpose of the lower left and thus redundant. 
+A_ig = A_ig_big[nonzero_rows][:, nonzero_columns].toarray()[G:I+G,0:G]
 
 
 # Take the row sums, reshape them to be a column vector using [:, np.newaxis], and then divide each row by the row sum to convert the counts into probabilities. 
-P_ig = block_edge_counts / block_edge_counts.sum(axis=1)[:, np.newaxis]
+d_i = A_ig.sum(axis=1)[:, np.newaxis]
+d_g = A_ig.sum(axis=0)[np.newaxis, :]
+P_ig = (A_ig/ d_i) / d_g
+
+# This produces the same value as the other version above
+d_iXd_g = np.outer(d_i,d_g)
+P_ig = (A_ig/d_iXd_g)
+
+# d_iXd_g sums to the total number of edges squared (also equal to the sum of the iota or gamma degrees squared)
+d_iXd_g.sum() == d_i.sum()**2
+d_iXd_g.sum() == d_g.sum()**2
 
 P_ig.sum()
 P_ig.sum(axis=1)
+
+
+
+# XX Current status of this code: I have computed an object I call P_ig that has dimensions (IxG). I'm not entirely confident that it is the right object. Need to discuss further. The next step is to comput sum_\iota P_ig P_ig' (d_iota - n_iota)
+
+
+workers = estimated_sbm_mcmc.edgelist_w_blocks[['wid','worker_blocks_level_0']].drop_duplicates()
+n_i = workers.groupby(['worker_blocks_level_0']).size()[:,np.newaxis]
+d_minus_n = np.squeeze(d_i) - n_i
+
+P_gg = 2 * np.transpose(P_ig) @ np.diag(d_minus_n) @ P_ig
