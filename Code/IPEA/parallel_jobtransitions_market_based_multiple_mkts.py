@@ -61,6 +61,7 @@ ajid = objects[2]
 
 
 # CROSS-WALKS
+#   - The term "crosswalk" probably isn't the best we could have used.
 # Loading important information to compute transition probabilities
 # It basically has the gamma/occ2-meso/job-id cardinalities
 cmkts = {'g': pickle.load(open('pred_flows_gamma_cw.p', 'rb')), 'o': pickle.load(open('pred_flows_occ2Xmeso_cw.p', 'rb'))}
@@ -150,6 +151,7 @@ def prediction_error(j,cjid, c_mkt, ajid, a_mkt, D_insample,D_outsample,J,mkt):
    
     # XXBM: EFFICIENCY IMPROVEMENT: sort obs per market and/or do the merge below only if the gamma for the previous job is different than the gamma for the current job
     # merge a vector of length J (total number of jobs) in which each element is the number of transitions between gamma_j (current job j's gamma) to gamma_j' (all other jobs' gammas) to the job dataset
+    # XXJSF: looks like we are creating a new column called cjid['mm_count_temp'+m], then immediately dropping it, then merging it back on. Why not delete the line cjid['mm_count_temp'+m] = np.NaN and create the column in the merge on the next line?
     cjid['mm_count_temp'+m] = np.NaN
     cjid = cjid.drop(['mm_count_temp'+m], axis=1).reset_index().merge(c_mkt[['mm_count_temp'+m,mkt]], left_on=mkt, right_on=mkt).set_index('idx')
    
@@ -159,7 +161,7 @@ def prediction_error(j,cjid, c_mkt, ajid, a_mkt, D_insample,D_outsample,J,mkt):
     # for each job j, we will have a vector of length j with the # of transitions expected from job j to all other jobs
     cjid['pred_prob'] = (cjid['mm_count_temp'+m] / D_insample) * cjid['djd'+m] * cjid['djd'+m][j]
    
-    # CORRECTION TO DISTRITUBE SELF-EDGE PROBABILITIES
+    # CORRECTION TO DISTRIBUTE SELF-EDGE PROBABILITIES
         # OUTSTANDING PROBLEM: This piece in the denominator increases exponentially for some market 2**(np.sum(cjid['gamma']==g)-1). However, python assigns very large numbers to zero, when it can't compute it.
         # CURRENT SOLUTION: using an if statement using the condition (2**(np.sum(cjid['gamma']==g)-1) == 0), and if that is true, hardcode the highest possible integer for
         # according to the formula we are using, we would predict a non-zero transition from a job to itself, which is not matched in the real job to job transition matrix ajid
@@ -181,6 +183,7 @@ def prediction_error(j,cjid, c_mkt, ajid, a_mkt, D_insample,D_outsample,J,mkt):
     error2 = np.sum(np.square((pred.sort_index()*D_outsample).values - ajid.getrow(j)))
     
     return([error1, error2])
+
 
 
 ###################################
