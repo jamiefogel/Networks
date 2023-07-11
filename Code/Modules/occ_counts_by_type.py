@@ -13,19 +13,22 @@ def occ_counts_by_type(data, occ_codes_file, level, w_output=None, j_output=None
     #data refers to the data set called 'balanced' in functions.py
     # Read in translated occupation codes
     cw = pd.read_csv(occ_codes_file)
-    
+
     if isinstance(data, str):  # If data is a file path
         try:
-            data = pd.read_csv(data)  # Load the CSV file into a DataFrame
+            df = pd.read_csv(data)  # Load the CSV file into a DataFrame
         except FileNotFoundError:
             print("File not found. Please provide a valid file path.")
             return
+        except FileNotFoundError:
+            print("File not found. Please provide a valid file path.")
+            return
+    elif isinstance(data, pd.DataFrame):
+        df = data
     elif not isinstance(data, pd.DataFrame):  # If data is not a DataFrame
         print("Invalid argument. Please provide a DataFrame or a file path.")
-        return
+        return    
 
-    
-    
     wblock_var = 'iota'
     jblock_var = 'gamma'
       
