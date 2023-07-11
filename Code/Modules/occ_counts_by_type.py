@@ -20,9 +20,6 @@ def occ_counts_by_type(data, occ_codes_file, level, w_output=None, j_output=None
         except FileNotFoundError:
             print("File not found. Please provide a valid file path.")
             return
-        except FileNotFoundError:
-            print("File not found. Please provide a valid file path.")
-            return
     elif isinstance(data, pd.DataFrame):
         df = data
     elif not isinstance(data, pd.DataFrame):  # If data is not a DataFrame
