@@ -3,6 +3,7 @@ import pickle
 import pandas as pd
 import numpy as np
 import os
+import sys
 import gc
 import matplotlib.pyplot as plt
 import scipy.stats as stats
@@ -13,14 +14,15 @@ from haversine import haversine, Unit
 from shapely.geometry import MultiPoint
 from scipy.stats import mstats
 
-import bisbm
-from pull_one_year import pull_one_year
-
 
 homedir = os.path.expanduser('~')
 root = homedir + '/labormkt/labormkt_rafaelpereira/NetworksGit/'
 sys.path.append(root + 'Code/Modules')
 os.chdir(root)
+
+import bisbm
+from pull_one_year import pull_one_year
+
 
 
 state_codes = [31, 33, 35]
@@ -81,6 +83,10 @@ raw2016['sector_IBGE'].loc[(90<=raw2016['ind2']) & (raw2016['ind2'] <=97)] = 15
 
 # Recode education variable to approximately reflect years of schooling
 raw2016['grau_instr'] = raw2016['grau_instr'].replace({1:1, 2:3, 3:5, 4:7, 5:9, 6:10, 7:12, 8:14, 9:16, 10:18, 11:21})
+
+
+
+
 ######################################
 # Compute HHIs
                            
@@ -137,7 +143,7 @@ def corr_plots(var1,var2):
     ax.annotate("Correlation = {:.2f}".format(corr), xy=(0.05, 0.95), xycoords='axes fraction')
     ax.set_xlabel(var1)            
     ax.set_ylabel(var2)
-    plt.savefig('hhi_scatterplot_' + var1 + '_' + var2 +' .pdf', format='pdf')
+    plt.savefig('./Results/hhi_scatterplot_' + var1 + '_' + var2 +' .pdf', format='pdf')
     plt.close()
 
 
@@ -210,8 +216,8 @@ gamma_attributes = gamma_attributes.groupby(['wid','jid']).agg({'grau_instr':'ma
 
 
 
-gamma_hhis('occ4','codemun')
-gamma_hhis('occ2','code_meso')        
+gamma_hhi('occ4','codemun')
+gamma_hhi('occ2','code_meso')        
 
 #XX show the correlations of these things with education average education in the gamma. Maybe age. Or color code it by modal occ2 or industry to see if specific industries/occupations tend to be in partcular areas. OR color code by average education. 
 
@@ -233,8 +239,7 @@ plt.close()
 # - High education workers are concentrated workers are concentrated in occupations and are concentrated in specific municipalities, even though these municipalities may be geographically dispersed. The problem is the HHI won't capture the geographic dispersion.
 # - 
 
-
-df = pd.read_pickle('../dump/' + modelname + '_df.p')
+df = pd.read_pickle('./Data/derived/predicting_flows/pred_flows_df.p')
 pivot = pd.pivot_table(df,  values='wid', index='gamma', columns='uf', aggfunc='count', fill_value=0).reset_index()
 
 # Counting modal states for each gamma
@@ -255,7 +260,7 @@ pivot.idxmax(axis=1).value_counts()/pivot.idxmax(axis=1).value_counts().sum()
 
 
 # Population shares by state
-a=pivot.loc[pivot.gamma!=-1][['31','33','35']].sum()/pivot.loc[pivot.gamma!=-1][['31','33','35']].sum().sum()
+a=pivot.loc[pivot.gamma!=-1][['MG','RJ','SP']].sum()/pivot.loc[pivot.gamma!=-1][['MG','RJ','SP']].sum().sum()
 '''
 uf
 31    0.187040
@@ -320,11 +325,6 @@ gammas_w_attributes = gammas_w_attributes.merge(distance_stats, left_on='gamma',
 #############################################################################################
 # Gamma spatial variances
 
-raw2016[['jid','gamma']].merge(jid_muni, left_on='jid', right_on='jid', validate='m:1', indicator='_merge')
-
-
-
-
 pd.set_option('display.max_columns', None)
 pd.set_option('display.width', 200)
 pd.set_option('display.precision', 3)
@@ -381,8 +381,8 @@ gammas_w_attributes['spatial_var_km_rank'] = gammas_w_attributes['spatial_var_km
 gammas_w_attributes['dist_mean_rank'] = gammas_w_attributes['dist_mean'].rank(method='dense', pct=True)
 
 
-gammas_w_attributes.to_pickle('./Data/dump/explore_gammas_gammas_w_attributes.p')
-gammas_w_attributes = pd.read_pickle('./Data/dump/explore_gammas_gammas_w_attributes.p')
+gammas_w_attributes.to_pickle('./Data/derived/explore_gammas_gammas_w_attributes.p')
+gammas_w_attributes = pd.read_pickle('./Data/derived/explore_gammas_gammas_w_attributes.p')
 
                                                                                            
 
@@ -405,8 +405,8 @@ mesos = pd.concat([meso_sp, meso_rj, meso_mg], ignore_index=True)
 
 state_cw.loc[state_cw.uf=='São Paulo']
 
-
-df = pd.read_pickle('./Data/predicting_flows/pred_flows_df.p')
+# XX I think this is unnecessary b/c already loaded df above
+df = pd.read_pickle('./Data/derived/predicting_flows/pred_flows_df.p')
 
 # Calculate share of jid observations for each gamma in each code_meso
 pivot_df = pd.pivot_table(df.loc[df.gamma!=-1], index='code_meso', columns='gamma', aggfunc='size', fill_value=0)
@@ -431,15 +431,15 @@ meso_share_norm_df = mesos.merge(meso_share_norm_df, how="left", on="code_meso")
 from occ_counts_by_type import occ_counts_by_type
 [iota_dict, gamma_dict] = occ_counts_by_type(df, 0, modelname)
 
-pickle.dump( iota_dict,          open('../dump/' + modelname + '_iota_dict.p', "wb" ) )
-pickle.dump( gamma_dict,         open('../dump/' + modelname + '_gamma_dict.p', "wb" ) )
-pickle.dump( meso_share_df,      open('../dump/' + modelname + '_meso_share_df.p', "wb" ) )
-pickle.dump( meso_share_norm_df, open('../dump/' + modelname + '_meso_share_norm_df.p', "wb" ) )
+pickle.dump( iota_dict,          open('./Data/derived/dump/' + modelname + '_iota_dict.p', "wb" ) )
+pickle.dump( gamma_dict,         open('./Data/derived/dump/' + modelname + '_gamma_dict.p', "wb" ) )
+pickle.dump( meso_share_df,      open('./Data/derived/dump/' + modelname + '_meso_share_df.p', "wb" ) )
+pickle.dump( meso_share_norm_df, open('./Data/derived/dump/' + modelname + '_meso_share_norm_df.p', "wb" ) )
 
-iota_dict=         pickle.load(  open('../dump/' + modelname + '_iota_dict.p', "rb" ) )
-gamma_dict=        pickle.load(  open('../dump/' + modelname + '_gamma_dict.p', "rb" ) )
-meso_share_df=     pickle.load(  open('../dump/' + modelname + '_meso_share_df.p', "rb" ) )
-meso_share_norm_df=pickle.load(  open('../dump/' + modelname + '_meso_share_norm_df.p', "rb" ) )
+iota_dict=         pickle.load(  open('./Data/derived/dump/' + modelname + '_iota_dict.p', "rb" ) )
+gamma_dict=        pickle.load(  open('./Data/derived/dump/' + modelname + '_gamma_dict.p', "rb" ) )
+meso_share_df=     pickle.load(  open('./Data/derived/dump/' + modelname + '_meso_share_df.p', "rb" ) )
+meso_share_norm_df=pickle.load(  open('./Data/derived/dump/' + modelname + '_meso_share_norm_df.p', "rb" ) )
 
 
 
