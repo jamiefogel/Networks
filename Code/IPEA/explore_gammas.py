@@ -22,7 +22,7 @@ os.chdir(root)
 
 import bisbm
 from pull_one_year import pull_one_year
-from explore_gammas_functions import all
+from explore_gammas_functions import *
 
 
 state_codes = [31, 33, 35]
@@ -375,9 +375,6 @@ mesos = pd.concat([meso_sp, meso_rj, meso_mg], ignore_index=True)
 
 state_cw.loc[state_cw.uf=='São Paulo']
 
-# XX I think this is unnecessary b/c already loaded df above
-df = pd.read_pickle('./Data/derived/predicting_flows/pred_flows_df.p')
-
 # Calculate share of jid observations for each gamma in each code_meso
 pivot_df = pd.pivot_table(df.loc[df.gamma!=-1], index='code_meso', columns='gamma', aggfunc='size', fill_value=0)
 meso_share_df = pivot_df.apply(lambda x: x/x.sum(), axis=0).reset_index()
@@ -399,7 +396,7 @@ meso_share_norm_df = mesos.merge(meso_share_norm_df, how="left", on="code_meso")
 
 
 from occ_counts_by_type import occ_counts_by_type
-[iota_dict, gamma_dict] = occ_counts_by_type(df, 0, modelname)
+[iota_dict, gamma_dict] = occ_counts_by_type(df, root + 'Data/raw/translated_occ_codes_english_only.csv', 0)
 
 pickle.dump( iota_dict,          open('./Data/derived/dump/' + modelname + '_iota_dict.p', "wb" ) )
 pickle.dump( gamma_dict,         open('./Data/derived/dump/' + modelname + '_gamma_dict.p', "wb" ) )

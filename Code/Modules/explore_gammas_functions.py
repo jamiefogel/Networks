@@ -5,6 +5,22 @@ Created on Tue Jul 11 15:55:54 2023
 
 @author: jsf656
 """
+from datetime import datetime
+import pickle
+import pandas as pd
+import numpy as np
+import os
+import sys
+import gc
+import matplotlib.pyplot as plt
+import scipy.stats as stats
+import geobr
+import cividis
+import matplotlib.colors as colors
+from haversine import haversine, Unit
+from shapely.geometry import MultiPoint
+from scipy.stats import mstats
+
 
                            
 def gamma_hhi(gamma,var):
@@ -93,7 +109,12 @@ def plot_mesos(gamma):
     fig.tight_layout(pad=0)
     # Print gamma stats at the bottom
     [educ,earn,dist,var,educ_rank,earn_rank,dist_rank,var_rank] = gammas_w_attributes.loc[gammas_w_attributes.gamma==gamma][['educ_mean','mean_monthly_earnings','dist_mean','spatial_var_km','educ_mean_rank','mean_monthly_earnings_rank','dist_mean_rank','spatial_var_km_rank']].values.tolist()[0]
-    textstr = 'Mean education: {:.2f};                   Rank: {:.2f} \nMean monthly earnings: {:.2f};     Rank: {:.2f} \nMean move distance (km): {:.2f};     Rank: {:.2f}\nSpatial variance (km): {:.2f};          Rank: {:.2f}'.format(educ,educ_rank,earn,earn_rank,dist,dist_rank,var,var_rank)
-    fig.text(0.05, 0.08, textstr, ha='left', va='center')
+    textstr1 = 'Mean education: {:.2f};                   Rank: {:.2f} \nMean monthly earnings: {:.2f};     Rank: {:.2f} \nMean move distance (km): {:.2f};     Rank: {:.2f}\nSpatial variance (km): {:.2f};          Rank: {:.2f}'.format(educ,educ_rank,earn,earn_rank,dist,dist_rank,var,var_rank)
+    fig.text(0.05, 0.08, textstr1, ha='left', va='center')
+    [hhi_jid,num_unique_jids,num_unique_wids,num_unique_wid_jids] = gammas_w_attributes.loc[gammas_w_attributes.gamma==gamma][['hhi_jid','num_unique_jids','num_unique_wids','num_unique_wid_jids']].values.tolist()[0]
+    textstr2 = 'HHI of jids within gamma: {:.3f} \nNumber of Unique Jobs: {:.0f} \nNumber of Unique Workers: {:.0f}\nNumber of Unique Worker-Job Pairs: {:.0f}'.format(hhi_jid,num_unique_jids,num_unique_wids,num_unique_wid_jids)
+    fig.text(0.7, 0.08, textstr2, ha='left', va='center')
     plt.axis('off')
     plt.savefig("./Results/meso_maps/map_mesos_gamma_"+str(gamma)+".pdf")
+
+ 
