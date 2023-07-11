@@ -22,7 +22,7 @@ os.chdir(root)
 
 import bisbm
 from pull_one_year import pull_one_year
-
+from explore_gammas_functions import all
 
 
 state_codes = [31, 33, 35]
@@ -89,15 +89,7 @@ raw2016['grau_instr'] = raw2016['grau_instr'].replace({1:1, 2:3, 3:5, 4:7, 5:9, 
 
 ######################################
 # Compute HHIs
-                           
-def gamma_hhi(gamma,var):
-    hhis = {}
-    gv_counts = raw2016.groupby([gamma,var])[gamma].count().reset_index(name='gv_count')
-    g_counts  = raw2016.groupby([gamma])[gamma].count().reset_index(name='g_count')
-    gv_counts = gv_counts.merge(g_counts, on=gamma, validate='m:1')
-    gv_counts['gv_share_sq'] = (gv_counts.gv_count/gv_counts.g_count).pow(2)
-    hhi = gv_counts.groupby(gamma)['gv_share_sq'].sum().reset_index(name='hhi_'+var)
-    return hhi
+
 
 hhi_occ4 = gamma_hhi('gamma','occ4')
 hhi_occ2 = gamma_hhi('gamma','occ2')
@@ -127,24 +119,6 @@ gammas_w_attributes = gammas_w_attributes.merge(num_unique_jids, on='gamma', val
 gammas_w_attributes = gammas_w_attributes.merge(num_unique_wids, on='gamma', validate='1:1')
 gammas_w_attributes = gammas_w_attributes.merge(num_unique_wid_jids, on='gamma', validate='1:1')
 
-
-
-
-
-
-
-
-def corr_plots(var1,var2):
-    # Create the scatter plot
-    corr = np.corrcoef(gammas_w_attributes[var1], gammas_w_attributes[var2])[0][1]
-    print('Correlation: ', round(corr,3))
-    fig, ax = plt.subplots()
-    ax.scatter(gammas_w_attributes[var1], gammas_w_attributes[var2], s=5)
-    ax.annotate("Correlation = {:.2f}".format(corr), xy=(0.05, 0.95), xycoords='axes fraction')
-    ax.set_xlabel(var1)            
-    ax.set_ylabel(var2)
-    plt.savefig('./Results/hhi_scatterplot_' + var1 + '_' + var2 +' .pdf', format='pdf')
-    plt.close()
 
 
 corr_plots('hhi_codemun','hhi_occ4')
@@ -366,10 +340,6 @@ def compute_centroid(row):
 jid_spatial_dist['centroid'] = jid_spatial_dist.groupby('gamma').transform(compute_centroid)
 '''
 
-def compute_distance(row):
-    coords_1 = (row['lat'], row['lon'])
-    coords_2 = (row['mean_lat'], row['mean_lon'])
-    return haversine(coords_1, coords_2)
 
 jid_spatial_dist['distance'] = jid_spatial_dist.apply(compute_distance, axis=1)
 spatial_var_km = jid_spatial_dist.groupby('gamma')['distance'].mean().reset_index().rename(columns={'distance':'spatial_var_km'})
@@ -453,69 +423,6 @@ winsorized_col = mstats.winsorize(df["col"], limits=[0.01, 0.01])
 # Replace the "col" column in the original dataframe with the winsorized values
 df["col"] = winsorized_col
 '''
-
-
-##########################
-# With normalized shares
-def plot_mesos(gamma):
-    plt.rcParams.update({"font.size": 7})
-    # Plot the raw shares
-    fig1, ax1 = plt.subplots(figsize=(4, 4), dpi=200)
-    meso_share_df.plot(
-        column=gamma,
-        cmap="cividis",
-        legend=True,
-        legend_kwds={
-            "label": "Fraction of Gamma "+str(gamma)+" jobs in each meso region",
-            "orientation": "horizontal",
-            "shrink": 0.6,
-        },
-        ax=ax1,
-    )
-    # Plot the normalized shares
-    meso_share_norm_df_winsor = meso_share_norm_df[['code_meso','name_meso','geometry']]
-    meso_share_norm_df_winsor[gamma] = meso_share_norm_df[gamma].clip(lower=0.1, upper=10.0)
-    fig2, ax2 = plt.subplots(figsize=(4, 4), dpi=200)
-    meso_share_norm_df_winsor.plot(
-        column=gamma,
-        cmap="cividis",
-        norm=colors.LogNorm(vmin=0.1, vmax=10),
-        legend=True,
-        legend_kwds={
-            "label": "Fraction of Gamma "+str(gamma)+" jobs in each meso region \n divided by meso population share.\n Large and small shares recoded to 10 and 0.1, respectively.",
-            "orientation": "horizontal",
-            "shrink": 0.6,
-        },
-        ax=ax2,
-    )
-    # Combine the three figures into a single plot
-    fig, axs = plt.subplots(1, 3, figsize=(8, 4))
-    fig.suptitle('Gamma = '+str(gamma),fontsize=12)
-    # Add the first figure to the left side of the plot
-    axs[0].axis('off')
-    axs[0].imshow(fig1.canvas.renderer.buffer_rgba())
-    # Add the second figure to the middle of the plot
-    axs[1].axis('off')
-    axs[1].imshow(fig2.canvas.renderer.buffer_rgba())
-    # Add the third figure to the right side of the plot
-    occ_df = gamma_dict[gamma][['description','share']].head(10)
-    occ_df['share'] = occ_df.share.round(3)
-    occ_df.rename(columns={'description':'Occupation','share':'Share'},inplace=True)
-    axs[2].axis('off')
-    table = axs[2].table(cellText=occ_df.values, colLabels=occ_df.columns, loc='center', colWidths=[.8,.15])
-    table.auto_set_font_size(False)
-    table.set_fontsize(7)
-    axs[0].set_title('Spatial Distribution', fontsize=10)
-    axs[1].set_title('Spatial Distribution (Normalized)', fontsize=10)
-    axs[2].set_title('10 Most-Frequent Occupations', fontsize=10)
-    # remove the padding between subplots
-    fig.tight_layout(pad=0)
-    # Print gamma stats at the bottom
-    [educ,earn,dist,var,educ_rank,earn_rank,dist_rank,var_rank] = gammas_w_attributes.loc[gammas_w_attributes.gamma==gamma][['educ_mean','mean_monthly_earnings','dist_mean','spatial_var_km','educ_mean_rank','mean_monthly_earnings_rank','dist_mean_rank','spatial_var_km_rank']].values.tolist()[0]
-    textstr = 'Mean education: {:.2f};                   Rank: {:.2f} \nMean monthly earnings: {:.2f};     Rank: {:.2f} \nMean move distance (km): {:.2f};     Rank: {:.2f}\nSpatial variance (km): {:.2f};          Rank: {:.2f}'.format(educ,educ_rank,earn,earn_rank,dist,dist_rank,var,var_rank)
-    fig.text(0.05, 0.08, textstr, ha='left', va='center')
-    plt.axis('off')
-    plt.savefig("./Results/meso_maps/map_mesos_gamma_"+str(gamma)+".pdf")
 
 for g in range(0,1154):
     print(g)
