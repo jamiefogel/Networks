@@ -399,5 +399,5 @@ df["col"] = winsorized_col
 
 for g in range(0,1154):
     print(g)
-    plot_mesos(g)
+    plot_mesos(g, gammas_w_attributes, meso_share_df, meso_share_norm_df, gamma_dict)
 
