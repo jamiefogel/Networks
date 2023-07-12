@@ -41,9 +41,9 @@ def corr_plots(var1,var2):
     fig, ax = plt.subplots()
     ax.scatter(var1, var2, s=5)
     ax.annotate("Correlation = {:.2f}".format(corr), xy=(0.05, 0.95), xycoords='axes fraction')
-    ax.set_xlabel(var1)            
-    ax.set_ylabel(var2)
-    plt.savefig('./Results/hhi_scatterplot_' + var1 + '_' + var2 +' .pdf', format='pdf')
+    ax.set_xlabel(var1.name)            
+    ax.set_ylabel(var2.name)
+    plt.savefig('./Results/hhi_scatterplot_' + var1.name + '_' + var2.name +' .pdf', format='pdf')
     plt.close()
 
 
