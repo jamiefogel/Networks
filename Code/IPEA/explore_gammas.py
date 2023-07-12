@@ -84,18 +84,18 @@ raw2016['sector_IBGE'].loc[(90<=raw2016['ind2']) & (raw2016['ind2'] <=97)] = 15
 # Recode education variable to approximately reflect years of schooling
 raw2016['grau_instr'] = raw2016['grau_instr'].replace({1:1, 2:3, 3:5, 4:7, 5:9, 6:10, 7:12, 8:14, 9:16, 10:18, 11:21})
 
-
-
+raw2016.to_pickle('./Data/derived/explore_gammas_raw2016.p')
+#raw2016 = pd.read_pickle('./Data/derived/explore_gammas_raw2016.p')
 
 ######################################
 # Compute HHIs
 
 
-hhi_occ4 = gamma_hhi('gamma','occ4')
-hhi_occ2 = gamma_hhi('gamma','occ2')
-hhi_code_meso = gamma_hhi('gamma','code_meso')
-hhi_codemun = gamma_hhi('gamma','codemun')
-hhi_jid = gamma_hhi('gamma','jid')
+hhi_occ4 = gamma_hhi(raw2016,'gamma','occ4')
+hhi_occ2 = gamma_hhi(raw2016,'gamma','occ2')
+hhi_code_meso = gamma_hhi(raw2016,'gamma','code_meso')
+hhi_codemun = gamma_hhi(raw2016,'gamma','codemun')
+hhi_jid = gamma_hhi(raw2016,'gamma','jid')
 
 # Collapse a bunch of the variables in raw2016 by gamma
 gammas_w_attributes = raw2016.groupby(['gamma']).agg(educ_median=('grau_instr','median'), educ_mean=('grau_instr','mean'), educ_mode=('grau_instr',lambda x: stats.mode(x)[0][0]), mean_monthly_earnings=('rem_med_r','mean'),modal_ind2=('ind2', lambda x: stats.mode(x)[0][0]), modal_sector=('sector_IBGE', lambda x: stats.mode(x)[0][0]), modal_occ2=('occ2', lambda x: stats.mode(x)[0][0]), modal_occ4=('occ4', lambda x: stats.mode(x)[0][0]))
@@ -121,7 +121,7 @@ gammas_w_attributes = gammas_w_attributes.merge(num_unique_wid_jids, on='gamma',
 
 
 
-corr_plots('hhi_codemun','hhi_occ4')
+corr_plots(gammas_w_attributes['hhi_codemun'],gammas_w_attributes['hhi_occ4'])
 
 
 
@@ -190,8 +190,8 @@ gamma_attributes = gamma_attributes.groupby(['wid','jid']).agg({'grau_instr':'ma
 
 
 
-gamma_hhi('occ4','codemun')
-gamma_hhi('occ2','code_meso')        
+gamma_hhi(raw2016,'occ4','codemun')
+gamma_hhi(raw2016,'occ2','code_meso')        
 
 #XX show the correlations of these things with education average education in the gamma. Maybe age. Or color code it by modal occ2 or industry to see if specific industries/occupations tend to be in partcular areas. OR color code by average education. 
 
@@ -396,7 +396,8 @@ meso_share_norm_df = mesos.merge(meso_share_norm_df, how="left", on="code_meso")
 
 
 from occ_counts_by_type import occ_counts_by_type
-[iota_dict, gamma_dict] = occ_counts_by_type(df, root + 'Data/raw/translated_occ_codes_english_only.csv', 0)
+[iota_dict, gamma_dict] = occ_counts_by_type(df, 'Data/raw/translated_occ_codes_english_only.csv', 0)
+                          
 
 pickle.dump( iota_dict,          open('./Data/derived/dump/' + modelname + '_iota_dict.p', "wb" ) )
 pickle.dump( gamma_dict,         open('./Data/derived/dump/' + modelname + '_gamma_dict.p', "wb" ) )
@@ -425,4 +426,3 @@ for g in range(0,1154):
     print(g)
     plot_mesos(g)
 
-[hhi_jid,num_unique_jids,num_unique_wids,num_unique_wid_jids] = gammas_w_attributes.loc[gammas_w_attributes.gamma==gamma][['hhi_jid','num_unique_jids','num_unique_wids','num_unique_wid_jids']].values.tolist()[0]

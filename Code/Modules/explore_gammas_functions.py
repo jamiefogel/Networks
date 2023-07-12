@@ -22,11 +22,11 @@ from shapely.geometry import MultiPoint
 from scipy.stats import mstats
 
 
-                           
-def gamma_hhi(gamma,var):
+              
+def gamma_hhi(data, gamma,var):
     hhis = {}
-    gv_counts = raw2016.groupby([gamma,var])[gamma].count().reset_index(name='gv_count')
-    g_counts  = raw2016.groupby([gamma])[gamma].count().reset_index(name='g_count')
+    gv_counts = data.groupby([gamma,var])[gamma].count().reset_index(name='gv_count')
+    g_counts  = data.groupby([gamma])[gamma].count().reset_index(name='g_count')
     gv_counts = gv_counts.merge(g_counts, on=gamma, validate='m:1')
     gv_counts['gv_share_sq'] = (gv_counts.gv_count/gv_counts.g_count).pow(2)
     hhi = gv_counts.groupby(gamma)['gv_share_sq'].sum().reset_index(name='hhi_'+var)
@@ -36,10 +36,10 @@ def gamma_hhi(gamma,var):
 
 def corr_plots(var1,var2):
     # Create the scatter plot
-    corr = np.corrcoef(gammas_w_attributes[var1], gammas_w_attributes[var2])[0][1]
+    corr = np.corrcoef(var1, var2)[0][1]
     print('Correlation: ', round(corr,3))
     fig, ax = plt.subplots()
-    ax.scatter(gammas_w_attributes[var1], gammas_w_attributes[var2], s=5)
+    ax.scatter(var1, var2, s=5)
     ax.annotate("Correlation = {:.2f}".format(corr), xy=(0.05, 0.95), xycoords='axes fraction')
     ax.set_xlabel(var1)            
     ax.set_ylabel(var2)
@@ -54,7 +54,7 @@ def compute_distance(row):
 
 
 
-def plot_mesos(gamma):
+def plot_mesos(gamma, gammas_w_attributes, meso_share_df, meso_share_norm_df, gamma_dict):
     plt.rcParams.update({"font.size": 7})
     # Plot the raw shares
     fig1, ax1 = plt.subplots(figsize=(4, 4), dpi=200)

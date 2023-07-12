@@ -9,3 +9,5 @@ Results/*
 *.py#
 Code/.DS_Store
 *.tmp
+*.py~
+*.pyc
