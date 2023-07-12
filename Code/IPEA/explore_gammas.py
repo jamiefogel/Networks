@@ -188,31 +188,6 @@ gamma_attributes = gamma_attributes.groupby(['wid','jid']).agg({'grau_instr':'ma
 
 
 
-
-
-gamma_hhi(raw2016,'occ4','codemun')
-gamma_hhi(raw2016,'occ2','code_meso')        
-
-#XX show the correlations of these things with education average education in the gamma. Maybe age. Or color code it by modal occ2 or industry to see if specific industries/occupations tend to be in partcular areas. OR color code by average education. 
-
-
-
-
-# Calculate the correlation coefficient
-corr = np.corrcoef(gamma_hhis.hhi_codemun, gamma_hhis.hhi_occ4)[0][1]
-
-# Create the scatter plot
-fig, ax = plt.subplots()
-ax.scatter(gamma_hhis.hhi_codemun, gamma_hhis.hhi_occ4, s=5)
-ax.annotate("Correlation = {:.2f}".format(corr), xy=(0.05, 0.95), xycoords='axes fraction')
-ax.set_xlabel('codemun')            
-ax.set_ylabel('occ4')
-plt.savefig('./Results/hhi_scatterplot_codemun_occ4.pdf', format='pdf')
-plt.close()
-# Why do we have a strong positive correlation:
-# - High education workers are concentrated workers are concentrated in occupations and are concentrated in specific municipalities, even though these municipalities may be geographically dispersed. The problem is the HHI won't capture the geographic dispersion.
-# - 
-
 df = pd.read_pickle('./Data/derived/predicting_flows/pred_flows_df.p')
 pivot = pd.pivot_table(df,  values='wid', index='gamma', columns='uf', aggfunc='count', fill_value=0).reset_index()
 
