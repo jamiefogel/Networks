@@ -37,7 +37,7 @@ for i in [1,2]:
     combined_df['diff_l'+str(i)] = combined_df['l'+str(i)+'_g'] - combined_df['l'+str(i)+'_o']
 
     print('Summary stats for difference between Gamma and Occ2XMeso prediction errors, L'+str(i)+' norm')
-    summary_stats = combined_df['diff_l'+str(i)].describe()
+    summary_stats = np.round(combined_df['diff_l'+str(i)].describe(),2)
     print(summary_stats)
 
 
@@ -45,7 +45,7 @@ for i in [1,2]:
     for c in [10, 100, 1000]:
         sorted_df = combined_df.sort_values('diff_l'+str(i))
         trimmed_df = sorted_df.iloc[c:-c]
-        summary_stats = trimmed_df['diff_l'+str(i)].describe()    
+        summary_stats = np.round(trimmed_df['diff_l'+str(i)].describe(),2) 
         print('Summary stats for difference between Gamma and Occ2XMeso prediction errors, L'+str(i)+' norm. Trimming '+str(c)+' largest and smallest prediction errors')
         print(summary_stats)
 
@@ -73,6 +73,6 @@ for i in [1,2]:
     plt.title('Histogram of Mean Differences Across 100 Draws')
     plt.show()
     
-    pd.DataFrame(mean_diffs).describe()
+    np.round(pd.DataFrame(mean_diffs).describe(),2)
     pct_neg = (np.array(mean_diffs)<0).mean() *100
     print(str(pct_neg)+'% of the 100 draws yield a negative mean of l'+str(i)+'_g - l'+str(i)+'_o)')

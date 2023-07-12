@@ -59,6 +59,7 @@ objects = pickle.load(open('adjacencies_no_graphtool.p', 'rb'))
 amkts = {'g': objects[0], 'o': objects[1]}
 ajid = objects[2]
 
+# amkts['g'] and ajid both sum to the total degree of the network
 
 # CROSS-WALKS
 #   - The term "crosswalk" probably isn't the best we could have used.
