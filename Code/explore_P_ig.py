@@ -23,7 +23,7 @@ state.get_levels()[0].get_ers().a.shape
 
 
 bg = gt.adjacency(state.get_levels()[0].get_bg()).toarray()
-np.savetxt('../Data/derived/dump/bg.csv', bg, delimiter=',')       
+np.savetxt('./Data/derived/dump/bg.csv', bg, delimiter=',')       
 
 
 # There are 27 non-empty blocks. This is reflected in the blockgraph by 27 non-empty rows and columns. 
@@ -37,7 +37,6 @@ nonzero_columns = np.nonzero(np.any(bg, axis=0))[0]
 result = bg[nonzero_rows][:, nonzero_columns]
 np.set_printoptions(linewidth=np.inf)
 np.set_printoptions(suppress=True)
-np.set_printoptions(precision=3)
 
 # Print the resulting array
 print(result)
@@ -65,22 +64,4 @@ nonzero_rows = a_big.getnnz(axis=1).nonzero()[0]
 nonzero_columns = a_big.getnnz(axis=0).nonzero()[0]
 # Extract the non-zero rows and columns
 result = a_big[nonzero_rows][:, nonzero_columns]
-
-(result / result.sum(axis=1)).sum(axis=1)
-(result / result.sum(axis=0)).sum(axis=0)
-
 print(result.toarray())
-
-
-arr = np.array([[1, 2, 3],
-                [4, 5, 6],
-                [7, 8, 9]])
-
-# Divide each element by the corresponding row sum in a single line
-result = arr / arr.sum(axis=1)[:, np.newaxis]
-
-print(result)
-
-
-
-
