@@ -14,21 +14,24 @@ import pickle
 import pandas as pd
 import numpy as np
 import os
-#from scipy.sparse import coo_matrix
-#import scipy.sparse as sparse
-#import graph_tool.all as gt
+from scipy.sparse import coo_matrix
+import scipy.sparse as sparse
 import sys
 
 # DIRECTORY WHERE THE DATA IS
 # Automatically chooses the folder between windows vs linux servers
 if os.name == 'nt':
     homedir = os.path.expanduser('//storage6/usuarios')  # for running this code on windows
-else:
+elif os.name=='posix':
+    import graph_tool.all as gt
     homedir = os.path.expanduser('~/labormkt')
 
-# This should be deleted in the future
-os.chdir(homedir + '/labormkt_rafaelpereira/aug2022/dump/')
-#os.chdir('/home/bm/Dropbox (University of Michigan)/_papers/Networks/RAIS_exports/job_transitions')
+
+root = homedir + '/labormkt_rafaelpereira/NetworksGit/'
+sys.path.append(root + 'Code/Modules')
+from prediction_error_uni import prediction_error_uni
+from prediction_error_bi  import prediction_error_bi
+os.chdir(root)
 
 
 ## QUESTIONS/COMMENTS
@@ -47,26 +50,30 @@ os.chdir(homedir + '/labormkt_rafaelpereira/aug2022/dump/')
     # ag: gamma to gamma transitions
     # ao: occ2-meso to occ2-meso transition
 
-# The commented code below loads these objects using graph-tool and store them object that doesn't require using graph-tool to load
-##ag = gt.adjacency(pickle.load(open('pred_flows_g_gamma.p', 'rb')))
-##ao = gt.adjacency(pickle.load(open('pred_flows_g_occ2Xmeso.p', 'rb')))
-##ajid = gt.adjacency(pickle.load(open('pred_flows_g_jid.p', 'rb')))           
-##objects = [ag, ao, ajid]
-##pickle.dump(objects, open('adjacencies_no_graphtool.p', 'wb'))
+# The code below loads these objects using graph-tool and store them object that doesn't require using graph-tool to load. Only run it on the python server.
+if os.name=='posix':
+    ag = gt.adjacency(pickle.load(open('./Data/derived/predicting_flows/pred_flows_g_gamma.p', 'rb')))
+    ao = gt.adjacency(pickle.load(open('./Data/derived/predicting_flows/pred_flows_g_occ2Xmeso.p', 'rb')))
+    ajid = gt.adjacency(pickle.load(open('./Data/derived/predicting_flows/pred_flows_g_jid.p', 'rb')))           
+    objects = [ag, ao, ajid]
+    pickle.dump(objects, open('./Data/derived/predicting_flows/adjacencies_no_graphtool.p', 'wb'))
 
 # Loading the adjacency objects without the need of graphtool
-objects = pickle.load(open('adjacencies_no_graphtool.p', 'rb'))
+objects = pickle.load(open('./Data/derived/predicting_flows/adjacencies_no_graphtool.p', 'rb'))
 amkts = {'g': objects[0], 'o': objects[1]}
 ajid = objects[2]
 
-# amkts['g'] and ajid both sum to the total degree of the network
+
+# XX Need to figure out which directory to be in. Probably time to move to NetworksGit for latest. 
+# Problem: I think we are going to want to basically plug P_gg in for ag and ao but the scales are totally different, presumably because of differences in when we divide by degrees/cardinalities. Need to resolve this.
+P_gg = pickle.load(open('./Data/derived/predicting_flows/pred_flows_P_gg.p', "rb" ) )
 
 # CROSS-WALKS
 #   - The term "crosswalk" probably isn't the best we could have used.
 # Loading important information to compute transition probabilities
 # It basically has the gamma/occ2-meso/job-id cardinalities
-cmkts = {'g': pickle.load(open('pred_flows_gamma_cw.p', 'rb')), 'o': pickle.load(open('pred_flows_occ2Xmeso_cw.p', 'rb'))}
-cjid = pd.read_pickle(open('pred_flows_jid_cw.p', 'rb'))
+cmkts = {'g': pickle.load(open('./Data/derived/predicting_flows/pred_flows_gamma_cw.p', 'rb')), 'o': pickle.load(open('./Data/derived/predicting_flows/pred_flows_occ2Xmeso_cw.p', 'rb'))}
+cjid = pd.read_pickle(open('./Data/derived/predicting_flows/pred_flows_jid_cw.p', 'rb'))
 
 
 ###################################
@@ -127,64 +134,6 @@ a_mkt = amkts[m]
 c_mkt = cmkts[m]
 
 
-###################################
-### PREDICTION ERROR FUNCTION
-###################################
-
-
-# Function to output the probability prediction error of transitioning from job 'j' to all other jobs, based on a market configuration given by the objects ag and cg
-    # it returns a vector of length j
-    # C represents crosswalk, A represents adjacency
-def prediction_error(j,cjid, c_mkt, ajid, a_mkt, D_insample,D_outsample,J,mkt):
-    # getting the 1st letter of the market
-    m = mkt[0]
-    
-    # get the market of job j
-    g = cjid[mkt][j]
-   
-    # get the gamma index in the gamma dataset, in order to retrive market information later
-    g_index = c_mkt.loc[c_mkt[mkt]==g].index[0]
-   
-    # get the number of matches between the current gamma to all gammas (assuming c_mkt is sorted according to a_mkt)
-    # This info is contained in the gamma adjacency matrix, but we want to extract a vector out of it to make computations easier
-    # Alternatively: get the 1st row of the market to market adjacency matrix and append it to the market dataset
-    c_mkt['mm_count_temp'+m] = a_mkt.getrow(g_index).toarray()[0]
-   
-    # XXBM: EFFICIENCY IMPROVEMENT: sort obs per market and/or do the merge below only if the gamma for the previous job is different than the gamma for the current job
-    # merge a vector of length J (total number of jobs) in which each element is the number of transitions between gamma_j (current job j's gamma) to gamma_j' (all other jobs' gammas) to the job dataset
-    # XXJSF: looks like we are creating a new column called cjid['mm_count_temp'+m], then immediately dropping it, then merging it back on. Why not delete the line cjid['mm_count_temp'+m] = np.NaN and create the column in the merge on the next line?
-    cjid['mm_count_temp'+m] = np.NaN
-    cjid = cjid.drop(['mm_count_temp'+m], axis=1).reset_index().merge(c_mkt[['mm_count_temp'+m,mkt]], left_on=mkt, right_on=mkt).set_index('idx')
-   
-    # MAIN THING: predicted probability for a match between j and j' (see spreadsheet and/or overleaf)
-        # spreadsheet: /Dropbox (University of Michigan)/_papers/Networks/RAIS_exports/job_transitions/
-        # overleaf: https://www.overleaf.com/project/6400d14789d986d7ed453675
-    # for each job j, we will have a vector of length j with the # of transitions expected from job j to all other jobs
-    cjid['pred_prob'] = (cjid['mm_count_temp'+m] / D_insample) * cjid['djd'+m] * cjid['djd'+m][j]
-   
-    # CORRECTION TO DISTRIBUTE SELF-EDGE PROBABILITIES
-        # OUTSTANDING PROBLEM: This piece in the denominator increases exponentially for some market 2**(np.sum(cjid['gamma']==g)-1). However, python assigns very large numbers to zero, when it can't compute it.
-        # CURRENT SOLUTION: using an if statement using the condition (2**(np.sum(cjid['gamma']==g)-1) == 0), and if that is true, hardcode the highest possible integer for
-        # according to the formula we are using, we would predict a non-zero transition from a job to itself, which is not matched in the real job to job transition matrix ajid
-        # the code below distributes the predicted #transitions from a job to itself roughly according to all other job degrees, forcing the self-transitions to be zero
-    # distributing self edge probability
-    term_denominator = 2**(np.sum(cjid[mkt]==g)-1)
-    if term_denominator == 0:
-        term_denominator = sys.maxsize
-    cjid = cjid.sort_values('idx')   # sort the job dataset just to check calculations
-    cjid['self_pred_prob_distributed'] = (cjid['degree'][j] + cjid['degree']) / (cjid['cardinality_'+mkt]) / (term_denominator) * cjid['pred_prob_diag_'+m]  * (cjid[mkt]==g)
-    
-    # finalizing the predicted probability after distributing the self edge probabilities
-    cjid.loc[j,'pred_prob'] = 0
-    pred = cjid['pred_prob'] #+ cjid['self_pred_prob_distributed']
-   
-    # Compute two vectors of length J with the L1 and L2 errors
-        # compare the predicted flows from j to all other j' to the actual number of transitions in the job-to-job adjacency matrix ajid
-    error1 = np.sum(np.abs((pred.sort_index()*D_outsample).values - ajid.getrow(j)))
-    error2 = np.sum(np.square((pred.sort_index()*D_outsample).values - ajid.getrow(j)))
-    
-    return([error1, error2])
-
 
 
 ###################################
@@ -239,7 +188,7 @@ for j in range(first_job,last_job+1):
     
     for mkt in mkts:
         m = mkt[0]
-        result_temp[m] = prediction_error(j,cjid, cmkts[m], ajid, amkts[m], D_insample,D_outsample,J, mkt)
+        result_temp[m] = prediction_error_uni(j,cjid, cmkts[m], ajid, amkts[m], D_insample,D_outsample,J, mkt)
         
     results.append([j] + result_temp['g'] + result_temp['o'])
 

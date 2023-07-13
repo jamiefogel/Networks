@@ -21,10 +21,9 @@ from pull_one_year import pull_one_year
 
 run_df=True
 run_sbm = False
-
 state_codes = [31, 33, 35]
 rio_codes = [330045, 330170, 330185, 330190, 330200, 330227, 330250, 330285, 330320, 330330, 330350, 330360, 330414, 330455, 330490, 330510, 330555, 330575]
-region_codes = pd.read_csv(homedir + '/labormkt/labormkt_rafaelpereira/aug2022/external/munic_microregion_rm.csv', encoding='latin1')
+region_codes = pd.read_csv('Data/raw/munic_microregion_rm.csv', encoding='latin1')
 region_codes = region_codes.loc[region_codes.code_uf.isin(state_codes)]
 state_cw = region_codes[['code_meso','uf']].drop_duplicates()
 muni_meso_cw = pd.DataFrame({'code_meso':region_codes.code_meso,'codemun':region_codes.code_munic//10})
