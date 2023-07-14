@@ -159,31 +159,7 @@ for vertex in g_occ2Xmeso.vertices():
     vertex_id = g_occ2Xmeso_vertices[vertex]
     print("Vertex ID for vertex", vertex, ":", vertex_id)
 
-'''
-# What's confusing is the loop above works but neither of the below work. 
-g_occ2Xmeso_vertices.a
-g_occ2Xmeso_vertices.get_2d_array([0])
-# But this works
-g_gamma_vertices.a
-# Some of it is that the gammas are all numeric while the occ2Xmesos are string and string property maps require .get_2d_array() instead of .get_array() or .a but even that doesn't work. 
-'''
-
-'''
-# These work too
-gamma = g_gamma.new_vertex_property("string")
-g_gamma.vp["gamma"] = gamma
-for g in g_gamma.vertices():
-    gamma[g] = g_gamma_vertices[g]
-
-gamma.get_2d_array([0])
-
-occ2Xmeso = g_occ2Xmeso.new_vertex_property("string")
-g_occ2Xmeso.vp["occ2Xmeso"] = occ2Xmeso
-for g in g_occ2Xmeso.vertices():
-    occ2Xmeso[g] = g_occ2Xmeso_vertices[g]
-
-occ2Xmeso.get_2d_array([0])
-'''
+    
 
 ##################
 # Cross-sectional bipartite networks (iota-gamma, iota-occ2Xmeso)
@@ -257,6 +233,20 @@ jid_cw = jid_cw.merge(gamma_cw[['gamma','cardinality_gamma']], on='gamma', how='
 jid_cw = jid_cw.merge(occ2Xmeso_cw[['occ2Xmeso','cardinality_occ2Xmeso']], on='occ2Xmeso', how='outer', validate='m:1')
 jid_cw = jid_cw.sort_values(by='index')
 jid_cw.to_pickle('./Data/derived/predicting_flows/' + modelname + '_jid_cw.p')
+
+
+
+# The code below loads objects used for predicting flows that require graph-tool and stores them as an object that doesn't require using graph-tool to load. Only run it on the python server.
+ag = gt.adjacency(pickle.load(open('./Data/derived/predicting_flows/pred_flows_g_gamma.p', 'rb')))
+ao = gt.adjacency(pickle.load(open('./Data/derived/predicting_flows/pred_flows_g_occ2Xmeso.p', 'rb')))
+ajid = gt.adjacency(pickle.load(open('./Data/derived/predicting_flows/pred_flows_g_jid.p', 'rb')))           
+objects = [ag, ao, ajid]
+pickle.dump(objects, open('./Data/derived/predicting_flows/adjacencies_no_graphtool.p', 'wb'))
+
+
+####
+# XX I think nothing below this is relevant to the unipartite predicted flows 
+####
 
 '''
 # Just checking stuff. I confirmed that the degrees computed by summing rows and columns of the adjacency matrix equal the degrees computed using degree_property_map('total')
