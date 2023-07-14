@@ -119,7 +119,7 @@ if run_df==True:
     
     # Restrict to obs with non-missing gammas, occ2Xmesos, jid, and jid_prev.
     # XX should I actually be cutting on non-missing jid_prev? I think I should actually wait to do that until making the unipartite transition matrices below. For the bipartite there is no reason why we need to have observed a previous jid. 
-    df_trans = df[(df['gamma'].notnull()) & (df['gamma'] != -1) & (df['gamma'].notnull()) & (df['iota'] != -1) & (df['occ2Xmeso'].notnull()) & (df['jid'].notnull())][['jid','jid_prev','wid','iota','gamma','gamma_prev','occ2Xmeso','occ2Xmeso_prev']]
+    df_trans = df[(df['gamma'].notnull()) & (df['gamma'] != -1) & (df['gamma_prev'] != -1) & (df['gamma'].notnull()) & (df['iota'] != -1) & (df['occ2Xmeso'].notnull()) & (df['jid'].notnull())][['jid','jid_prev','wid','iota','gamma','gamma_prev','occ2Xmeso','occ2Xmeso_prev']]
     df_trans.to_pickle('./Data/derived/predicting_flows/' + modelname + '_df_trans.p')
 
 
