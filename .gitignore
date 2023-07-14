@@ -12,3 +12,4 @@ Code/.DS_Store
 *.py~
 *.pyc
 job_transitions_results/*
+.DS_Store
