@@ -11,7 +11,7 @@ else:
     homedir = os.path.expanduser('~/labormkt')
 
 # Data folder
-os.chdir(homedir + '/labormkt_rafaelpereira/aug2022/dump/')
+os.chdir(homedir + '/labormkt_rafaelpereira/NetworksGit/')
 #os.chdir('/home/bm/Dropbox (University of Michigan)/_papers/Networks/RAIS_exports/job_transitions')
 
 
