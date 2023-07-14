@@ -30,7 +30,7 @@ elif os.name=='posix':
 root = homedir + '/labormkt_rafaelpereira/NetworksGit/'
 sys.path.append(root + 'Code/Modules')
 from prediction_error_uni import prediction_error_uni
-from prediction_error_bi  import prediction_error_bi
+#from prediction_error_bi  import prediction_error_bi
 os.chdir(root)
 
 
@@ -51,12 +51,12 @@ os.chdir(root)
     # ao: occ2-meso to occ2-meso transition
 
 # The code below loads these objects using graph-tool and store them object that doesn't require using graph-tool to load. Only run it on the python server.
-if os.name=='posix':
-    ag = gt.adjacency(pickle.load(open('./Data/derived/predicting_flows/pred_flows_g_gamma.p', 'rb')))
-    ao = gt.adjacency(pickle.load(open('./Data/derived/predicting_flows/pred_flows_g_occ2Xmeso.p', 'rb')))
-    ajid = gt.adjacency(pickle.load(open('./Data/derived/predicting_flows/pred_flows_g_jid.p', 'rb')))           
-    objects = [ag, ao, ajid]
-    pickle.dump(objects, open('./Data/derived/predicting_flows/adjacencies_no_graphtool.p', 'wb'))
+# if os.name=='posix':
+#     ag = gt.adjacency(pickle.load(open('./Data/derived/predicting_flows/pred_flows_g_gamma.p', 'rb')))
+#     ao = gt.adjacency(pickle.load(open('./Data/derived/predicting_flows/pred_flows_g_occ2Xmeso.p', 'rb')))
+#     ajid = gt.adjacency(pickle.load(open('./Data/derived/predicting_flows/pred_flows_g_jid.p', 'rb')))           
+#     objects = [ag, ao, ajid]
+#     pickle.dump(objects, open('./Data/derived/predicting_flows/adjacencies_no_graphtool.p', 'wb'))
 
 # Loading the adjacency objects without the need of graphtool
 objects = pickle.load(open('./Data/derived/predicting_flows/adjacencies_no_graphtool.p', 'rb'))
