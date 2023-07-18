@@ -273,7 +273,7 @@ df_1718['jid_prev'] = df_1718.groupby('wid')['jid'].shift(1)
 # Restrict to obs for which we have a valid gamma
 df_1718 = df_1718[(df_1718['gamma'].notnull()) & (df_1718['gamma'] != -1) & (df_1718['jid'].notnull()) & (df_1718['jid_prev'].notnull())]
 # "gt" denotes "ground truth"
-edgelist_gt = df_1718.loc[df_1718['jid']!=df_1718['jid_prev']][['jid','jid_prev']]
+edgelist_gt = df_1718.loc[df_1718['jid'!]=df_1718['jid_prev']][['jid','jid_prev']]
 g_gt = gt.Graph(directed=False)
 # Add Edges
 ids = g_gt.add_edge_list(edgelist_gt.values, hashed=True)
@@ -367,9 +367,15 @@ gt.graph_draw(g_projected)
 
 
 
-
-##########################
+##################################################################################################################################
+##################################################################################################################################
 # Trying to compute the iota-gamma probability matrix for predicting flows (6/26/2023)
+##################################################################################################################################
+##################################################################################################################################
+
+'''
+The commented stuff below is just testing stuff and should be able to be deleted
+
 
 block_probs = estimated_sbm_mcmc.state.get_levels()[1].get_matrix().toarray()
 
@@ -433,7 +439,7 @@ P_ig[1154:2006,0:1154].sum()
 P_ig[0:1154,1154:2006].sum()   
 P_ig[1154:2006,1154:2006].sum()
 
-
+'''
 ######################################
 # XX This is what I need to save and incorprate into the main code base
 
@@ -479,4 +485,6 @@ workers = estimated_sbm_mcmc.edgelist_w_blocks[['wid','worker_blocks_level_0']].
 n_i = workers.groupby(['worker_blocks_level_0']).size()[:,np.newaxis]
 d_minus_n = np.squeeze(d_i) - n_i
 
-P_gg = 2 * np.transpose(P_ig) @ np.diag(d_minus_n) @ P_ig
+# P_gg is what we called either d_mm' or A_mm' on page 5 of Overleaf. 
+P_gg = np.transpose(P_ig) @ np.diag(d_minus_n) @ P_ig
+pickle.dump(P_gg, open('./Data/derived/predicting_flows/pred_flows_P_gg.p', "wb" ) )
