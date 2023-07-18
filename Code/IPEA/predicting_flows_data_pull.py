@@ -131,6 +131,8 @@ df_trans = pd.read_pickle('./Data/derived/predicting_flows/' + modelname + '_df_
 ########################################################################################
 ########################################################################################
 
+
+
 ##################
 # Unipartite flows
 # -- The full version of our model would be undirected, so I'm going with undirected to be consistent with that.
@@ -244,19 +246,47 @@ objects = [ag, ao, ajid]
 pickle.dump(objects, open('./Data/derived/predicting_flows/adjacencies_no_graphtool.p', 'wb'))
 
 
-####
-# XX I think nothing below this is relevant to the unipartite predicted flows 
-####
+########################################################################################
+########################################################################################
+# iota-gamma predictions
+########################################################################################
+########################################################################################
 
-'''
-# Just checking stuff. I confirmed that the degrees computed by summing rows and columns of the adjacency matrix equal the degrees computed using degree_property_map('total')
-jid_cw
-adj = gt.adjacency(g_jid).todense()
-adj[0,:].sum()
-adj[:,0].sum()
-adj[1,:].sum()
-adj[2,:].sum()
-'''
+# Creating the object $\tilde d_{m \omega}$, a GxI matrix of iota-gamma match counts
+d_mw 
+
+
+I = estimated_sbm_mcmc.num_worker_blocks[0]
+G = estimated_sbm_mcmc.num_job_blocks[0]
+
+# this matrix will have one row and column for each node in the bipartite network, but most rows/columns will be empty. The next step is to extract only the non-empty rows and columns. The result will be of size (I+G)x(I+G)
+A_ig_big = estimated_sbm_mcmc.state.get_levels()[0].get_matrix()
+# Find the row indices that contain at least one non-zero element
+nonzero_rows = A_ig_big.getnnz(axis=1).nonzero()[0]
+# Find the column indices that contain at least one non-zero element
+nonzero_columns = A_ig_big.getnnz(axis=0).nonzero()[0]
+# Extract the non-zero rows and columns and then extract the upper right block.
+# - The upper left and lower right are all 0s
+# - The lower left is the transpose of the upper right and thus redundant. 
+A_ig = A_ig_big[nonzero_rows][:, nonzero_columns].toarray()[0:G,G:I+G]
+
+# Take the row sums, reshape them to be a column vector using [:, np.newaxis], and then divide each row by the row sum to convert the counts into probabilities. 
+d_g_tilde = A_ig.sum(axis=1)
+d_i_tilde = A_ig.sum(axis=0)
+d_g = np.ravel(ag.sum(axis=1)/2)
+d_g_div_d_g_tilde = np.diag(d_g/d_g_tilde)
+
+d_i_tilde_inv = np.linalg.inv(np.diag(d_i_tilde))
+d_gg_tilde = d_g_div_d_g_tilde @ A_ig @ d_i_tilde_inv @ np.transpose(A_ig)
+
+pickle.dump(d_gg_tilde, open('./Data/derived/predicting_flows/'+modelname+'_d_gg_tilde.p', 'wb'))
+
+
+# Sanity check: the sum of the d_gg_tilde matrix equals the number of edges in the gamma-to-gamma transition matrix. Without the rescaling factor it would sum to the number of edges in the bipartite adjacency matrix. 
+print(d_gg_tilde.sum())
+print(g_gamma)
+
+
 
 
 ########################################################################################
@@ -281,210 +311,7 @@ pickle.dump( g_gt, open('./Data/derived/predicting_flows/' + modelname + '_g_gt.
 
 
 
-# Example code taken from graph-tool docs
-#g = gt.collection.data["polblogs"]
-#g = gt.GraphView(g, vfilt=gt.label_largest_component(g))
-#g = gt.Graph(g, prune=True)
-#state = gt.minimize_blockmodel_dl(g)
-#u = gt.generate_sbm(state.b.a, gt.adjacency(state.get_bg(), state.get_ers()).T, g.degree_property_map("out").a, g.de#gree_property_map("in").a, directed=True)
-#gt.similarity(g,u)
 
-########################################################################################
-########################################################################################
-# Attempt at the prediction exercise
-########################################################################################
-########################################################################################
 
 
-level = 0
-e_sbm_level_0 = estimated_sbm_mcmc.state.project_level(0)
-import time
 
-start_time = time.time()
-g_sbm_ig = gt.generate_sbm(e_sbm_level_0.b.a, gt.adjacency(e_sbm_level_0.get_bg(), e_sbm_level_0.get_ers()).T, estimated_sbm_mcmc.g.degree_property_map("out").a, directed=False)
-end_time = time.time()
-elapsed_time = end_time - start_time
-print("Elapsed time: {:.2f} seconds".format(elapsed_time))
-
-start_time = time.time()
-gt.similarity(estimated_sbm_mcmc.g, g_sbm_ig)
-end_time = time.time()
-elapsed_time = end_time - start_time
-print("Elapsed time: {:.2f} seconds".format(elapsed_time))
-
-# Generating the matrix was fast.
-
-
-
-
-# Create the sparse edge list
-edgelist_grouped = edgelist_gt.groupby(['jid', 'jid_prev']).size().reset_index(name='count')
-# Add upper triangular to lower triangular and vice versa
-edgelist_grouped = pd.concat([edgelist_grouped, edgelist_grouped.rename(columns={'jid_prev':'jid','jid':'jid_prev'})], axis=0)
-
-edgelist_grouped['jid_prev'] = pd.Categorical(edgelist_grouped['jid_prev'])
-edgelist_grouped['jid'] = pd.Categorical(edgelist_grouped['jid'])
-edgelist_grouped['jid_prev_code'] = edgelist_grouped['jid_prev'].cat.codes
-edgelist_grouped['jid_code'] = edgelist_grouped['jid'].cat.codes
-
-edgelist_sparse = sp.coo_matrix((edgelist_grouped['count'].values, (edgelist_grouped['jid_prev_code'].values, edgelist_grouped['jid_code'].values)))
-# XX Need to save a crsswalk of jid and jid_code and ensure we have the rows and columns in the correct order
-
-pickle.dump(edgelist_sparse, open('./Data/derived/predicting_flows/' + modelname + '_edgelist_sparse.p', "wb" ) )
-
-# convert to csr format if necessary
-edgelist_sparse = edgelist_sparse.tocsr()
-
-pickle.dump(edgelist_sparse, open('./Data/derived/predicting_flows/' + modelname + '_edgelist_sparse_csr.p', "wb" ) )
-
-# sample_graph is how we draw a new network
-# Next steps: generate the probabilities from which we generate networks.
-# - iota-occ2Xmeso
-
-
-
-
-g = gt.lattice([5,5])
-is_biparitite, part = gt.is_bipartite(g, partition=True)
-gt.graph_draw(g, vertex_fill_color=part)  # to view the full graph coloured by set
-
-from itertools import combinations
-
-g_temp = g.copy()  # this is a deepcopy
-
-for v, bipartite_label in enumerate(part):
-    if bipartite_label == 0:
-        neighbours = list(g.vertex(v).all_neighbours())
-        for s, t in combinations(neighbours, 2):
-            g_temp.add_edge(s, t)
-
-g_projected = gt.Graph(gt.GraphView(g_temp, vfilt=part.a==1), prune=True)
-
-gt.graph_draw(g_projected)
-
-
-
-
-
-
-##################################################################################################################################
-##################################################################################################################################
-# Trying to compute the iota-gamma probability matrix for predicting flows (6/26/2023)
-##################################################################################################################################
-##################################################################################################################################
-
-'''
-The commented stuff below is just testing stuff and should be able to be deleted
-
-
-block_probs = estimated_sbm_mcmc.state.get_levels()[1].get_matrix().toarray()
-
-# Everything below this is just sanity checks to ensure that the code is doing what we think it's doing
-
-
-# Summing all elements in block_probs gives the number of edges in the bipartite matrix times 2. 
-print(block_probs.sum())
-print(estimated_sbm_mcmc.g.num_edges()*2)
-
-np.savetxt('./Data/derived/dump/block_probs.csv', block_probs, delimiter=',')
-
-# Why are there 2006 non-empty blocks at level 0 but only 2004 at level 1? Should I be using level 0 or level 1 for getting the adjacency matrix?
-estimated_sbm_mcmc.state.get_levels()[0].get_B()
-estimated_sbm_mcmc.state.get_levels()[0].get_nonempty_B()
-
-estimated_sbm_mcmc.state.get_levels()[1].get_B()
-estimated_sbm_mcmc.state.get_levels()[1].get_nonempty_B()
-
-estimated_sbm_mcmc.g.num_edges()
-estimated_sbm_mcmc.num_job_blocks[0]
-estimated_sbm_mcmc.num_worker_blocks[0]
-block_probs[0:1155,0:1155].sum()
-block_probs[1155:2006,0:1155].sum()
-block_probs[0:1155,1155:2006].sum()
-block_probs[1155:2006,1155:2006].sum()
-
-
-
-estimated_sbm_mcmc.state.get_levels()[0].get_bg()
-estimated_sbm_mcmc.state.get_levels()[0].get_ers().a
-
-
-# This works. It creates a 2006x2006 matrix where 2006=G+I (G=1154, I=852). Each element is the number of matches for the corresponding iota-gamma pair. 
-block_edge_counts_big = estimated_sbm_mcmc.state.get_levels()[0].get_matrix()
-# Find the row indices that contain at least one non-zero element
-nonzero_rows = block_edge_counts_big.getnnz(axis=1).nonzero()[0]
-# Find the column indices that contain at least one non-zero element
-nonzero_columns = block_edge_counts_big.getnnz(axis=0).nonzero()[0]
-# Extract the non-zero rows and columns
-block_edge_counts = block_edge_counts_big[nonzero_rows][:, nonzero_columns].toarray()
-
-print(block_edge_counts)
-
-# Just confirming stuff
-block_edge_counts[0:1154,0:1154].sum()
-block_edge_counts[1154:2006,0:1154].sum()
-block_edge_counts[0:1154,1154:2006].sum()
-block_edge_counts[1154:2006,1154:2006].sum()
-
-
-np.array_equal(block_edge_counts, block_edge_counts.T)
-
-# Take the row sums, reshape them to be a column vector using [:, np.newaxis], and then divide each row by the row sum to convert the counts into probabilities. 
-P_ig = block_edge_counts / block_edge_counts.sum(axis=1)[:, np.newaxis]
-
-
-
-P_ig[0:1154,0:1154].sum()      
-P_ig[1154:2006,0:1154].sum()   
-P_ig[0:1154,1154:2006].sum()   
-P_ig[1154:2006,1154:2006].sum()
-
-'''
-######################################
-# XX This is what I need to save and incorprate into the main code base
-
-####
-# Creating a IxG matrix
-I = estimated_sbm_mcmc.num_worker_blocks[0]
-G = estimated_sbm_mcmc.num_job_blocks[0]
-
-# this matrix will have one row and column for each node in the bipartite network, but most rows/columns will be empty. The next step is to extract only the non-empty rows and columns. The result will be of size (I+G)x(I+G)
-A_ig_big = estimated_sbm_mcmc.state.get_levels()[0].get_matrix()
-# Find the row indices that contain at least one non-zero element
-nonzero_rows = A_ig_big.getnnz(axis=1).nonzero()[0]
-# Find the column indices that contain at least one non-zero element
-nonzero_columns = A_ig_big.getnnz(axis=0).nonzero()[0]
-# Extract the non-zero rows and columns and then extract the lower left block.
-# - The upper left and lower right are all 0s
-# - The upper right is the transpose of the lower left and thus redundant. 
-A_ig = A_ig_big[nonzero_rows][:, nonzero_columns].toarray()[G:I+G,0:G]
-
-
-# Take the row sums, reshape them to be a column vector using [:, np.newaxis], and then divide each row by the row sum to convert the counts into probabilities. 
-d_i = A_ig.sum(axis=1)[:, np.newaxis]
-d_g = A_ig.sum(axis=0)[np.newaxis, :]
-P_ig = (A_ig/ d_i) / d_g
-
-# This produces the same value as the other version above
-d_iXd_g = np.outer(d_i,d_g)
-P_ig = (A_ig/d_iXd_g)
-
-# d_iXd_g sums to the total number of edges squared (also equal to the sum of the iota or gamma degrees squared)
-d_iXd_g.sum() == d_i.sum()**2
-d_iXd_g.sum() == d_g.sum()**2
-
-P_ig.sum()
-P_ig.sum(axis=1)
-
-
-
-# XX Current status of this code: I have computed an object I call P_ig that has dimensions (IxG). I'm not entirely confident that it is the right object. Need to discuss further. The next step is to comput sum_\iota P_ig P_ig' (d_iota - n_iota)
-
-
-workers = estimated_sbm_mcmc.edgelist_w_blocks[['wid','worker_blocks_level_0']].drop_duplicates()
-n_i = workers.groupby(['worker_blocks_level_0']).size()[:,np.newaxis]
-d_minus_n = np.squeeze(d_i) - n_i
-
-# P_gg is what we called either d_mm' or A_mm' on page 5 of Overleaf. 
-P_gg = np.transpose(P_ig) @ np.diag(d_minus_n) @ P_ig
-pickle.dump(P_gg, open('./Data/derived/predicting_flows/pred_flows_P_gg.p', "wb" ) )
