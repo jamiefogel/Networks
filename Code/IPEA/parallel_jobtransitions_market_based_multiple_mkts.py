@@ -30,7 +30,7 @@ elif os.name=='posix':
 root = homedir + '/labormkt_rafaelpereira/NetworksGit/'
 sys.path.append(root + 'Code/Modules')
 from prediction_error_uni import prediction_error_uni
-#from prediction_error_bi  import prediction_error_bi
+from prediction_error_bi  import prediction_error_bi
 os.chdir(root)
 
 
