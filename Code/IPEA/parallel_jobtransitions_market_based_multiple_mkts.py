@@ -30,7 +30,6 @@ elif os.name=='posix':
 root = homedir + '/labormkt_rafaelpereira/NetworksGit/'
 sys.path.append(root + 'Code/Modules')
 from prediction_error_uni import prediction_error_uni
-from prediction_error_bi  import prediction_error_bi
 os.chdir(root)
 
 
@@ -52,22 +51,22 @@ os.chdir(root)
 
 
 # Loading the adjacency objects without the need of graphtool
+
+d_gg_tilde = pickle.load(open('./Data/derived/predicting_flows/pred_flows_d_gg_tilde.p', "rb" ) )
+
 objects = pickle.load(open('./Data/derived/predicting_flows/adjacencies_no_graphtool.p', 'rb'))
-amkts = {'g': objects[0], 'o': objects[1]}
+amkts = {'g': np.array(objects[0].todense()), 'i':d_gg_tilde, 'o': np.array(objects[1].todense())}
 ajid = objects[2]
-
-
-# XX Need to figure out which directory to be in. Probably time to move to NetworksGit for latest. 
-# Problem: I think we are going to want to basically plug P_gg in for ag and ao but the scales are totally different, presumably because of differences in when we divide by degrees/cardinalities. Need to resolve this.
-P_gg = pickle.load(open('./Data/derived/predicting_flows/pred_flows_P_gg.p', "rb" ) )
 
 # CROSS-WALKS
 #   - The term "crosswalk" probably isn't the best we could have used.
 # Loading important information to compute transition probabilities
 # It basically has the gamma/occ2-meso/job-id cardinalities
-cmkts = {'g': pickle.load(open('./Data/derived/predicting_flows/pred_flows_gamma_cw.p', 'rb')), 'o': pickle.load(open('./Data/derived/predicting_flows/pred_flows_occ2Xmeso_cw.p', 'rb'))}
-cjid = pd.read_pickle(open('./Data/derived/predicting_flows/pred_flows_jid_cw.p', 'rb'))
-
+cmkts = {'g': pickle.load(open('./Data/derived/predicting_flows/pred_flows_gamma_cw.p', 'rb')), 'i': pickle.load(open('./Data/derived/predicting_flows/pred_flows_gamma_cw.p', 'rb')),  'o': pickle.load(open('./Data/derived/predicting_flows/pred_flows_occ2Xmeso_cw.p', 'rb'))}
+cmkts['i'] = cmkts['i'].rename(columns={'gamma':'iotagamma','cardinality_gamma':'cardinality_iotagamma'})
+cjid = pd.read_pickle(open('./Data/derived/predicting_flows/pred_flows_jid_degreecount.p', 'rb'))
+cjid['iotagamma'] = cjid['gamma']
+cjid['cardinality_iotagamma'] = cjid['cardinality_gamma']
 
 ###################################
 ### DATA PREP
@@ -96,7 +95,7 @@ J = ajid.shape[0]
 # The for loop below goes over all jobs, so we don't want to compute all of the info below for every job in the loop
 
 # The lines above are j specific. The lines below prepare the data for each market:
-mkts = ['gamma', 'occ2Xmeso']
+mkts = ['gamma', 'iotagamma', 'occ2Xmeso']
 
 for mkt in mkts:
 
