@@ -119,7 +119,7 @@ if run_df==True:
     
     # Restrict to obs with non-missing gammas, occ2Xmesos, jid, and jid_prev.
     # XX should I actually be cutting on non-missing jid_prev? I think I should actually wait to do that until making the unipartite transition matrices below. For the bipartite there is no reason why we need to have observed a previous jid. 
-    df_trans = df[(df['gamma'].notnull()) & (df['gamma_prev'].notnull()) & (df['gamma'] != -1) & (df['gamma_prev'] != -1) & (df['iota'] != -1) & (df['occ2Xmeso'].notnull()) & (df['jid'].notnull())][['jid','jid_prev','wid','iota','gamma','gamma_prev','occ2Xmeso','occ2Xmeso_prev']]
+    df_trans = df[(df['gamma'].notnull()) & (df['gamma_prev'].notnull()) & (df['gamma'] != -1) & (df['gamma_prev'] != -1) & (df['iota'] != -1) & (df['occ2Xmeso'].notnull()) & (df['occ2Xmeso_prev'].notnull()) & (df['jid'].notnull())][['jid','jid_prev','wid','iota','gamma','gamma_prev','occ2Xmeso','occ2Xmeso_prev']]
     df_trans.to_pickle('./Data/derived/predicting_flows/' + modelname + '_df_trans.p')
 
 
@@ -244,6 +244,13 @@ df_1718['jid_prev'] = df_1718.groupby('wid')['jid'].shift(1)
 df_1718['gamma_prev'] = df_1718.groupby('wid')['gamma'].shift(1)
 df_1718['occ2Xmeso_prev'] = df_1718.groupby('wid')['occ2Xmeso'].shift(1)
 
+# Restrict to jids that appear in the 13-16 data
+# Only keep jids that appear in the 13-16 data and thus have gammas and occ2Xmesos
+
+jid_oos_degreecount =
+df_1718.merge(jid_mkt_cw, on='jid', how='inner', validate='1:1')
+
+
 # Restrict to obs for which we have a valid gamma
 df_1718 = df_1718[(df_1718['gamma'].notnull()) & (df_1718['gamma_prev'].notnull()) & (df_1718['gamma'] != -1) & (df_1718['gamma_prev'] != -1) & (df['gamma_prev'].notnull()) & (df['iota'] != -1) & (df['occ2Xmeso'].notnull()) & (df_1718['jid'].notnull()) & (df_1718['jid_prev'].notnull())]
 
@@ -289,14 +296,31 @@ occ2Xmeso_oos_degreecount.to_pickle('./Data/derived/predicting_flows/' + modelna
 edgelist_oos = df_1718.loc[cond][['jid','jid_prev']]
 g_jid_oos = gt.Graph(directed=False)
 # Add Edges
-ids = g_jid_oos.add_edge_list(edgelist_oos.values, hashed=True)
+vmap_oos = g_jid_oos.add_edge_list(edgelist_oos.values, hashed=True)
+
+jid_oos = g_jid_oos.new_vertex_property("string")
+g_jid_oos.vp["jid"] = jid_oos
+for g in g_jid_oos.vertices():
+    jid_oos[g] = vmap_oos[g]
+
+'''
+vmap = g_jid.add_edge_list(df_trans.loc[cond][['jid_prev','jid']].values, hashed=True)
+
+# For some reason vmap.get_2d_array([0]) gives me an error but the below code works. It feels like a hack, but it gets the job done and looping over 1.5 million vertices should be very fast. 
+jid = g_jid.new_vertex_property("string")
+g_jid.vp["jid"] = jid
+for g in g_jid.vertices():
+    jid[g] = vmap[g]
+
+'''
+    
+    
 pickle.dump( g_jid_oos, open('./Data/derived/predicting_flows/' + modelname + '_g_jid_oos.p', "wb" ) )
 
 
 jid_oos_degreecount = pd.DataFrame({'jid':g_jid_oos.vp.jid.get_2d_array([0]).ravel(),'degree':g_jid_oos.degree_property_map('total').a}).reset_index()
 
 # Merge the jid to market crosswalk back on to the jid degree counts
-# Only keep jids that appear in the 13-16 data and thus have gammas and occ2Xmesos
 
 jid_oos_degreecount = jid_oos_degreecount.merge(jid_mkt_cw, on='jid', how='inner', validate='1:1')
 jid_oos_degreecount = jid_oos_degreecount.merge(gamma_oos_degreecount[['gamma',        'gamma_oos_degreecount']],     on='gamma',     how='left', validate='m:1')
