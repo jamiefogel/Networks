@@ -162,16 +162,23 @@ for vertex in g_occ2Xmeso.vertices():
     print("Vertex ID for vertex", vertex, ":", vertex_id)
 
     
+# Compute the total degrees associated  with each gamma. Note that the number of degrees is 2x the number of edges b/c it counts both in- and out-degrees
+gamma = g_gamma.new_vertex_property("string")
+g_gamma.vp["gamma"] = gamma
+for g in g_gamma.vertices():
+    gamma[g] = g_gamma_vertices[g]
 
-##################
-# Cross-sectional bipartite networks (iota-gamma, iota-occ2Xmeso)
-g_iota_occ2Xmeso = gt.Graph(directed=False)
-g_iota_gamma = gt.Graph(directed=False)
-g_iota_occ2Xmeso.add_edge_list(df_trans.drop_duplicates(subset=['wid','jid'])[['iota','occ2Xmeso']].values, hashed=True)
-g_iota_gamma.add_edge_list(df_trans.drop_duplicates(subset=['wid','jid'])[['iota','gamma']].values, hashed=True)
-pickle.dump( g_iota_gamma, open('./Data/derived/predicting_flows/' + modelname + '_g_iota_gamma.p', "wb" ) )
-pickle.dump( g_iota_occ2Xmeso, open('./Data/derived/predicting_flows/' + modelname + '_g_iota_occ2Xmeso.p', "wb" ) )
+gamma_degreecount = pd.DataFrame({'gamma':g_gamma.vp.gamma.get_2d_array([0]).ravel().astype('float'),'gamma_degreecount':g_gamma.degree_property_map('total').a}).reset_index()
+gamma_degreecount.to_pickle('./Data/derived/predicting_flows/' + modelname + '_gamma_degreecount.p')
 
+# Compute the total degrees associated with each occ2Xmeso. Note that the number of degrees is 2x the number of edges b/c it counts both in- and out-degrees
+occ2Xmeso = g_occ2Xmeso.new_vertex_property("string")
+g_occ2Xmeso.vp["occ2Xmeso"] = occ2Xmeso
+for g in g_occ2Xmeso.vertices():
+    occ2Xmeso[g] = g_occ2Xmeso_vertices[g]
+
+occ2Xmeso_degreecount = pd.DataFrame({'occ2Xmeso':g_occ2Xmeso.vp.occ2Xmeso.get_2d_array([0]).ravel(),'occ2Xmeso_degreecount':g_occ2Xmeso.degree_property_map('total').a}).reset_index()
+occ2Xmeso_degreecount.to_pickle('./Data/derived/predicting_flows/' + modelname + '_occ2Xmeso_degreecount.p')
 
 
 ########################################################################################
@@ -201,41 +208,106 @@ def add_ids_as_property(graph, ids):
 
 pickle.dump( g_jid, open('./Data/derived/predicting_flows/' + modelname + '_g_jid.p', "wb" ) )    
     
-jid_cw = pd.DataFrame({'jid':g_jid.vp.jid.get_2d_array([0]).ravel(),'degree':g_jid.degree_property_map('total').a}).reset_index()
-a = df_trans[['jid','gamma','occ2Xmeso']].drop_duplicates(subset=['jid','gamma','occ2Xmeso'])
-df_stacked = pd.concat([df_trans.loc[(df_trans.jid!=df_trans.jid_prev) & (df_trans.jid_prev.notnull())][['jid', 'gamma', 'occ2Xmeso']], df_trans.loc[(df_trans.jid!=df_trans.jid_prev) & (df_trans.jid_prev.notnull())][['jid_prev', 'gamma_prev', 'occ2Xmeso_prev']].rename(columns={'jid_prev':'jid','gamma_prev':'gamma', 'occ2Xmeso_prev':'occ2Xmeso'})]).drop_duplicates(subset=['jid']) #XX gamma and occ2Xmeso aren~t unique within jid here. Figure out what's going on there
-jid_cw = jid_cw.merge(df_stacked, on='jid', how='outer', validate='1:1')
+jid_degreecount = pd.DataFrame({'jid':g_jid.vp.jid.get_2d_array([0]).ravel(),'degree':g_jid.degree_property_map('total').a}).reset_index()
 
-############################
-# Compute cardinality of job transitions by market
-''' Don't need to do it this way. This produces the same result as g_gamma.degree_property_map('total').a
-gt.adjacency(g_gamma).todense().sum(axis=0)
-gt.adjacency(g_occ2Xmeso).todense().sum(axis=0)
-'''
+# Compute a mapping of jids to market definitions (gammas and occ2Xmeso). Do this by taking the set of jids, occ2mesos, and gammas that are ever origins and stack the set of jids, occ2Xmesos, and gammas that are ever destinations. Then drop duplicates on jid and keep the columns jid, gamma, and occ2Xmeso. 
+jid_mkt_cw = pd.concat([df_trans.loc[(df_trans.jid!=df_trans.jid_prev) & (df_trans.jid_prev.notnull())][['jid', 'gamma', 'occ2Xmeso']], df_trans.loc[(df_trans.jid!=df_trans.jid_prev) & (df_trans.jid_prev.notnull())][['jid_prev', 'gamma_prev', 'occ2Xmeso_prev']].rename(columns={'jid_prev':'jid','gamma_prev':'gamma', 'occ2Xmeso_prev':'occ2Xmeso'})]).drop_duplicates(subset=['jid']) #XX gamma and occ2Xmeso aren~t unique within jid here. Figure out what's going on there
+
+# Merge the jid to market crosswalk back on to the jid degree counts
+jid_degreecount = jid_degreecount.merge(jid_mkt_cw, on='jid', how='outer', validate='1:1')
 
 
-gamma = g_gamma.new_vertex_property("string")
-g_gamma.vp["gamma"] = gamma
-for g in g_gamma.vertices():
-    gamma[g] = g_gamma_vertices[g]
-
-gamma_cw = pd.DataFrame({'gamma':g_gamma.vp.gamma.get_2d_array([0]).ravel().astype('float'),'cardinality_gamma':g_gamma.degree_property_map('total').a}).reset_index()
-gamma_cw.to_pickle('./Data/derived/predicting_flows/' + modelname + '_gamma_cw.p')
-
-occ2Xmeso = g_occ2Xmeso.new_vertex_property("string")
-g_occ2Xmeso.vp["occ2Xmeso"] = occ2Xmeso
-for g in g_occ2Xmeso.vertices():
-    occ2Xmeso[g] = g_occ2Xmeso_vertices[g]
-
-occ2Xmeso_cw = pd.DataFrame({'occ2Xmeso':g_occ2Xmeso.vp.occ2Xmeso.get_2d_array([0]).ravel(),'cardinality_occ2Xmeso':g_occ2Xmeso.degree_property_map('total').a}).reset_index()
-occ2Xmeso_cw.to_pickle('./Data/derived/predicting_flows/' + modelname + '_occ2Xmeso_cw.p')
+#########################################################
+# Compute total degrees by market and merge back on to the jid degree counts
 
 
-jid_cw = jid_cw.merge(gamma_cw[['gamma','cardinality_gamma']], on='gamma', how='outer', validate='m:1')
-jid_cw = jid_cw.merge(occ2Xmeso_cw[['occ2Xmeso','cardinality_occ2Xmeso']], on='occ2Xmeso', how='outer', validate='m:1')
-jid_cw = jid_cw.sort_values(by='index')
-jid_cw.to_pickle('./Data/derived/predicting_flows/' + modelname + '_jid_cw.p')
 
+jid_degreecount = jid_degreecount.merge(gamma_degreecount[['gamma',        'gamma_degreecount']],     on='gamma',     how='left', validate='m:1')
+jid_degreecount = jid_degreecount.merge(occ2Xmeso_degreecount[['occ2Xmeso','occ2Xmeso_degreecount']], on='occ2Xmeso', how='left', validate='m:1')
+jid_degreecount = jid_degreecount.sort_values(by='index')
+jid_degreecount.to_pickle('./Data/derived/predicting_flows/' + modelname + '_jid_degreecount.p')
+
+
+
+
+########################################################################################
+########################################################################################
+# P_F (Out-of-sample flows, 2017-2018)
+########################################################################################
+########################################################################################
+
+raw2017 = pd.read_pickle('./Data/derived/' + modelname + '_raw_2017.p')
+raw2018 = pd.read_pickle('./Data/derived/' + modelname + '_raw_2018.p')
+df_1718 = pd.concat([raw2017,raw2018], axis=0)
+df_1718 = df_1718.sort_values(by=['wid','start_date'])
+df_1718['jid_prev'] = df_1718.groupby('wid')['jid'].shift(1)
+df_1718['gamma_prev'] = df_1718.groupby('wid')['gamma'].shift(1)
+df_1718['occ2Xmeso_prev'] = df_1718.groupby('wid')['occ2Xmeso'].shift(1)
+
+# Restrict to obs for which we have a valid gamma
+df_1718 = df_1718[(df_1718['gamma'].notnull()) & (df_1718['gamma_prev'].notnull()) & (df_1718['gamma'] != -1) & (df_1718['gamma_prev'] != -1) & (df['gamma_prev'].notnull()) & (df['iota'] != -1) & (df['occ2Xmeso'].notnull()) & (df_1718['jid'].notnull()) & (df_1718['jid_prev'].notnull())]
+
+#    df_trans = df[(df['gamma'].notnull()) & (df['gamma_prev'].notnull()) & (df['gamma'] != -1) & (df['gamma_prev'] != -1) & (df['iota'] != -1) & (df['occ2Xmeso'].notnull()) & (df['jid'].notnull())][['jid','jid_prev','wid','iota','gamma','gamma_prev','occ2Xmeso','occ2Xmeso_prev']]
+
+
+# "oos" denotes "out of sample"
+
+##############################################################################
+# Compute market-level degrees that I will merge onto job-level later
+                  
+g_gamma_oos = gt.Graph(directed=False)
+g_occ2Xmeso_oos = gt.Graph(directed=False)
+# Add Edges
+cond = (df_1718.jid!=df_1718.jid_prev) & (df_1718.jid_prev.notnull()) & (df_1718.gamma_prev.notnull()) & (df_1718.occ2Xmeso_prev.notnull())
+g_gamma_oos_vertices     = g_gamma_oos.add_edge_list(    df_1718.loc[cond][['gamma_prev',    'gamma'    ]].values, hashed=True)
+pickle.dump( g_gamma_oos, open('./Data/derived/predicting_flows/' + modelname + '_g_gamma_oos.p', "wb" ) )
+g_occ2Xmeso_oos_vertices = g_occ2Xmeso_oos.add_edge_list(df_1718.loc[cond][['occ2Xmeso_prev','occ2Xmeso']].values, hashed=True)
+pickle.dump( g_occ2Xmeso_oos, open('./Data/derived/predicting_flows/' + modelname + '_g_occ2Xmeso_oos.p', "wb" ) )
+
+
+
+# Compute the total degrees associated  with each gamma. Note that the number of degrees is 2x the number of edges b/c it counts both in- and out-degrees
+gamma_oos = g_gamma_oos.new_vertex_property("string")
+g_gamma_oos.vp["gamma"] = gamma_oos
+for g in g_gamma_oos.vertices():
+    gamma_oos[g] = g_gamma_oos_vertices[g]
+
+gamma_oos_degreecount = pd.DataFrame({'gamma':g_gamma_oos.vp.gamma.get_2d_array([0]).ravel().astype('float'),'gamma_oos_degreecount':g_gamma_oos.degree_property_map('total').a}).reset_index()
+gamma_oos_degreecount.to_pickle('./Data/derived/predicting_flows/' + modelname + '_gamma_oos_degreecount.p')
+
+# Compute the total degrees associated with each occ2Xmeso. Note that the number of degrees is 2x the number of edges b/c it counts both in- and out-degrees
+occ2Xmeso_oos = g_occ2Xmeso_oos.new_vertex_property("string")
+g_occ2Xmeso_oos.vp["occ2Xmeso"] = occ2Xmeso_oos
+for g in g_occ2Xmeso_oos.vertices():
+    occ2Xmeso_oos[g] = g_occ2Xmeso_oos_vertices[g]
+
+occ2Xmeso_oos_degreecount = pd.DataFrame({'occ2Xmeso':g_occ2Xmeso_oos.vp.occ2Xmeso.get_2d_array([0]).ravel(),'occ2Xmeso_oos_degreecount':g_occ2Xmeso_oos.degree_property_map('total').a}).reset_index()
+occ2Xmeso_oos_degreecount.to_pickle('./Data/derived/predicting_flows/' + modelname + '_occ2Xmeso_oos_degreecount.p')
+
+                  
+                
+edgelist_oos = df_1718.loc[cond][['jid','jid_prev']]
+g_jid_oos = gt.Graph(directed=False)
+# Add Edges
+ids = g_jid_oos.add_edge_list(edgelist_oos.values, hashed=True)
+pickle.dump( g_jid_oos, open('./Data/derived/predicting_flows/' + modelname + '_g_jid_oos.p', "wb" ) )
+
+
+jid_oos_degreecount = pd.DataFrame({'jid':g_jid_oos.vp.jid.get_2d_array([0]).ravel(),'degree':g_jid_oos.degree_property_map('total').a}).reset_index()
+
+# Merge the jid to market crosswalk back on to the jid degree counts
+# Only keep jids that appear in the 13-16 data and thus have gammas and occ2Xmesos
+
+jid_oos_degreecount = jid_oos_degreecount.merge(jid_mkt_cw, on='jid', how='inner', validate='1:1')
+jid_oos_degreecount = jid_oos_degreecount.merge(gamma_oos_degreecount[['gamma',        'gamma_oos_degreecount']],     on='gamma',     how='left', validate='m:1')
+jid_oos_degreecount = jid_oos_degreecount.merge(occ2Xmeso_oos_degreecount[['occ2Xmeso','occ2Xmeso_oos_degreecount']], on='occ2Xmeso', how='left', validate='m:1')
+jid_oos_degreecount = jid_oos_degreecount.sort_values(by='index')
+jid_oos_degreecount.to_pickle('./Data/derived/predicting_flows/' + modelname + '_jid_oos_degreecount.p')
+
+
+                  
+
+#jid_degreecount = pd.DataFrame({'jid':g_jid.vp.jid.get_2d_array([0]).ravel(),'degree':g_jid.degree_property_map('total').a}).reset_index()
 
 
 # The code below loads objects used for predicting flows that require graph-tool and stores them as an object that doesn't require using graph-tool to load. Only run it on the python server.
@@ -275,8 +347,11 @@ d_g = np.ravel(ag.sum(axis=1)/2)
 d_g_div_d_g_tilde = np.diag(d_g/d_g_tilde)
 
 d_i_tilde_inv = np.linalg.inv(np.diag(d_i_tilde))
-d_gg_tilde = d_g_div_d_g_tilde @ A_ig @ d_i_tilde_inv @ np.transpose(A_ig)
 
+# This gives us what we've been calling \tilde d_{m'|m}. What we really want is \tilde d_{mm'}=\tilde d_{m'|m} + \tilde d_{m|m'}. Compute this on the following line
+d_gg_tilde_asymm = d_g_div_d_g_tilde @ A_ig @ d_i_tilde_inv @ np.transpose(A_ig)
+d_gg_tilde = d_gg_tilde_asymm + d_gg_tilde_asymm.T
+# d_gg_tilde.sum() = ag.sum() = 31671758
 pickle.dump(d_gg_tilde, open('./Data/derived/predicting_flows/'+modelname+'_d_gg_tilde.p', 'wb'))
 
 
@@ -284,29 +359,6 @@ pickle.dump(d_gg_tilde, open('./Data/derived/predicting_flows/'+modelname+'_d_gg
 print(d_gg_tilde.sum())
 print(g_gamma)
 
-
-
-
-########################################################################################
-########################################################################################
-# P_F (Out-of-sample flows, 2017-2018)
-########################################################################################
-########################################################################################
-
-raw2017 = pd.read_pickle('./Data/derived/' + modelname + '_raw_2017.p')
-raw2018 = pd.read_pickle('./Data/derived/' + modelname + '_raw_2018.p')
-df_1718 = pd.concat([raw2017,raw2018], axis=0)
-df_1718 = df_1718.sort_values(by=['wid','start_date'])
-df_1718['jid_prev'] = df_1718.groupby('wid')['jid'].shift(1)
-# Restrict to obs for which we have a valid gamma
-df_1718 = df_1718[(df_1718['gamma'].notnull()) & (df_1718['gamma'] != -1) & (df_1718['gamma_prev'] != -1) & (df['gamma_prev'].notnull() & (df_1718['jid'].notnull()) & (df_1718['jid_prev'].notnull())]
-
-# "gt" denotes "ground truth"
-edgelist_gt = df_1718.loc[df_1718['jid']!=df_1718['jid_prev']][['jid','jid_prev']]
-g_gt = gt.Graph(directed=False)
-# Add Edges
-ids = g_gt.add_edge_list(edgelist_gt.values, hashed=True)
-pickle.dump( g_gt, open('./Data/derived/predicting_flows/' + modelname + '_g_gt.p', "wb" ) )
 
 
 
