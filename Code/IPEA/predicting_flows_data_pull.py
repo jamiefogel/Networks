@@ -119,7 +119,7 @@ if run_df==True:
     
     # Restrict to obs with non-missing gammas, occ2Xmesos, jid, and jid_prev.
     # XX should I actually be cutting on non-missing jid_prev? I think I should actually wait to do that until making the unipartite transition matrices below. For the bipartite there is no reason why we need to have observed a previous jid. 
-    df_trans = df[(df['gamma'].notnull()) & (df['gamma'] != -1) & (df['gamma_prev'] != -1) & (df['gamma'].notnull()) & (df['iota'] != -1) & (df['occ2Xmeso'].notnull()) & (df['jid'].notnull())][['jid','jid_prev','wid','iota','gamma','gamma_prev','occ2Xmeso','occ2Xmeso_prev']]
+    df_trans = df[(df['gamma'].notnull()) & (df['gamma_prev'].notnull()) & (df['gamma'] != -1) & (df['gamma_prev'] != -1) & (df['iota'] != -1) & (df['occ2Xmeso'].notnull()) & (df['jid'].notnull())][['jid','jid_prev','wid','iota','gamma','gamma_prev','occ2Xmeso','occ2Xmeso_prev']]
     df_trans.to_pickle('./Data/derived/predicting_flows/' + modelname + '_df_trans.p')
 
 
@@ -253,8 +253,6 @@ pickle.dump(objects, open('./Data/derived/predicting_flows/adjacencies_no_grapht
 ########################################################################################
 
 # Creating the object $\tilde d_{m \omega}$, a GxI matrix of iota-gamma match counts
-d_mw 
-
 
 I = estimated_sbm_mcmc.num_worker_blocks[0]
 G = estimated_sbm_mcmc.num_job_blocks[0]
@@ -301,9 +299,10 @@ df_1718 = pd.concat([raw2017,raw2018], axis=0)
 df_1718 = df_1718.sort_values(by=['wid','start_date'])
 df_1718['jid_prev'] = df_1718.groupby('wid')['jid'].shift(1)
 # Restrict to obs for which we have a valid gamma
-df_1718 = df_1718[(df_1718['gamma'].notnull()) & (df_1718['gamma'] != -1) & (df_1718['jid'].notnull()) & (df_1718['jid_prev'].notnull())]
+df_1718 = df_1718[(df_1718['gamma'].notnull()) & (df_1718['gamma'] != -1) & (df_1718['gamma_prev'] != -1) & (df['gamma_prev'].notnull() & (df_1718['jid'].notnull()) & (df_1718['jid_prev'].notnull())]
+
 # "gt" denotes "ground truth"
-edgelist_gt = df_1718.loc[df_1718['jid'!]=df_1718['jid_prev']][['jid','jid_prev']]
+edgelist_gt = df_1718.loc[df_1718['jid']!=df_1718['jid_prev']][['jid','jid_prev']]
 g_gt = gt.Graph(directed=False)
 # Add Edges
 ids = g_gt.add_edge_list(edgelist_gt.values, hashed=True)
