@@ -16,6 +16,7 @@ sys.path.append(root + 'Code/Modules')
 os.chdir(root)
 
 import bisbm
+import create_df_trans
 from pull_one_year import pull_one_year
 
 
@@ -70,24 +71,6 @@ iotas['iota'] = iotas.iota.fillna(-1)
 ########################################################################################
 ########################################################################################
 
-
-''' Issue: data_adm uses different date formats for different years. e.g. M/D/Y in 2013 and D/M/Y in 2017. This could be true for other date variables as well.
-
-df[['wid','start_date','jid','jid_prev','gamma','gamma_prev']]
-               wid start_date                  jid             jid_prev   gamma  gamma_prev
-9352   10000627817 2010-04-12  00000000042277_4132                  NaN  1208.0         NaN
-27255  10000628066 1998-06-08  00000000394700_4132                  NaN     0.0         NaN
-19756  10000631938 1997-12-22  00000000264849_4132                  NaN  1291.0         NaN
-9594   10000637758 2010-08-24  00000000043915_4132                  NaN     1.0         NaN
-16714  10000640848 2008-04-09  00000000198790_4132                  NaN     1.0         NaN
-...            ...        ...                  ...                  ...     ...         ...
-5160   22808914945 2017-02-06  00000000013412_4132  00000000120928_4132     1.0         1.0
-4372   22808914945 2017-06-02  00000000013412_4132  00000000013412_4132     1.0         1.0
-21361  22808914945 2018-02-14  00000000311278_4132  00000000013412_4132     1.0         1.0
-11165  23600334324 2014-05-20  00000000044725_4132                  NaN     1.0         NaN
-'9613   23600334324 2017-04-03  00000000044725_4132  00000000044725_4132     1.0         1.0
-'''
-
 if run_df==True:
     for year in range(firstyear,lastyear+1):
         raw = pull_one_year(year, 'cbo2002', othervars=['data_adm'], state_codes=state_codes, age_lower=25, age_upper=55, parse_dates=['data_adm'], nrows=maxrows)
@@ -109,21 +92,18 @@ if run_df==True:
     raw2016 = pd.read_pickle('./Data/derived/' + modelname + '_raw_2016.p')
     raw2017 = pd.read_pickle('./Data/derived/' + modelname + '_raw_2017.p')
     raw2018 = pd.read_pickle('./Data/derived/' + modelname + '_raw_2018.p')
-    df = pd.concat([raw2013,raw2014,raw2015,raw2016], axis=0)
-    df = df.sort_values(by=['wid','start_date'])
-    df['jid_prev'] = df.groupby('wid')['jid'].shift(1)
-    df['gamma_prev'] = df.groupby('wid')['gamma'].shift(1)
-    df['occ2Xmeso_prev'] = df.groupby('wid')['occ2Xmeso'].shift(1)
-    df.to_pickle('./Data/derived/predicting_flows/' + modelname + '_df.p')
     
-    
-    # Restrict to obs with non-missing gammas, occ2Xmesos, jid, and jid_prev.
-    # XX should I actually be cutting on non-missing jid_prev? I think I should actually wait to do that until making the unipartite transition matrices below. For the bipartite there is no reason why we need to have observed a previous jid. 
-    df_trans = df[(df['gamma'].notnull()) & (df['gamma_prev'].notnull()) & (df['gamma'] != -1) & (df['gamma_prev'] != -1) & (df['iota'] != -1) & (df['occ2Xmeso'].notnull()) & (df['occ2Xmeso_prev'].notnull()) & (df['jid'].notnull())][['jid','jid_prev','wid','iota','gamma','gamma_prev','occ2Xmeso','occ2Xmeso_prev']]
-    df_trans.to_pickle('./Data/derived/predicting_flows/' + modelname + '_df_trans.p')
+    #####################
+    # Create data frame of transitions
 
 
-df_trans = pd.read_pickle('./Data/derived/predicting_flows/' + modelname + '_df_trans.p')
+df_trans_ins = create_df_trans([raw2013,raw2014,raw2015,raw2016])
+df_tran_ins.to_pickle('./Data/derived/predicting_flows/' + modelname + '_df_trans_ins.p')
+
+df_trans_oos = create_df_trans([raw2017,raw2018])
+df_tran_oos.to_pickle('./Data/derived/predicting_flows/' + modelname + '_df_trans_oos.p')
+
+
 
 ########################################################################################
 ########################################################################################
@@ -142,26 +122,52 @@ df_trans = pd.read_pickle('./Data/derived/predicting_flows/' + modelname + '_df_
 # - Create an edgelist where the columns are mkt_prev and mkt
 # - Create a graph from the edgelist using gt.add_edge_list()
 # - Save a crosswalk between the vertex ids created when making the graph and the original IDs (which correspond to gamma or occ2Xmeso)
-g_gamma = gt.Graph(directed=False)
-g_occ2Xmeso = gt.Graph(directed=False)
-# Add Edges
-cond = (df_trans.jid!=df_trans.jid_prev) & (df_trans.jid_prev.notnull()) & (df_trans.gamma_prev.notnull()) & (df_trans.occ2Xmeso_prev.notnull())
-g_gamma_vertices     = g_gamma.add_edge_list(    df_trans.loc[cond][['gamma_prev',    'gamma'    ]].values, hashed=True)
-pickle.dump( g_gamma, open('./Data/derived/predicting_flows/' + modelname + '_g_gamma.p', "wb" ) )
-g_occ2Xmeso_vertices = g_occ2Xmeso.add_edge_list(df_trans.loc[cond][['occ2Xmeso_prev','occ2Xmeso']].values, hashed=True)
-pickle.dump( g_occ2Xmeso, open('./Data/derived/predicting_flows/' + modelname + '_g_occ2Xmeso.p', "wb" ) )
 
+####################################################
+# Note 7/20/2023
+#  - the section of code below does 2 things: creates a market-to-market adjacency matrix (akmts, or ag and ao), and creates market-level degree counts (cjid)
+#  - I need to turn this into a function that takes as arguments (i) what type of market to compute it for (gamma or occ2Xmeso), and (ii) which dataset to use (df_trans or df_trans_oos)
+
+def create_market2market_adjacency_and_degrees(mkt, df_trans):
+    # Compute the adjacency matrix
+    g = gt.Graph(directed=False)
+    g_vertices = g.add_edge_list(df_trans[[mkt+'_prev',mkt]].values, hashed=True)
+    adjacency = gt.adjacency(g)
+    # Compute the total degrees associated  with each mkt. Note that the number of degrees is 2x the number of edges b/c it counts both in- and out-degrees
+    mkt_id = g.new_vertex_property("string")
+    g.vp[mkt] = mkt_id
+    for g in g.vertices():
+        mkt_id[g] = g_vertices[g]
+    mkt_degreecount = pd.DataFrame({mkt:g.vp.mkt_id.get_2d_array([0]).ravel().astype('float'),mkt+'_degreecount':g.degree_property_map('total').a}).reset_index()
+    return[adjacency,mkt_degreecount]    
+
+Run this 4 times for each of [ins,oos]x[gamma,occ2Xmeso]
+
+
+[ag_new, gamma_degreecount_new]     = create_market2market_adjacency('gamma',    df_tran_ins)
+[ao_new, occ2Xmeso_degreecount_new] = create_market2market_adjacency('occ2Xmeso',df_tran_ins)
+
+# Confirming that the new version equals the old
+[ag, ao, ajid] = pickle.load(open('./Data/derived/predicting_flows/adjacencies_no_graphtool.p', 'rb'))
+ag==ag_new
+ao==ao_new
+
+
+
+
+'''
+
+# Produce a market-to-market empirical adjacency matrix
+g_gamma = gt.Graph(directed=False)
+g_gamma_vertices     = g_gamma.add_edge_list(    df_trans.loc[cond][['gamma_prev',    'gamma'    ]].values, hashed=True)
+ag = gt.adjacency(g_gamma)
+pickle.dump( g_gamma, open('./Data/derived/predicting_flows/' + modelname + '_g_gamma.p', "wb" ) )
 
 # Just printing the crosswalk between the original vertex IDs (gammas or occ2Xmesos) and the vertex IDs created by graph-tool. This isn't really necessary, just saving it for reference.
 for vertex in g_gamma.vertices():
     vertex_id = g_gamma_vertices[vertex]
     print("Vertex ID for vertex", vertex, ":", vertex_id)
-
-for vertex in g_occ2Xmeso.vertices():
-    vertex_id = g_occ2Xmeso_vertices[vertex]
-    print("Vertex ID for vertex", vertex, ":", vertex_id)
-
-    
+        
 # Compute the total degrees associated  with each gamma. Note that the number of degrees is 2x the number of edges b/c it counts both in- and out-degrees
 gamma = g_gamma.new_vertex_property("string")
 g_gamma.vp["gamma"] = gamma
@@ -171,6 +177,21 @@ for g in g_gamma.vertices():
 gamma_degreecount = pd.DataFrame({'gamma':g_gamma.vp.gamma.get_2d_array([0]).ravel().astype('float'),'gamma_degreecount':g_gamma.degree_property_map('total').a}).reset_index()
 gamma_degreecount.to_pickle('./Data/derived/predicting_flows/' + modelname + '_gamma_degreecount.p')
 
+ 
+
+cond = (df_trans.jid!=df_trans.jid_prev) & (df_trans.jid_prev.notnull()) & (df_trans.gamma_prev.notnull()) & (df_trans.occ2Xmeso_prev.notnull())
+
+# Produce a market-to-market empirical adjacency matrix
+g_occ2Xmeso = gt.Graph(directed=False)
+g_occ2Xmeso_vertices = g_occ2Xmeso.add_edge_list(df_trans.loc[cond][['occ2Xmeso_prev','occ2Xmeso']].values, hashed=True)
+ao = gt.adjacency(g_occ2Xmeso)
+pickle.dump( g_occ2Xmeso, open('./Data/derived/predicting_flows/' + modelname + '_g_occ2Xmeso.p', "wb" ) )
+
+# Just printing the crosswalk between the original vertex IDs (gammas or occ2Xmesos) and the vertex IDs created by graph-tool. This isn't really necessary, just saving it for reference.
+for vertex in g_occ2Xmeso.vertices():
+    vertex_id = g_occ2Xmeso_vertices[vertex]
+    print("Vertex ID for vertex", vertex, ":", vertex_id)
+
 # Compute the total degrees associated with each occ2Xmeso. Note that the number of degrees is 2x the number of edges b/c it counts both in- and out-degrees
 occ2Xmeso = g_occ2Xmeso.new_vertex_property("string")
 g_occ2Xmeso.vp["occ2Xmeso"] = occ2Xmeso
@@ -179,14 +200,21 @@ for g in g_occ2Xmeso.vertices():
 
 occ2Xmeso_degreecount = pd.DataFrame({'occ2Xmeso':g_occ2Xmeso.vp.occ2Xmeso.get_2d_array([0]).ravel(),'occ2Xmeso_degreecount':g_occ2Xmeso.degree_property_map('total').a}).reset_index()
 occ2Xmeso_degreecount.to_pickle('./Data/derived/predicting_flows/' + modelname + '_occ2Xmeso_degreecount.p')
-
+'''
 
 ########################################################################################
 ########################################################################################
 # Dataframe for jobs
+#
+# - The idea here is to create two things: (i) a job-to-job adjacency matrix that is the object we are trying to
+#   predict (ajid), and (ii) create a job degree dataframe d_j (cjid). The job degree dataframe will also need to
+#   have columns for the job's gamma and occ2Xmeso so that we can merge things on later. 
+# - Will want to write a function that takes which version of df_trans as an argument so we can do this for 
+#   13-16 or 17-18
 ########################################################################################
 ########################################################################################
 
+XX Next: convert this to a function
 
 # Create a df with job degree, gamma, occ2Xmeso, that is sorted according to the rows of the matrix. Probably worth also including jid to be safe.
 g_jid = gt.Graph(directed=False)
@@ -220,8 +248,6 @@ jid_degreecount = jid_degreecount.merge(jid_mkt_cw, on='jid', how='outer', valid
 #########################################################
 # Compute total degrees by market and merge back on to the jid degree counts
 
-
-
 jid_degreecount = jid_degreecount.merge(gamma_degreecount[['gamma',        'gamma_degreecount']],     on='gamma',     how='left', validate='m:1')
 jid_degreecount = jid_degreecount.merge(occ2Xmeso_degreecount[['occ2Xmeso','occ2Xmeso_degreecount']], on='occ2Xmeso', how='left', validate='m:1')
 jid_degreecount = jid_degreecount.sort_values(by='index')
@@ -229,7 +255,8 @@ jid_degreecount.to_pickle('./Data/derived/predicting_flows/' + modelname + '_jid
 
 
 
-
+'''
+This should all be able to be incorporated into the functions I need to write above
 ########################################################################################
 ########################################################################################
 # P_F (Out-of-sample flows, 2017-2018)
@@ -291,6 +318,10 @@ for g in g_occ2Xmeso_oos.vertices():
 occ2Xmeso_oos_degreecount = pd.DataFrame({'occ2Xmeso':g_occ2Xmeso_oos.vp.occ2Xmeso.get_2d_array([0]).ravel(),'occ2Xmeso_oos_degreecount':g_occ2Xmeso_oos.degree_property_map('total').a}).reset_index()
 occ2Xmeso_oos_degreecount.to_pickle('./Data/derived/predicting_flows/' + modelname + '_occ2Xmeso_oos_degreecount.p')
 
+
+
+
+
                   
                 
 edgelist_oos = df_1718.loc[cond][['jid','jid_prev']]
@@ -303,16 +334,16 @@ g_jid_oos.vp["jid"] = jid_oos
 for g in g_jid_oos.vertices():
     jid_oos[g] = vmap_oos[g]
 
-'''
-vmap = g_jid.add_edge_list(df_trans.loc[cond][['jid_prev','jid']].values, hashed=True)
 
-# For some reason vmap.get_2d_array([0]) gives me an error but the below code works. It feels like a hack, but it gets the job done and looping over 1.5 million vertices should be very fast. 
-jid = g_jid.new_vertex_property("string")
-g_jid.vp["jid"] = jid
-for g in g_jid.vertices():
-    jid[g] = vmap[g]
+# vmap = g_jid.add_edge_list(df_trans.loc[cond][['jid_prev','jid']].values, hashed=True)
 
-'''
+# # For some reason vmap.get_2d_array([0]) gives me an error but the below code works. It feels like a hack, but it gets the job done and looping over 1.5 million vertices should be very fast. 
+# jid = g_jid.new_vertex_property("string")
+# g_jid.vp["jid"] = jid
+# for g in g_jid.vertices():
+#     jid[g] = vmap[g]
+
+
     
     
 pickle.dump( g_jid_oos, open('./Data/derived/predicting_flows/' + modelname + '_g_jid_oos.p', "wb" ) )
@@ -335,16 +366,17 @@ jid_oos_degreecount.to_pickle('./Data/derived/predicting_flows/' + modelname + '
 
 
 # The code below loads objects used for predicting flows that require graph-tool and stores them as an object that doesn't require using graph-tool to load. Only run it on the python server.
-ag = gt.adjacency(pickle.load(open('./Data/derived/predicting_flows/pred_flows_g_gamma.p', 'rb')))
-ao = gt.adjacency(pickle.load(open('./Data/derived/predicting_flows/pred_flows_g_occ2Xmeso.p', 'rb')))
+
 ajid = gt.adjacency(pickle.load(open('./Data/derived/predicting_flows/pred_flows_g_jid.p', 'rb')))           
 objects = [ag, ao, ajid]
 pickle.dump(objects, open('./Data/derived/predicting_flows/adjacencies_no_graphtool.p', 'wb'))
 
-
+'''
 ########################################################################################
 ########################################################################################
 # iota-gamma predictions
+#
+# - I think this section is independent of everything above
 ########################################################################################
 ########################################################################################
 
