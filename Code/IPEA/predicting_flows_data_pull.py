@@ -126,9 +126,9 @@ df_tran_oos.to_pickle('./Data/derived/predicting_flows/' + modelname + '_df_tran
 ####################################################
 # Note 7/20/2023
 #  - the section of code below does 2 things: creates a market-to-market adjacency matrix (akmts, or ag and ao), and creates market-level degree counts (cjid)
-#  - I need to turn this into a function that takes as arguments (i) what type of market to compute it for (gamma or occ2Xmeso), and (ii) which dataset to use (df_trans or df_trans_oos)
-
-def create_market2market_adjacency_and_degrees(mkt, df_trans):
+#  - I need to turn this into a function that takes as arguments (i) what type of market to compute it for (jid, gamma or occ2Xmeso), and (ii) which dataset to use (df_trans or df_trans_oos)
+# The function
+def create_unipartite_adjacency_and_degrees(mkt, df_trans):
     # Compute the adjacency matrix
     g = gt.Graph(directed=False)
     g_vertices = g.add_edge_list(df_trans[[mkt+'_prev',mkt]].values, hashed=True)
@@ -138,69 +138,29 @@ def create_market2market_adjacency_and_degrees(mkt, df_trans):
     g.vp[mkt] = mkt_id
     for g in g.vertices():
         mkt_id[g] = g_vertices[g]
-    mkt_degreecount = pd.DataFrame({mkt:g.vp.mkt_id.get_2d_array([0]).ravel().astype('float'),mkt+'_degreecount':g.degree_property_map('total').a}).reset_index()
-    return[adjacency,mkt_degreecount]    
+    mkt_degreecount = pd.DataFrame({mkt:g.vp.mkt_id.get_2d_array([0]).ravel(),mkt+'_degreecount':g.degree_property_map('total').a}).reset_index()
+    return[adjacency,mkt_degreecount]   
+
+    
+
 
 Run this 4 times for each of [ins,oos]x[gamma,occ2Xmeso]
 
+XX One issue: in gamma_degreecount_new the gammas will I think be a string rather than a float because I dropped the .astype('float')
+gamma_degreecount_new['gamma'] = gamma_degreecount_new['gamma'].astype('float')
 
-[ag_new, gamma_degreecount_new]     = create_market2market_adjacency('gamma',    df_tran_ins)
-[ao_new, occ2Xmeso_degreecount_new] = create_market2market_adjacency('occ2Xmeso',df_tran_ins)
+[ag_new,    gamma_degreecount_new]      = create_unipartite_adjacency_and_degrees('gamma',      df_tran_ins)
+[ajid_new,  jid_degreecount_new]        = create_unipartite_adjacency_and_degrees('jid',        df_tran_ins)
+[ao_new,    occ2Xmeso_degreecount_new]  = create_unipartite_adjacency_and_degrees('occ2Xmeso',  df_tran_ins)
 
 # Confirming that the new version equals the old
 [ag, ao, ajid] = pickle.load(open('./Data/derived/predicting_flows/adjacencies_no_graphtool.p', 'rb'))
 ag==ag_new
 ao==ao_new
+ajid==ajid_new
 
 
 
-
-'''
-
-# Produce a market-to-market empirical adjacency matrix
-g_gamma = gt.Graph(directed=False)
-g_gamma_vertices     = g_gamma.add_edge_list(    df_trans.loc[cond][['gamma_prev',    'gamma'    ]].values, hashed=True)
-ag = gt.adjacency(g_gamma)
-pickle.dump( g_gamma, open('./Data/derived/predicting_flows/' + modelname + '_g_gamma.p', "wb" ) )
-
-# Just printing the crosswalk between the original vertex IDs (gammas or occ2Xmesos) and the vertex IDs created by graph-tool. This isn't really necessary, just saving it for reference.
-for vertex in g_gamma.vertices():
-    vertex_id = g_gamma_vertices[vertex]
-    print("Vertex ID for vertex", vertex, ":", vertex_id)
-        
-# Compute the total degrees associated  with each gamma. Note that the number of degrees is 2x the number of edges b/c it counts both in- and out-degrees
-gamma = g_gamma.new_vertex_property("string")
-g_gamma.vp["gamma"] = gamma
-for g in g_gamma.vertices():
-    gamma[g] = g_gamma_vertices[g]
-
-gamma_degreecount = pd.DataFrame({'gamma':g_gamma.vp.gamma.get_2d_array([0]).ravel().astype('float'),'gamma_degreecount':g_gamma.degree_property_map('total').a}).reset_index()
-gamma_degreecount.to_pickle('./Data/derived/predicting_flows/' + modelname + '_gamma_degreecount.p')
-
- 
-
-cond = (df_trans.jid!=df_trans.jid_prev) & (df_trans.jid_prev.notnull()) & (df_trans.gamma_prev.notnull()) & (df_trans.occ2Xmeso_prev.notnull())
-
-# Produce a market-to-market empirical adjacency matrix
-g_occ2Xmeso = gt.Graph(directed=False)
-g_occ2Xmeso_vertices = g_occ2Xmeso.add_edge_list(df_trans.loc[cond][['occ2Xmeso_prev','occ2Xmeso']].values, hashed=True)
-ao = gt.adjacency(g_occ2Xmeso)
-pickle.dump( g_occ2Xmeso, open('./Data/derived/predicting_flows/' + modelname + '_g_occ2Xmeso.p', "wb" ) )
-
-# Just printing the crosswalk between the original vertex IDs (gammas or occ2Xmesos) and the vertex IDs created by graph-tool. This isn't really necessary, just saving it for reference.
-for vertex in g_occ2Xmeso.vertices():
-    vertex_id = g_occ2Xmeso_vertices[vertex]
-    print("Vertex ID for vertex", vertex, ":", vertex_id)
-
-# Compute the total degrees associated with each occ2Xmeso. Note that the number of degrees is 2x the number of edges b/c it counts both in- and out-degrees
-occ2Xmeso = g_occ2Xmeso.new_vertex_property("string")
-g_occ2Xmeso.vp["occ2Xmeso"] = occ2Xmeso
-for g in g_occ2Xmeso.vertices():
-    occ2Xmeso[g] = g_occ2Xmeso_vertices[g]
-
-occ2Xmeso_degreecount = pd.DataFrame({'occ2Xmeso':g_occ2Xmeso.vp.occ2Xmeso.get_2d_array([0]).ravel(),'occ2Xmeso_degreecount':g_occ2Xmeso.degree_property_map('total').a}).reset_index()
-occ2Xmeso_degreecount.to_pickle('./Data/derived/predicting_flows/' + modelname + '_occ2Xmeso_degreecount.p')
-'''
 
 ########################################################################################
 ########################################################################################
@@ -215,28 +175,22 @@ occ2Xmeso_degreecount.to_pickle('./Data/derived/predicting_flows/' + modelname +
 ########################################################################################
 
 XX Next: convert this to a function
+- I actually think that I can use the same function for both market2market and job2job. The one possibly non-trivial difference is that market2market has the extra command .astype('float'). Im not sure if this matters or if theres any reason why it should work differently for one versus the other. 
 
-# Create a df with job degree, gamma, occ2Xmeso, that is sorted according to the rows of the matrix. Probably worth also including jid to be safe.
-g_jid = gt.Graph(directed=False)
-vmap = g_jid.add_edge_list(df_trans.loc[cond][['jid_prev','jid']].values, hashed=True)
+def create_job2job_adjacency_and_degrees(mkt, df_trans):
+    g_jid = gt.Graph(directed=False)
+    g_jid_vertices = g_jid.add_edge_list(df_trans[['jid_prev','jid']].values, hashed=True)
+    adjacency = gt.adjacency(g_jid)           
 
-# For some reason vmap.get_2d_array([0]) gives me an error but the below code works. It feels like a hack, but it gets the job done and looping over 1.5 million vertices should be very fast. 
-jid = g_jid.new_vertex_property("string")
-g_jid.vp["jid"] = jid
-for g in g_jid.vertices():
-    jid[g] = vmap[g]
+    # Save the jids as internal vertex properties
+    # For some reason vmap.get_2d_array([0]) gives me an error but the below code works. It feels like a hack, but it gets the job done and looping over 1.5 million vertices should be very fast. 
+    jid = g_jid.new_vertex_property("string")
+    g_jid.vp["jid"] = jid
+    for g in g_jid.vertices():
+        jid[g] = g_jid_vertices[g]
+    jid_degreecount = pd.DataFrame({'jid':g_jid.vp.jid.get_2d_array([0]).ravel(),'jid_degreecount':g_jid.degree_property_map('total').a}).reset_index()
+    return[adjacency,jid_degreecount]   
 
-# alternative that does the same thing as the loop above but stores it a numpy array instead of a vertex property map
-#prop_array = np.array([vmap[v] for v in g_jid.vertices()])
-def add_ids_as_property(graph, ids):
-    id_prop = graph.new_vertex_property("string")
-    id_prop = np.array([ids[v] for v in graph.vertices()])
-    graph.vp["ids"] = id_prop
-    return graph, id_prop
-
-pickle.dump( g_jid, open('./Data/derived/predicting_flows/' + modelname + '_g_jid.p', "wb" ) )    
-    
-jid_degreecount = pd.DataFrame({'jid':g_jid.vp.jid.get_2d_array([0]).ravel(),'degree':g_jid.degree_property_map('total').a}).reset_index()
 
 # Compute a mapping of jids to market definitions (gammas and occ2Xmeso). Do this by taking the set of jids, occ2mesos, and gammas that are ever origins and stack the set of jids, occ2Xmesos, and gammas that are ever destinations. Then drop duplicates on jid and keep the columns jid, gamma, and occ2Xmeso. 
 jid_mkt_cw = pd.concat([df_trans.loc[(df_trans.jid!=df_trans.jid_prev) & (df_trans.jid_prev.notnull())][['jid', 'gamma', 'occ2Xmeso']], df_trans.loc[(df_trans.jid!=df_trans.jid_prev) & (df_trans.jid_prev.notnull())][['jid_prev', 'gamma_prev', 'occ2Xmeso_prev']].rename(columns={'jid_prev':'jid','gamma_prev':'gamma', 'occ2Xmeso_prev':'occ2Xmeso'})]).drop_duplicates(subset=['jid']) #XX gamma and occ2Xmeso aren~t unique within jid here. Figure out what's going on there
@@ -253,6 +207,27 @@ jid_degreecount = jid_degreecount.merge(occ2Xmeso_degreecount[['occ2Xmeso','occ2
 jid_degreecount = jid_degreecount.sort_values(by='index')
 jid_degreecount.to_pickle('./Data/derived/predicting_flows/' + modelname + '_jid_degreecount.p')
 
+
+
+
+
+# Create a df with job degree, gamma, occ2Xmeso, that is sorted according to the rows of the matrix. Probably worth also including jid to be safe.
+
+
+
+
+
+
+# alternative that does the same thing as the loop above but stores it a numpy array instead of a vertex property map
+#prop_array = np.array([vmap[v] for v in g_jid.vertices()])
+def add_ids_as_property(graph, ids):
+    id_prop = graph.new_vertex_property("string")
+    id_prop = np.array([ids[v] for v in graph.vertices()])
+    graph.vp["ids"] = id_prop
+    return graph, id_prop
+
+pickle.dump( g_jid, open('./Data/derived/predicting_flows/' + modelname + '_g_jid.p', "wb" ) )    
+    
 
 
 '''
