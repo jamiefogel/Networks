@@ -58,11 +58,11 @@ objects = pickle.load(open('./Data/derived/predicting_flows/adjacencies_no_graph
 amkts = {'g': np.array(objects[0].todense()), 'i':d_gg_tilde, 'o': np.array(objects[1].todense())}
 ajid = objects[2]
 
-# CROSS-WALKS
-#   - The term "crosswalk" probably isn't the best we could have used.
+# Degree counts
+#   - We previously used the term "crosswalk", but it probably isn't the best we could have used.
 # Loading important information to compute transition probabilities
 # It basically has the gamma/occ2-meso/job-id cardinalities
-cmkts = {'g': pickle.load(open('./Data/derived/predicting_flows/pred_flows_gamma_cw.p', 'rb')), 'i': pickle.load(open('./Data/derived/predicting_flows/pred_flows_gamma_cw.p', 'rb')),  'o': pickle.load(open('./Data/derived/predicting_flows/pred_flows_occ2Xmeso_cw.p', 'rb'))}
+cmkts = {'g': pickle.load(open('./Data/derived/predicting_flows/pred_flows_gamma_degreecount.p', 'rb')), 'i': pickle.load(open('./Data/derived/predicting_flows/pred_flows_gamma_cw.p', 'rb')),  'o': pickle.load(open('./Data/derived/predicting_flows/pred_flows_occ2Xmeso_cw.p', 'rb'))}
 cmkts['i'] = cmkts['i'].rename(columns={'gamma':'iotagamma','cardinality_gamma':'cardinality_iotagamma'})
 cjid = pd.read_pickle(open('./Data/derived/predicting_flows/pred_flows_jid_degreecount.p', 'rb'))
 cjid['iotagamma'] = cjid['gamma']
