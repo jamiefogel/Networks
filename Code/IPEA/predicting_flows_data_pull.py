@@ -33,7 +33,7 @@ muni_meso_cw = pd.DataFrame({'code_meso':region_codes.code_meso,'codemun':region
 firstyear = 2013
 lastyear = 2018
 
-maxrows = 100000
+maxrows = 10000
 #maxrows=None
 
 #modelname='junk'
@@ -99,10 +99,10 @@ raw2018 = pd.read_pickle('./Data/derived/' + modelname + '_raw_2018.p')
 # Create data frame of transitions
 
 df_trans_ins = create_df_trans([raw2013,raw2014,raw2015,raw2016])
-df_tran_ins.to_pickle('./Data/derived/predicting_flows/' + modelname + '_df_trans_ins.p')
+df_trans_ins.to_pickle('./Data/derived/predicting_flows/' + modelname + '_df_trans_ins.p')
 
 df_trans_oos = create_df_trans([raw2017,raw2018])
-df_tran_oos.to_pickle('./Data/derived/predicting_flows/' + modelname + '_df_trans_oos.p')
+df_trans_oos.to_pickle('./Data/derived/predicting_flows/' + modelname + '_df_trans_oos.p')
 
 # Compute a mapping of jids to market definitions (gammas and occ2Xmeso). Do this by taking the set of jids, occ2mesos, and gammas that are ever origins and stack the set of jids, occ2Xmesos, and gammas that are ever destinations. Then drop duplicates on jid and keep the columns jid, gamma, and occ2Xmeso. 
 jid_mkt_cw_ins = pd.concat([df_trans_ins[['jid', 'gamma', 'occ2Xmeso']], df_trans_ins[['jid_prev', 'gamma_prev', 'occ2Xmeso_prev']].rename(columns={'jid_prev':'jid','gamma_prev':'gamma', 'occ2Xmeso_prev':'occ2Xmeso'})]).drop_duplicates(subset=['jid'])
@@ -200,7 +200,7 @@ A_ig = A_ig_big[nonzero_rows][:, nonzero_columns].toarray()[0:G,G:I+G]
 # Take the row sums, reshape them to be a column vector using [:, np.newaxis], and then divide each row by the row sum to convert the counts into probabilities. 
 d_g_tilde = A_ig.sum(axis=1)
 d_i_tilde = A_ig.sum(axis=0)
-d_g = np.ravel(ag.sum(axis=1)/2)
+d_g = np.ravel(ag_ins.sum(axis=1)/2)
 d_g_div_d_g_tilde = np.diag(d_g/d_g_tilde)
 
 d_i_tilde_inv = np.linalg.inv(np.diag(d_i_tilde))
@@ -211,10 +211,6 @@ d_gg_tilde = d_gg_tilde_asymm + d_gg_tilde_asymm.T
 # d_gg_tilde.sum() = ag.sum() = 31671758
 pickle.dump(d_gg_tilde, open('./Data/derived/predicting_flows/'+modelname+'_d_gg_tilde.p', 'wb'))
 
-
-# Sanity check: the sum of the d_gg_tilde matrix equals the number of edges in the gamma-to-gamma transition matrix. Without the rescaling factor it would sum to the number of edges in the bipartite adjacency matrix. 
-print(d_gg_tilde.sum())
-print(g_gamma)
 
 
 
