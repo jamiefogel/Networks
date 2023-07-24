@@ -21,7 +21,7 @@ from create_unipartite_adjacency_and_degrees import create_unipartite_adjacency_
 from pull_one_year import pull_one_year
 
 
-run_df=True
+run_pull= True 
 run_sbm = False
 state_codes = [31, 33, 35]
 rio_codes = [330045, 330170, 330185, 330190, 330200, 330227, 330250, 330285, 330320, 330330, 330350, 330360, 330414, 330455, 330490, 330510, 330555, 330575]
@@ -33,8 +33,8 @@ muni_meso_cw = pd.DataFrame({'code_meso':region_codes.code_meso,'codemun':region
 firstyear = 2013
 lastyear = 2018
 
-#maxrows = 100000
-maxrows=None
+maxrows = 100000
+#maxrows=None
 
 #modelname='junk'
 modelname = 'pred_flows'
@@ -72,7 +72,7 @@ iotas['iota'] = iotas.iota.fillna(-1)
 ########################################################################################
 ########################################################################################
 
-if run_df==True:
+if run_pull==True:
     for year in range(firstyear,lastyear+1):
         raw = pull_one_year(year, 'cbo2002', othervars=['data_adm'], state_codes=state_codes, age_lower=25, age_upper=55, parse_dates=['data_adm'], nrows=maxrows)
         # Deflate
@@ -86,23 +86,27 @@ if run_df==True:
         raw = raw.drop(columns=['yob','occ4','tipo_vinculo','idade','codemun','id_estab'])
         raw.to_pickle('./Data/derived/' + modelname + '_raw_' + str(year) + '.p')
         gc.collect()
-    
-    raw2013 = pd.read_pickle('./Data/derived/' + modelname + '_raw_2013.p')
-    raw2014 = pd.read_pickle('./Data/derived/' + modelname + '_raw_2014.p')
-    raw2015 = pd.read_pickle('./Data/derived/' + modelname + '_raw_2015.p')
-    raw2016 = pd.read_pickle('./Data/derived/' + modelname + '_raw_2016.p')
-    raw2017 = pd.read_pickle('./Data/derived/' + modelname + '_raw_2017.p')
-    raw2018 = pd.read_pickle('./Data/derived/' + modelname + '_raw_2018.p')
-    
-    #####################
-    # Create data frame of transitions
 
+raw2013 = pd.read_pickle('./Data/derived/' + modelname + '_raw_2013.p')
+raw2014 = pd.read_pickle('./Data/derived/' + modelname + '_raw_2014.p')
+raw2015 = pd.read_pickle('./Data/derived/' + modelname + '_raw_2015.p')
+raw2016 = pd.read_pickle('./Data/derived/' + modelname + '_raw_2016.p')
+raw2017 = pd.read_pickle('./Data/derived/' + modelname + '_raw_2017.p')
+raw2018 = pd.read_pickle('./Data/derived/' + modelname + '_raw_2018.p')
+
+
+#####################
+# Create data frame of transitions
 
 df_trans_ins = create_df_trans([raw2013,raw2014,raw2015,raw2016])
 df_tran_ins.to_pickle('./Data/derived/predicting_flows/' + modelname + '_df_trans_ins.p')
 
 df_trans_oos = create_df_trans([raw2017,raw2018])
 df_tran_oos.to_pickle('./Data/derived/predicting_flows/' + modelname + '_df_trans_oos.p')
+
+# Compute a mapping of jids to market definitions (gammas and occ2Xmeso). Do this by taking the set of jids, occ2mesos, and gammas that are ever origins and stack the set of jids, occ2Xmesos, and gammas that are ever destinations. Then drop duplicates on jid and keep the columns jid, gamma, and occ2Xmeso. 
+jid_mkt_cw_ins = pd.concat([df_trans_ins[['jid', 'gamma', 'occ2Xmeso']], df_trans_ins[['jid_prev', 'gamma_prev', 'occ2Xmeso_prev']].rename(columns={'jid_prev':'jid','gamma_prev':'gamma', 'occ2Xmeso_prev':'occ2Xmeso'})]).drop_duplicates(subset=['jid'])
+jid_mkt_cw_oos = pd.concat([df_trans_oos[['jid', 'gamma', 'occ2Xmeso']], df_trans_oos[['jid_prev', 'gamma_prev', 'occ2Xmeso_prev']].rename(columns={'jid_prev':'jid','gamma_prev':'gamma', 'occ2Xmeso_prev':'occ2Xmeso'})]).drop_duplicates(subset=['jid']) 
 
 
 
@@ -124,49 +128,48 @@ df_tran_oos.to_pickle('./Data/derived/predicting_flows/' + modelname + '_df_tran
 # - Create a graph from the edgelist using gt.add_edge_list()
 # - Save a crosswalk between the vertex ids created when making the graph and the original IDs (which correspond to gamma or occ2Xmeso)
 
-####################################################
-# Note 7/20/2023
-#  - the section of code below does 2 things: creates a market-to-market adjacency matrix (akmts, or ag and ao), and creates market-level degree counts (cjid)
-#  - I need to turn this into a function that takes as arguments (i) what type of market to compute it for (jid, gamma or occ2Xmeso), and (ii) which dataset to use (df_trans or df_trans_oos)
-# The function
 
 
-[ag,    gamma_degreecount]      = create_unipartite_adjacency_and_degrees('gamma',      df_trans_ins)
-[ajid,  jid_degreecount]        = create_unipartite_adjacency_and_degrees('jid',        df_trans_ins)
-[ao,    occ2Xmeso_degreecount]  = create_unipartite_adjacency_and_degrees('occ2Xmeso',  df_trans_ins)
+[ag_ins,    gamma_degreecount_ins]      = create_unipartite_adjacency_and_degrees('gamma',      df_trans_ins)
+[ao_ins,    occ2Xmeso_degreecount_ins]  = create_unipartite_adjacency_and_degrees('occ2Xmeso',  df_trans_ins)
+[ajid_ins,  jid_degreecount_ins]        = create_unipartite_adjacency_and_degrees('jid',        df_trans_ins)
 
 [ag_oos,    gamma_degreecount_oos]      = create_unipartite_adjacency_and_degrees('gamma',      df_trans_oos)
 [ajid_oos,  jid_degreecount_oos]        = create_unipartite_adjacency_and_degrees('jid',        df_trans_oos)
 [ao_oos,    occ2Xmeso_degreecount_oos]  = create_unipartite_adjacency_and_degrees('occ2Xmeso',  df_trans_oos)
 
+pickle.dump(ag_ins,     open('./Data/derived/predicting_flows/'+modelname+'_ag_ins.p', 'wb'))
+pickle.dump(ao_ins,     open('./Data/derived/predicting_flows/'+modelname+'_ao_ins.p', 'wb'))
+pickle.dump(ajid_ins,   open('./Data/derived/predicting_flows/'+modelname+'_ajid_ins.p', 'wb'))
+
+pickle.dump(ag_oos,     open('./Data/derived/predicting_flows/'+modelname+'_ag_oos.p', 'wb'))
+pickle.dump(ao_oos,     open('./Data/derived/predicting_flows/'+modelname+'_ao_oos.p', 'wb'))
+pickle.dump(ajid_oos,   open('./Data/derived/predicting_flows/'+modelname+'_ajid_oos.p', 'wb'))
+
+
 
 ############################################################
 # Merge market-level degrees back on to jid_degreecount
 
-# Compute a mapping of jids to market definitions (gammas and occ2Xmeso). Do this by taking the set of jids, occ2mesos, and gammas that are ever origins and stack the set of jids, occ2Xmesos, and gammas that are ever destinations. Then drop duplicates on jid and keep the columns jid, gamma, and occ2Xmeso. 
-jid_mkt_cw = pd.concat([df_trans_ins[['jid', 'gamma', 'occ2Xmeso']], df_trans_ins[['jid_prev', 'gamma_prev', 'occ2Xmeso_prev']].rename(columns={'jid_prev':'jid','gamma_prev':'gamma', 'occ2Xmeso_prev':'occ2Xmeso'})]).drop_duplicates(subset=['jid']) #XX gamma and occ2Xmeso aren~t unique within jid here. Figure out what's going on there
-
 # Merge the jid to market crosswalk back on to the jid degree counts
-jid_degreecount = jid_degreecount.merge(jid_mkt_cw, on='jid', how='outer', validate='1:1')
+jid_degreecount_ins = jid_degreecount_ins.merge(jid_mkt_cw_ins, on='jid', how='outer', validate='1:1')
 
 # Merge total degrees by market onto the jid degree counts
-jid_degreecount = jid_degreecount.merge(gamma_degreecount[['gamma',        'gamma_degreecount']],     on='gamma',     how='left', validate='m:1')
-jid_degreecount = jid_degreecount.merge(occ2Xmeso_degreecount[['occ2Xmeso','occ2Xmeso_degreecount']], on='occ2Xmeso', how='left', validate='m:1')
-jid_degreecount = jid_degreecount.sort_values(by='index')
-jid_degreecount.to_pickle('./Data/derived/predicting_flows/' + modelname + '_jid_degreecount.p')
+jid_degreecount_ins = jid_degreecount_ins.merge(gamma_degreecount_ins[['gamma',        'gamma_degreecount']],     on='gamma',     how='left', validate='m:1')
+jid_degreecount_ins = jid_degreecount_ins.merge(occ2Xmeso_degreecount_ins[['occ2Xmeso','occ2Xmeso_degreecount']], on='occ2Xmeso', how='left', validate='m:1')
+jid_degreecount_ins = jid_degreecount_ins.sort_values(by='index')
+jid_degreecount_ins.to_pickle('./Data/derived/predicting_flows/' + modelname + '_jid_degreecount_ins.p')
 
 
-XX I think we actually want to create and export jid_degreecount_oos, not in-sample
-XX Another thing to do: need to restrict to the set of jids that exist in both ins and oos
 
-# alternative that does the same thing as the loop above but stores it a numpy array instead of a vertex property map
-#prop_array = np.array([vmap[v] for v in g_jid.vertices()])
-def add_ids_as_property(graph, ids):
-    id_prop = graph.new_vertex_property("string")
-    id_prop = np.array([ids[v] for v in graph.vertices()])
-    graph.vp["ids"] = id_prop
-    return graph, id_prop
+# Merge the jid to market crosswalk back on to the jid degree counts
+jid_degreecount_oos = jid_degreecount_oos.merge(jid_mkt_cw_oos, on='jid', how='outer', validate='1:1')
 
+# Merge total degrees by market onto the jid degree counts
+jid_degreecount_oos = jid_degreecount_oos.merge(gamma_degreecount_oos[['gamma',        'gamma_degreecount']],     on='gamma',     how='left', validate='m:1')
+jid_degreecount_oos = jid_degreecount_oos.merge(occ2Xmeso_degreecount_oos[['occ2Xmeso','occ2Xmeso_degreecount']], on='occ2Xmeso', how='left', validate='m:1')
+jid_degreecount_oos = jid_degreecount_oos.sort_values(by='index')
+jid_degreecount_oos.to_pickle('./Data/derived/predicting_flows/' + modelname + '_jid_degreecount_oos.p')
 
 
 
@@ -217,6 +220,17 @@ print(g_gamma)
 
 
 
+
+
+
+
+# alternative that does the same thing as the loop above but stores it a numpy array instead of a vertex property map
+#prop_array = np.array([vmap[v] for v in g_jid.vertices()])
+def add_ids_as_property(graph, ids):
+    id_prop = graph.new_vertex_property("string")
+    id_prop = np.array([ids[v] for v in graph.vertices()])
+    graph.vp["ids"] = id_prop
+    return graph, id_prop
 
 
 
