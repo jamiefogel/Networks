@@ -28,7 +28,7 @@ for core in range(1, 28):
 combined_df = pd.concat(dfs, ignore_index=True)
 
 combined_df 
-np.round(combined_df.iloc[:,1:5].describe(),1)
+np.round(combined_df.iloc[:,1:7].describe(),1)
 
 
 
