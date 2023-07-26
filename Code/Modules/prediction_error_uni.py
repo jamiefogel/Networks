@@ -34,7 +34,7 @@ def prediction_error_uni(j,cjid, c_mkt, ajid, a_mkt, D_insample,D_outsample,J,mk
     # get the number of matches between the current gamma to all gammas (assuming c_mkt is sorted according to a_mkt)
     # This info is contained in the gamma adjacency matrix, but we want to extract a vector out of it to make computations easier
     # Alternatively: get the 1st row of the market to market adjacency matrix and append it to the market dataset
-    c_mkt['mm_count_temp'+m] = a_mkt[g_index,:]
+    c_mkt['mm_count_temp'+m] = a_mkt[g_index,:].reshape(-1,1)
    
     # XXBM: EFFICIENCY IMPROVEMENT: sort obs per market and/or do the merge below only if the gamma for the previous job is different than the gamma for the current job
     # merge a vector of length J (total number of jobs) in which each element is the number of transitions between gamma_j (current job j's gamma) to gamma_j' (all other jobs' gammas) to the job dataset
@@ -61,7 +61,7 @@ def prediction_error_uni(j,cjid, c_mkt, ajid, a_mkt, D_insample,D_outsample,J,mk
     if term_denominator == 0:
         term_denominator = sys.maxsize
     cjid = cjid.sort_values('idx')   # sort the job dataset just to check calculations
-    cjid['self_pred_prob_distributed'] = (cjid['degree'][j] + cjid['degree']) / (cjid['cardinality_'+mkt]) / (term_denominator) * cjid['pred_prob_diag_'+m]  * (cjid[mkt]==g)
+    cjid['self_pred_prob_distributed'] = (cjid['jid_degreecount'][j] + cjid['jid_degreecount']) / (cjid[mkt+'_degreecount']) / (term_denominator) * cjid['pred_prob_diag_'+m]  * (cjid[mkt]==g)
     
     # finalizing the predicted probability after distributing the self edge probabilities
     cjid.loc[j,'pred_prob'] = 0

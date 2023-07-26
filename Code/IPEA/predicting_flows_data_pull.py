@@ -33,8 +33,8 @@ muni_meso_cw = pd.DataFrame({'code_meso':region_codes.code_meso,'codemun':region
 firstyear = 2013
 lastyear = 2018
 
-maxrows = 10000
-#maxrows=None
+#maxrows = 10000
+maxrows=None
 
 #modelname='junk'
 modelname = 'pred_flows'
@@ -115,8 +115,7 @@ jid_mkt_cw_oos = pd.concat([df_trans_oos[['jid', 'gamma', 'occ2Xmeso']], df_tran
 # Create the group-level adjacency matrices that we will use to draw simulated flows
 ########################################################################################
 ########################################################################################
-
-
+ 
 
 ##################
 # Unipartite flows
@@ -138,6 +137,15 @@ jid_mkt_cw_oos = pd.concat([df_trans_oos[['jid', 'gamma', 'occ2Xmeso']], df_tran
 [ajid_oos,  jid_degreecount_oos]        = create_unipartite_adjacency_and_degrees('jid',        df_trans_oos)
 [ao_oos,    occ2Xmeso_degreecount_oos]  = create_unipartite_adjacency_and_degrees('occ2Xmeso',  df_trans_oos)
 
+# Drop the "index" column from the market-level degree counts because we don't actually use it and keeping it around could cause confusion.
+gamma_degreecount_ins.drop(columns='index', inplace=True)
+occ2Xmeso_degreecount_ins.drop(columns='index', inplace=True)
+gamma_degreecount_oos.drop(columns='index', inplace=True)
+occ2Xmeso_degreecount_oos.drop(columns='index', inplace=True)
+
+# Some very small occ2Xmesos appear in the ins data but not oos. Add rows to the degree counts dataframe for these with a degreecount value of 0. 
+occ2Xmeso_degreecount_oos = occ2Xmeso_degreecount_oos.merge(occ2Xmeso_degreecount_ins['occ2Xmeso'], on='occ2Xmeso', how='outer', validate='1:1').fillna(0)
+
 pickle.dump(ag_ins,     open('./Data/derived/predicting_flows/'+modelname+'_ag_ins.p', 'wb'))
 pickle.dump(ao_ins,     open('./Data/derived/predicting_flows/'+modelname+'_ao_ins.p', 'wb'))
 pickle.dump(ajid_ins,   open('./Data/derived/predicting_flows/'+modelname+'_ajid_ins.p', 'wb'))
@@ -146,6 +154,8 @@ pickle.dump(ag_oos,     open('./Data/derived/predicting_flows/'+modelname+'_ag_o
 pickle.dump(ao_oos,     open('./Data/derived/predicting_flows/'+modelname+'_ao_oos.p', 'wb'))
 pickle.dump(ajid_oos,   open('./Data/derived/predicting_flows/'+modelname+'_ajid_oos.p', 'wb'))
 
+pickle.dump(gamma_degreecount_oos,         open('./Data/derived/predicting_flows/'+modelname+'_gamma_degreecount_oos.p', 'wb'))
+pickle.dump(occ2Xmeso_degreecount_oos,     open('./Data/derived/predicting_flows/'+modelname+'_occ2Xmeso_degreecount_oos.p', 'wb'))
 
 
 ############################################################
@@ -193,7 +203,7 @@ nonzero_rows = A_ig_big.getnnz(axis=1).nonzero()[0]
 # Find the column indices that contain at least one non-zero element
 nonzero_columns = A_ig_big.getnnz(axis=0).nonzero()[0]
 # Extract the non-zero rows and columns and then extract the upper right block.
-# - The upper left and lower right are all 0s
+# -The upper left and lower right are all 0s
 # - The lower left is the transpose of the upper right and thus redundant. 
 A_ig = A_ig_big[nonzero_rows][:, nonzero_columns].toarray()[0:G,G:I+G]
 
