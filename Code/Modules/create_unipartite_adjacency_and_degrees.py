@@ -4,6 +4,11 @@ Created on Fri Jul 21 10:38:25 2023
 
 @author: p13861161
 """
+
+import pandas as pd
+import graph_tool.all as gt
+
+
 def create_unipartite_adjacency_and_degrees(mkt, df_trans):
     # Compute the adjacency matrix
     g = gt.Graph(directed=False)
