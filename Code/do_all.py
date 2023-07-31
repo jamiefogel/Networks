@@ -47,6 +47,9 @@ from occ_counts_by_type import occ_counts_by_type
 #from correlogram import correlogram
 
 
+
+# Change all the filepaths to the new data
+
 ################################################################
 ## STRUCTURAL OBJECTS
 ################################################################
