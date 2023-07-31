@@ -33,7 +33,7 @@ except:
     logfile.write('Running interactively \n\n')
     
 # Comment
-
+# A different test comment
 
 
 import matplotlib.pyplot as plt
