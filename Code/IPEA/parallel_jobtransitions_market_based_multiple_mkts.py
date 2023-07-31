@@ -54,19 +54,23 @@ os.chdir(root)
 
 d_gg_tilde = pickle.load(open('./Data/derived/predicting_flows/pred_flows_d_gg_tilde.p', "rb" ) )
 
-objects = pickle.load(open('./Data/derived/predicting_flows/adjacencies_no_graphtool.p', 'rb'))
-amkts = {'g': np.array(objects[0].todense()), 'i':d_gg_tilde, 'o': np.array(objects[1].todense())}
-ajid = objects[2]
+ag_ins = pickle.load(open('./Data/derived/predicting_flows/pred_flows_ag_ins.p', 'rb'))
+ao_ins = pickle.load(open('./Data/derived/predicting_flows/pred_flows_ao_ins.p', 'rb'))
+ajid_oos = pickle.load(open('./Data/derived/predicting_flows/pred_flows_ajid_oos.p', 'rb'))
+
+amkts = {'g': ag_ins.todense(), 'i':d_gg_tilde, 'o': ao_ins.todense()}
+
 
 # Degree counts
-#   - We previously used the term "crosswalk", but it probably isn't the best we could have used.
-# Loading important information to compute transition probabilities
-# It basically has the gamma/occ2-meso/job-id cardinalities
-cmkts = {'g': pickle.load(open('./Data/derived/predicting_flows/pred_flows_gamma_degreecount.p', 'rb')), 'i': pickle.load(open('./Data/derived/predicting_flows/pred_flows_gamma_cw.p', 'rb')),  'o': pickle.load(open('./Data/derived/predicting_flows/pred_flows_occ2Xmeso_cw.p', 'rb'))}
-cmkts['i'] = cmkts['i'].rename(columns={'gamma':'iotagamma','cardinality_gamma':'cardinality_iotagamma'})
-cjid = pd.read_pickle(open('./Data/derived/predicting_flows/pred_flows_jid_degreecount.p', 'rb'))
+#   - Loading important information to compute transition probabilities
+#   - The iota-gamma ones borrow the same distribution as the gamma-to-gamma flows.
+cmkts = {'g': pickle.load(open('./Data/derived/predicting_flows/pred_flows_gamma_degreecount_oos.p', 'rb')), 'i': pickle.load(open('./Data/derived/predicting_flows/pred_flows_gamma_degreecount_oos.p', 'rb')),  'o': pickle.load(open('./Data/derived/predicting_flows/pred_flows_occ2Xmeso_degreecount_oos.p', 'rb'))}
+cmkts['i'] = cmkts['i'].rename(columns={'gamma':'iotagamma','gamma_degreecount':'iotagamma_degreecount'})
+
+# Use the out-of-sample job-to-job degrees. For iota-gamma it will be the same degrees as the gamma; only the market-to-market transition probabilities change. 
+cjid = pd.read_pickle('./Data/derived/predicting_flows/pred_flows_jid_degreecount_oos.p')
 cjid['iotagamma'] = cjid['gamma']
-cjid['cardinality_iotagamma'] = cjid['cardinality_gamma']
+cjid['iotagamma_degreecount'] = cjid['gamma_degreecount']
 
 ###################################
 ### DATA PREP
@@ -76,22 +80,17 @@ cjid['cardinality_iotagamma'] = cjid['cardinality_gamma']
 cjid = cjid.rename({'index':'idx'}, axis=1)
 
 
-# this is to be deleted later
-# check that all networks are consistent
-if not ((int(np.sum(cjid['degree'])) == int(np.sum(amkts['g']))) and (int(np.sum(amkts['o'])) == int(np.sum(cjid['degree'])))):
-    raise Exception('Dimensions do not match')
-
 # Computes total number of transitions in-sample, out-of-sample and and total number of jobs
-D_outsample = np.sum(ajid)
-D_insample = np.sum(amkts['g'])   # this should be the same as np.sum(amkts['o'])
-J = ajid.shape[0]
+D_outsample = np.sum(ajid_oos)
+D_insample = np.sum(amkts['g'])   # this should be the same as np.sum(amkts['o']) and  np.sum(amkts['i'])
+J = ajid_oos.shape[0]
 
 # Temporary variable
 #cjid['mm_count_temp'] = np.NaN
 
 
 # NOTE FOR THE BLOCK OF CODE BELOW:
-# we are adding new columns to the cross-walk objects from swiftly getting info necessary to the probability computation. The idea is to have all relevant info in the same row
+# we are adding new columns to the degree count objects from swiftly getting info necessary to the probability computation. The idea is to have all relevant info in the same row
 # The for loop below goes over all jobs, so we don't want to compute all of the info below for every job in the loop
 
 # The lines above are j specific. The lines below prepare the data for each market:
@@ -102,10 +101,10 @@ for mkt in mkts:
     m = mkt[0]
 
     # Storing gamma to same gamma flows (i.e. internal flows)
-    cmkts[m]['within_flow_' + m] = amkts[m].diagonal()
+    cmkts[m]['within_flow_' + m] = amkts[m].diagonal().reshape(-1, 1)
 
     # probability of choosing an edge connecting to j within its market: degree divided by cardinality of the market    
-    cjid['djd' + m] = cjid['degree'] / cjid['cardinality_' + mkt]
+    cjid['djd' + m] = cjid['jid_degreecount'] / cjid[mkt + '_degreecount']
 
     # get the number of matches between the current gamma to all other gammas (assuming cg is sorted according to ag)
     # this quantity is necessary for the probability correction on overleaf (i.e. to DISTRIBUTE SELF EDGE PROBS TO OTHER EDGES)
@@ -159,7 +158,7 @@ print(' \r\n')
 
 # Obs: NO PARALLELIZATION IN THIS LOOP
 results = []
-results_cols = ['j', 'l1_g', 'l2_g', 'l1_o', 'l2_o']
+results_cols = ['j', 'l1_g', 'l2_g', 'l1_i', 'l2_i', 'l1_o', 'l2_o']
 
 start_time = datetime.now()  # get the start time
 print_increment = 200
@@ -180,9 +179,9 @@ for j in range(first_job,last_job+1):
     
     for mkt in mkts:
         m = mkt[0]
-        result_temp[m] = prediction_error_uni(j,cjid, cmkts[m], ajid, amkts[m], D_insample,D_outsample,J, mkt)
+        result_temp[m] = prediction_error_uni(j,cjid, cmkts[m], ajid_oos, amkts[m], D_insample,D_outsample,J, mkt)
         
-    results.append([j] + result_temp['g'] + result_temp['o'])
+    results.append([j] + result_temp['g'] + result_temp['i'] + result_temp['o'])
 
     # this would be to track time
     if (j-first_job) % print_increment == 0:

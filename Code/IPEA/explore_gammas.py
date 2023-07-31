@@ -120,12 +120,6 @@ gammas_w_attributes = gammas_w_attributes.merge(num_unique_wids, on='gamma', val
 gammas_w_attributes = gammas_w_attributes.merge(num_unique_wid_jids, on='gamma', validate='1:1')
 
 
-
-corr_plots(gammas_w_attributes['hhi_codemun'],gammas_w_attributes['hhi_occ4'])
-
-
-
-
 sector_labels = ["Agriculture/forestry",
                   "Extractive",
                   "Manufacturing",
@@ -163,64 +157,6 @@ plt.legend(handles, labels, title='ind', loc='best')
 plt.savefig('./Results/hhi_scatterplot_' + var1 + '_' + var2 +' .pdf', format='pdf')
 plt.close()
 
-
-
-
-
-
-
-                                                                                                                                                                                                                                        
-################################
-#
-'''                           
-gammas_w_attributes = appended[['jid','wid','occ4','codemun','year']].merge(gammas, how='left', validate='m:1', on='jid',indicator=True)
-gammas_w_attributes['occ2'] = gammas_w_attributes['occ4'].str[0:2]
-gammas_w_attributes = gammas_w_attributes.merge(muni_meso_cw, on='codemun')
-gammas_w_attributes = gammas_w_attributes.merge(raw2016, on=['wid','jid'], validate='m:1')
-
-
-# Collapse attributes by gamma
-gamma_attributes = gamma_attributes.groupby(['wid','jid']).agg({'grau_instr':'max','rem_med_r':'max','clas_cnae20':'first'}).reset_index()
-'''
-
-# For each gamma0 compute the ooc and codemun HHIs
-# Compute the distributions for a single year
-
-
-
-df = pd.read_pickle('./Data/derived/predicting_flows/pred_flows_df.p')
-pivot = pd.pivot_table(df,  values='wid', index='gamma', columns='uf', aggfunc='count', fill_value=0).reset_index()
-
-# Counting modal states for each gamma
-pivot.idxmax(axis=1).value_counts()
-'''
-35    840   SP
-33    182   RJ
-31    133   MG
-'''
-
-# Shares associated with the modal state counts above
-pivot.idxmax(axis=1).value_counts()/pivot.idxmax(axis=1).value_counts().sum()
-'''
-35    0.727273
-33    0.157576
-31    0.115152
-'''
-
-
-# Population shares by state
-a=pivot.loc[pivot.gamma!=-1][['MG','RJ','SP']].sum()/pivot.loc[pivot.gamma!=-1][['MG','RJ','SP']].sum().sum()
-'''
-uf
-31    0.187040
-33    0.192016
-35    0.620944
-'''
-
-
-
-
-
     
 
 #############################################################################################
@@ -236,7 +172,7 @@ munis['lon'] = munis.geometry.centroid.x
 munis['lat'] = munis.geometry.centroid.y
 munis['codemun'] = munis.code_muni//10
 
-df_trans = pd.read_pickle('./Data/derived/predicting_flows/pred_flows_df_trans.p')
+df_trans = pd.read_pickle('./Data/derived/predicting_flows/pred_flows_df_trans_ins.p')
 
 # Assign each jid its modal municipality code based on 2016 data
 raw = pd.read_csv('~/rais/RAIS/csv/brasil2016.csv', usecols=['id_estab','cbo2002','codemun'], sep=';', dtype={'id_estab':str, 'cbo2002':str})
@@ -401,3 +337,38 @@ for g in range(0,1154):
     print(g)
     plot_mesos(g, gammas_w_attributes, meso_share_df, meso_share_norm_df, gamma_dict)
 
+
+
+
+
+
+
+##############################################################################################################################
+# A bunch of exploratory correlation plots
+
+corr_plots(gammas_w_attributes['hhi_codemun'],gammas_w_attributes['hhi_occ4'])
+
+corr_plots(gammas_w_attributes['hhi_jid'],gammas_w_attributes['educ_mean'])
+corr_plots(gammas_w_attributes['hhi_jid'],gammas_w_attributes['dist_mean'])
+
+# Create the correlation matrix
+correlation_matrix = gammas_w_attributes[['educ_mean', 'educ_mean_rank', 'mean_monthly_earnings', 'mean_monthly_earnings_rank', 'hhi_occ4', 'hhi_code_meso', 'hhi_codemun', 'hhi_jid', 'num_unique_jids', 'num_unique_wids', 'num_unique_wid_jids', 'dist_mean', 'dist_std', 'dist_25th', 'dist_75th', 'spatial_var_km']].corr()
+
+# Display all columns
+pd.set_option('display.max_columns', None)
+pd.set_option('display.width', 1000)
+pd.set_option('display.max_colwidth', 1000)
+
+# Make a mask for the upper triangle
+mask = np.triu(np.ones_like(correlation_matrix, dtype=bool))
+
+# Replace the upper triangle with NaN values
+lower_triangle_corr_matrix = correlation_matrix.mask(mask)
+
+print(lower_triangle_corr_matrix)
+
+
+
+corr_plots(gammas_w_attributes['hhi_code_meso'],gammas_w_attributes['spatial_var_km'])
+corr_plots(gammas_w_attributes['hhi_jid'],gammas_w_attributes['spatial_var_km'])
+corr_plots(gammas_w_attributes['mean_monthly_earnings_rank'],gammas_w_attributes['spatial_var_km'])

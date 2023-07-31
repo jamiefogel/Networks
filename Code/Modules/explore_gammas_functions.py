@@ -22,7 +22,7 @@ from shapely.geometry import MultiPoint
 from scipy.stats import mstats
 
 
-              
+# Compute HHIs of other variables within each gamma
 def gamma_hhi(data, gamma,var):
     hhis = {}
     gv_counts = data.groupby([gamma,var])[gamma].count().reset_index(name='gv_count')
