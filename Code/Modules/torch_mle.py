@@ -50,8 +50,8 @@ def torch_mle(mle_sums_data, estimates_file, worker_type_var='', job_type_var=''
     # I checked that at level 0 there are 37,581 non-zero cells and 5,043 zero cells
     # Whenever there are zero matches, sum_logomega_ig=0 as well. This is because we convert nans to 0 in mle_load_fulldata.py
     
-    c_bump     = .1
-    count_bump = .1 # We thought that what matters is c_bump*count_bump, not each value individually. But when we changed this to c_bump=1 and count_bump=.01 torch couldn't solve the model. I don't understand what's going on but haven't dug very deep. 
+    c_bump     = .2
+    count_bump = .2 # We thought that what matters is c_bump*count_bump, not each value individually. But when we changed this to c_bump=1 and count_bump=.01 torch couldn't solve the model. I don't understand what's going on but haven't dug very deep. 
     #omega_bump = .1
     
     mle_data['sum_c_ig'][mle_data['sum_c_ig']==0]            = c_bump
