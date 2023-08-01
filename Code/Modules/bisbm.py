@@ -233,48 +233,6 @@ class bisbm():
 
 
 
-
-    #################################################################################
-    # Calculate the share of sector s earnings for each gamma (we call these alpha_gs)
-    #   - This imports a separate earnings data set because we kept only the most recent
-    #      worker-job pair when compiling the edgelist
-    #################################################################################
-    def compute_alphas(self, level, earnings_file, earnings_var, output=None):
-        
-        if self.edgelist_w_blocks.empty is True:
-            print('Warning: export_blocks() must be run before compute_alphas(). Running export_blocks() now.')
-            self.export_blocks()
-
-        if level >= self.L:
-            print('Error: level must be less than ',self.L)
-            return -1
-
-        block_var = 'job_blocks_level_' + str(level)
-        	
-        job_blocks = self.edgelist_w_blocks[['jid',block_var]].drop_duplicates().rename(columns={block_var:'gamma'})
-        
-        # From SAS
-        df = pd.read_csv(earnings_file, usecols=['jid','sector',earnings_var])
-        
-        df2 = df.merge(job_blocks, on='jid',validate='m:1', indicator='True')
-        
-        # df2 = df.merge(job_blocks, how='left', on='jid',validate='m:1', indicator='True')
-        # df2['True'].value_counts()
-        # 3.6 million matched, 1.9 million not matched for Rio. My guess is that this is because we dropped jids with fewer than 10 workers
-
-        gs_sum = df2.groupby(['gamma','sector'])[earnings_var].sum().to_frame().reset_index().rename(columns={earnings_var:"gs"})
-        s_sum = df2.groupby(['sector'])[earnings_var].sum().to_frame().reset_index().rename(columns={earnings_var:"s"})
-        temp = gs_sum.merge(s_sum, on='sector')
-        temp['alpha'] = temp['gs']/temp['s']
-        alphas = temp[['gamma','sector','alpha']]
-        
-        if output is not None:
-            alphas.to_csv(output, index=False)
-            
-        self.alphas=alphas
-                
-
-
     ###############################################################################
     # Compute mean earnings by worker type
     #   - We will use this as the basis for choosing the normalization phi_i0
