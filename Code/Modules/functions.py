@@ -114,7 +114,11 @@ def create_earnings_panel(modelname, appended, firstyear_panel, lastyear_panel, 
         print('Exporting level ', l)
         gname = 'gamma_level_' + str(l)
         iname = 'iota_level_' + str(l)
-        balanced.rename(columns={iname:'iota',gname:'gamma'}).to_csv('./Data/derived/export/panel_'+modelname+'_level_'+str(l)+'.csv.gz', index=False, compression='gzip', columns = ['wid_masked', 'jid_masked', 'year', 'cbo2002', 'cbo2002_first', 'clas_cnae20', 'clas_cnae20_first', 'sector_IBGE', 'c', 'real_hrly_wage_dec', 'ln_real_hrly_wage_dec', 'yob', 'iota', 'gamma'])
+        # Export an uncompressed version of level 0; compress other levels
+        if l==0:
+            balanced.rename(columns={iname:'iota',gname:'gamma'}).to_csv('./Data/derived/earnings_panel/panel_'+modelname+'_level_'+str(l)+'.csv', index=False, columns = ['wid_masked', 'jid_masked', 'year', 'cbo2002', 'cbo2002_first', 'clas_cnae20', 'clas_cnae20_first', 'sector_IBGE', 'occ2Xmeso', 'codemun', 'code_meso', 'c', 'real_hrly_wage_dec', 'ln_real_hrly_wage_dec', 'yob', 'iota', 'gamma'])
+        else:            
+            balanced.rename(columns={iname:'iota',gname:'gamma'}).to_csv('./Data/derived/earnings_panel/panel_'+modelname+'_level_'+str(l)+'.csv.gz', index=False, compression='gzip', columns = ['wid_masked', 'jid_masked', 'year', 'cbo2002', 'cbo2002_first', 'clas_cnae20', 'clas_cnae20_first', 'sector_IBGE', 'occ2Xmeso', 'codemun', 'code_meso', 'c', 'real_hrly_wage_dec', 'ln_real_hrly_wage_dec', 'yob', 'iota', 'gamma'])
 
 
 
@@ -175,22 +179,3 @@ def do_everything(firstyear_panel, lastyear_panel, firstyear_sbm, lastyear_sbm, 
 
 
 
-
-# Checking the length of id_estab in the raw data    
-#nrows = None
-#for year in range(firstyear_panel,lastyear_panel+1):
-#    #print(year)
-#    now = datetime.now()
-#    currenttime = now.strftime('%H:%M:%S')
-#    #print('Starting ', year, ' at ', currenttime)
-#    if year in [2018, 2019]:
-#        sep = ';'
-#    else:
-#        sep=','
-#    filename = '~/rais/RAIS/csv/brasil' + str(year) + '.csv'
-#    raw_data = pd.read_csv(filename, usecols=['id_estab'], sep=sep, dtype={'id_estab':str}, nrows=nrows)
-#    min = raw_data['id_estab'].apply(len).min()
-#    print(year,min)
-
-
-# THE PANEL WE EXPORT NEEDS TO RSTRICT WHICH VARIABLES ARE INCLUDED
