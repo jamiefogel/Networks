@@ -179,7 +179,7 @@ if run_all==True:
 
 
 if run_query_sums == 1:
-    mle_load_fulldata(mle_data_filename, mle_data_sums_filename, worker_type_var, job_type_var, mle_firstyear=2009, mle_lastyear=2012)
+    mle_load_fulldata(mle_data_filename, mle_data_sums_filename, worker_type_var, job_type_var, mle_firstyear=2013, mle_lastyear=2016)
 
 if run_mle == True:
     if worker_type_var != job_type_var:
