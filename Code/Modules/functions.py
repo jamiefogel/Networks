@@ -93,10 +93,27 @@ def create_earnings_panel(modelname, appended, firstyear_panel, lastyear_panel, 
     balanced = balanced.merge(cbo2002_first, on='wid', how='left',validate='m:1')
     clas_cnae20_first = balanced.groupby('wid')['clas_cnae20'].first().reset_index().rename(columns={'clas_cnae20':'clas_cnae20_first'})
     balanced = balanced.merge(clas_cnae20_first, on='wid', how='left',validate='m:1')
-    ''' Old version that was taking FOREVER
-    balanced['cbo2002_first'] = balanced.loc[balanced.groupby('wid')['cbo2002'].transform(pd.Series.first_valid_index),'cbo2002'].values
-    balanced['clas_cnae20_first'] = balanced.loc[balanced.groupby('wid')['clas_cnae20'].transform(pd.Series.first_valid_index),'clas_cnae20'].values
-    '''
+
+    #######################
+    # Create occ2 variables
+    data_full['occ2_first']         = data_full.cbo2002_first.astype(str).str[:2].astype(int)
+    data_full['occ2_first_recode']  = data_full.cbo2002_first.astype(str).str[:2].rank(method='dense').astype(int)
+
+    #######################
+    # Create occ4 variables
+    data_full['occ4_first']         = data_full.cbo2002_first.astype(str).str[:4].astype(int)
+    # Set occ4s that rarely occur to missing. The cutoff at 5000 is totally arbitrary
+    data_full['occ4_first'].loc[data_full.groupby('occ4_first')['occ4_first'].transform('count') < 5000] = np.nan
+    # Recode occ4s to go from 1 to I. 
+    data_full['occ4_first_recode']  = data_full.occ4_first.rank(method='dense', na_option='keep')
+    # Recode missings to -1
+    data_full['occ4_first'].loc[np.isnan(data_full.occ4_first)] = -1
+    data_full['occ4_first_recode'].loc[np.isnan(data_full.occ4_first_recode)] = -1
+    # Convert from float to int (nans are automatically stored as floats so when we added nans it converted to floats)
+    data_full['occ4_first']         = data_full['occ4_first'].astype(int)
+    data_full['occ4_first_recode']  = data_full['occ4_first_recode'].astype(int)
+        
+
     # Flag every job change (including the worker's first observation). We use jid_temp because the fact that NaN==NaN evaluates to False would cause us to flag every year of a multi-year spell of non-employment as a new job, rather than just the first.
     print('Flagging job changes')
     balanced['jid_temp'] = balanced['jid']

@@ -94,8 +94,3 @@ if run_sbm==True:
 # Create earnings panel that we can use for the MLE
 
 create_earnings_panel(modelname, appended, 2013, 2016, sbm_modelname='3states_2013to2016_mcmc')
-
-# XX code to run to check that this worked: df1.equals(df2)
-
-appended = pd.read_pickle('./Data/derived/appended_sbm_3states_2013to2016.p')
-

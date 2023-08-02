@@ -17,16 +17,14 @@ from os.path import expanduser
 ### Values to be defined elsewhere
 
 def mle_load_fulldata(mle_data_filename, mle_data_sums_filename, worker_type_var, job_type_var, mle_firstyear=np.nan, mle_lastyear=np.nan):
-    print('Computing sums for' + worker_type_var + ' and ' + job_type_var)
+    print('Computing sums for ' + worker_type_var + ' and ' + job_type_var)
 
     # Confirm that worker_type_var and job_type_var exist in the data frame before fully loading it
     columns = pd.read_csv(mle_data_filename, nrows=1).columns
     # Add occ2 and occ4 variables to list of columns since they are created below and therefore shouldn't cause the check to fail
     columns = columns.tolist() + ['occ2_first_recode','occ4_first_recode']
-    missing_columns = [var for var in [worker_type_var, job_type_var] if var not in columns]
     if missing_columns:
         raise ValueError(f"The following columns are missing in the CSV file: {', '.join(missing_columns)}")
-
     
     data_full = pd.read_csv(mle_data_filename)
 
@@ -35,28 +33,7 @@ def mle_load_fulldata(mle_data_filename, mle_data_sums_filename, worker_type_var
         
     if np.isnan(mle_firstyear)==False & np.isnan(mle_lastyear)==False:
         data_full = data_full.loc[(data_full['year']>=mle_firstyear) & (data_full['year']<=mle_lastyear)]
-        
-
-    # Create occ2 variables if needed
-    if (worker_type_var=='occ2_first_recode') | (job_type_var=='occ2_first_recode'):
-        data_full['occ2_first']         = data_full.cbo2002_first.astype(str).str[:2].astype(int)
-        data_full['occ2_first_recode']  = data_full.cbo2002_first.astype(str).str[:2].rank(method='dense').astype(int)
-
-    # Create occ4 variables if needed    
-    if (worker_type_var=='occ4_first_recode') | (job_type_var=='occ4_first_recode'):
-        data_full['occ4_first']         = data_full.cbo2002_first.astype(str).str[:4].astype(int)
-        # Set occ4s that rarely occur to missing. The cutoff at 5000 is totally arbitrary
-        data_full['occ4_first'].loc[data_full.groupby('occ4_first')['occ4_first'].transform('count') < 5000] = np.nan
-        # Recode occ4s to go from 1 to I. 
-        data_full['occ4_first_recode']  = data_full.occ4_first.rank(method='dense', na_option='keep')
-        # Recode missings to -1
-        data_full['occ4_first'].loc[np.isnan(data_full.occ4_first)] = -1
-        data_full['occ4_first_recode'].loc[np.isnan(data_full.occ4_first_recode)] = -1
-        # Convert from float to int (nans are automatically stored as floats so when we added nans it converted to floats)
-        data_full['occ4_first']         = data_full['occ4_first'].astype(int)
-        data_full['occ4_first_recode']  = data_full['occ4_first_recode'].astype(int)
-        
-        
+                
     if worker_type_var=='1':
         data_full['worker_type'] = 1
         data_full['worker_type'].loc[data_full['iota']==-1] = -1
