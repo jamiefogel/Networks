@@ -64,10 +64,10 @@ if run_pull==True:
 if run_append==True:
     for year in range(firstyear,lastyear+1):
         df = pickle.load( open('./Data/derived/raw_data_sbm_' + modelname + '_' + str(year) + '.p', "rb" ) )
-        if year>firstyear:
-            appended = df.append(appended, sort=True)
-        else:
+        if year==firstyear:
             appended = df
+        else:
+            appended = df.append(appended, sort=True)
         del df
     appended.to_pickle('./Data/derived/appended_sbm_' + modelname + '.p')
 
