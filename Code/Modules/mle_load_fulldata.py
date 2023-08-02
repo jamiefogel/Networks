@@ -22,7 +22,7 @@ def mle_load_fulldata(mle_data_filename, mle_data_sums_filename, worker_type_var
     # Confirm that worker_type_var and job_type_var exist in the data frame before fully loading it
     columns = pd.read_csv(mle_data_filename, nrows=1).columns
     # Add occ2 and occ4 variables to list of columns since they are created below and therefore shouldn't cause the check to fail
-    columns = columns + ['occ2_first_recode','occ4_first_recode']
+    columns = columns.tolist() + ['occ2_first_recode','occ4_first_recode']
     missing_columns = [var for var in [worker_type_var, job_type_var] if var not in columns]
     if missing_columns:
         raise ValueError(f"The following columns are missing in the CSV file: {', '.join(missing_columns)}")
