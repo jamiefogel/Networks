@@ -8,7 +8,7 @@ import numpy as np
 import pickle
 from datetime import datetime
 import sys
-
+import getpass
 
 
 now = datetime.now()
@@ -16,7 +16,13 @@ dt_string = now.strftime("%Y_%m_%d__%H_%M_%S")
 print("date and time =", dt_string)	
 
 homedir = os.path.expanduser('~')
-root = homedir + '/NetworksGit/'
+if getpass.getuser()=='p13861161':
+    print("Running on Linux")
+    root = homedir + '/labormkt/labormkt_rafaelpereira/NetworksGit/'
+elif getpass.getuser()=='jfogel':
+    print("Running on Jamie's home laptop")
+    homedir = os.path.expanduser('~')
+
 sys.path.append(root + 'Code/Modules')
 figuredir = root + 'Results/'
 
@@ -49,8 +55,8 @@ plt.rcParams['figure.dpi'] = 100
 level = 0
 #level = int(sys.argv[1])
 
-pre = 2009
-post = 2014
+pre = 2013
+post = 2018
 eta = 2
 year = pre
 S = 15
@@ -85,7 +91,7 @@ job_type_var    = 'gamma'
 
 
 
-classification_list = [('iota','gamma'), ('occ2_first_recode','sector_IBGE'), ('iota','occ2Xmeso'), ('occ4_first_recode','sector_IBGE'), ('occ4_first_recode','gamma'), ('occ2Xmeso','occ2Xmeso')] # , ('kmeans','sector_IBGE'), ('kmeans','gamma')
+classification_list = [('iota','gamma'), ('occ2_first_recode','sector_IBGE'), ('occ4_first_recode','sector_IBGE'), ('occ4_first_recode','gamma'), ('iota','occ2Xmeso'), ('occ2Xmeso','occ2Xmeso')] # , ('kmeans','sector_IBGE'), ('kmeans','gamma')
 
 
 ################################################################
@@ -106,10 +112,9 @@ filename_stub = "panel_3states_2013to2016_new"
 # Define filenames
 if 1==1:
     #mle_data_filename      = homedir + "/Networks/RAIS_exports/earnings_panel/" + filename_stub + "_level_" + str(level) + ".csv"
-    mle_data_filename      = root + "Data/RAIS_exports/earnings_panel/" + filename_stub + "_level_0.csv"
+    mle_data_filename      = root + "Data/derived/earnings_panel/" + filename_stub + "_level_0.csv"
     mle_data_sums_filename = root + "Data/derived/mle_data_sums/" + filename_stub + "_mle_data_sums_" + worker_type_var + "_" + job_type_var + "_" "level_" + str(level) + ".p"
     mle_estimates_filename = root + "Data/derived/MLE_estimates/" + filename_stub + "_mle_estimates_" + worker_type_var + "_" + job_type_var + "_" "level_" + str(level) + ".p"
-
     psi_and_k_file         = root + "Data/derived/MLE_estimates/" + filename_stub + "_psi_normalized_" + worker_type_var + "_" + job_type_var + "_" "level_" + str(level) + "_eta_" + str(eta) + ".p"
     alphas_file            = root + "Data/derived/MLE_estimates/" + filename_stub + "_alphas_" + worker_type_var + "_" + job_type_var + "_" "level_" + str(level) + ".p"
     
@@ -140,37 +145,28 @@ if run_all==True:
         # using wtype_var and jtype_Var instead of worker_type_var and job_type_var so we don't reset the master versions set in do_all.py
         wtype_var = idx[0]
         jtype_var = idx[1]
-    
         suffix = wtype_var + "_" + jtype_var + "_" "level_" + str(level)
-        est_mle_data_filename      = root + "Data/RAIS_exports/earnings_panel/" + filename_stub + "_level_0.csv"
+        est_mle_data_filename      = root + "Data/derived/earnings_panel/" + filename_stub + "_level_0.csv"
         est_mle_data_sums_filename = root + "Data/derived/mle_data_sums/" + filename_stub + "_mle_data_sums_" + suffix + ".p"
         est_mle_estimates_filename = root + "Data/derived/MLE_estimates/" + filename_stub + "_mle_estimates_"  + suffix + ".p"
         est_psi_and_k_file         = root + "Data/derived/MLE_estimates/" + filename_stub + "_psi_normalized_" + suffix + "_eta_" + str(eta) + ".p"
         est_alphas_file            = root + "Data/derived/MLE_estimates/" + filename_stub + "_alphas_" + suffix + "_eta_" + str(eta) + ".p"
-
         if run_query_sums == 1:
             mle_load_fulldata(est_mle_data_filename, est_mle_data_sums_filename, wtype_var, jtype_var, mle_firstyear=2013, mle_lastyear=2016)
-        
         if run_mle == True:
             if wtype_var != jtype_var:
-                torch_mle.torch_mle(est_mle_data_sums_filename, est_mle_estimates_filename, wtype_var, jtype_var, level)
+                torch_mle(est_mle_data_sums_filename, est_mle_estimates_filename, wtype_var, jtype_var, level)
             else: # Can probably be deleted. torch_mle_diagonal is in june2021 but not aug2021
                 from torch_mle_diagonal import torch_mle_diag
                 torch_mle_diag(est_mle_data_sums_filename, est_mle_estimates_filename, wtype_var, jtype_var, level)
-
-   
         compute_alphas(est_mle_data_filename, jtype_var, 'real_hrly_wage_dec', alphas_file=est_alphas_file)
         alpha_gs=load_alphas(est_alphas_file)
-
         est_mle_data_sums = pickle.load(open(est_mle_data_sums_filename, "rb"), encoding='bytes')
         est_mle_estimates = pickle.load(open(est_mle_estimates_filename, "rb"), encoding='bytes')
-
-
         if jtype_var == 'sector_IBGE':
             b_gs = torch.diag(x_s * torch.ones(S))
         else:
             b_gs = alphags * x_s
-
         if run_normalization == True:
             normalization_k(est_psi_and_k_file,  wtype_var, jtype_var, est_mle_estimates, est_mle_data_sums, S, a_s, b_gs, eta, phi_outopt_scalar, xi_outopt_scalar, level, pre, raw_data_file=est_mle_data_filename) 
 
