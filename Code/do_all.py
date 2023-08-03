@@ -177,7 +177,8 @@ if run_all==True:
 
 
 
-
+'''
+# I think this is all totally redundant b/c we ran the MLE for iota-gamma in the loop above
 if run_query_sums == 1:
     mle_load_fulldata(mle_data_filename, mle_data_sums_filename, worker_type_var, job_type_var, mle_firstyear=2013, mle_lastyear=2016)
 
@@ -188,16 +189,19 @@ if run_mle == True:
         from torch_mle_diagonal import torch_mle_diag
         torch_mle_diag(mle_data_sums_filename, mle_estimates_filename, worker_type_var, job_type_var, level)
 
-mle_data_sums = pickle.load(open(mle_data_sums_filename, "rb"), encoding='bytes')
-mle_estimates = pickle.load(open(mle_estimates_filename, "rb"), encoding='bytes')
-
 # Load estimates and data
 if run_normalization == True:
     normalization_k(psi_and_k_file,  worker_type_var, job_type_var, mle_estimates, mle_data_sums, S, a_s, b_gs, eta, phi_outopt_scalar, xi_outopt_scalar, level, pre, raw_data_file=mle_data_filename) 
 
+'''
+
+mle_data_sums = pickle.load(open(mle_data_sums_filename, "rb"), encoding='bytes')
+mle_estimates = pickle.load(open(mle_estimates_filename, "rb"), encoding='bytes')
+
+
 if run_occ_counts == True:
-    [w_dict, j_dict] = occ_counts_by_type(mle_data_filename, root + 'Data/translated_occ_codes/translated_occ_codes_english_only.csv', level=0, w_output=root + '/Data/Derived/occ_counts/" + filename_stub + "_occ_counts_by_i_level_' + str(level) + '.csv', j_output=root + '/Data/Derived/occ_counts/" + filename_stub + "_occ_counts_by_g_level_' + str(level) + '.csv')
-    pickle.dump((w_dict, j_dict), open(root + '/Data/Derived/occ_counts/occ_counts.p', 'wb'))
+    [w_dict, j_dict] = occ_counts_by_type(mle_data_filename, root + 'Data/raw/translated_occ_codes_english_only.csv', level=0, w_output=root + '/Data/derived/occ_counts/' + filename_stub + '_occ_counts_by_i_level_' + str(level) + '.csv', j_output=root + '/Data/derived/occ_counts/' + filename_stub + '_occ_counts_by_g_level_' + str(level) + '.csv')
+    pickle.dump((w_dict, j_dict), open(root + '/Data/derived/occ_counts/'+ filename_stub + 'occ_counts_level_' + str(level) + '.p', 'wb'))
 
 
 
