@@ -91,7 +91,7 @@ job_type_var    = 'gamma'
 
 
 
-classification_list = [('iota','gamma'), ('occ2_first_recode','sector_IBGE'), ('occ4_first_recode','sector_IBGE'), ('occ4_first_recode','gamma'), ('iota','occ2Xmeso'), ('occ2Xmeso','occ2Xmeso')] # , ('kmeans','sector_IBGE'), ('kmeans','gamma')
+classification_list = [('iota','gamma'), ('occ2_first_recode','sector_IBGE'), ('occ4_first_recode','sector_IBGE'), ('occ4_first_recode','gamma'), ('iota','occ2Xmeso_recode'), ('occ2Xmeso_recode','occ2Xmeso_recode')] # , ('kmeans','sector_IBGE'), ('kmeans','gamma')
 
 
 ################################################################
