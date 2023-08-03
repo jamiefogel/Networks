@@ -134,9 +134,9 @@ def create_earnings_panel(modelname, appended, firstyear_panel, lastyear_panel, 
         iname = 'iota_level_' + str(l)
         # Export an uncompressed version of level 0; compress other levels
         if l==0:
-            balanced.rename(columns={iname:'iota',gname:'gamma'}).to_csv('./Data/derived/earnings_panel/panel_'+modelname+'_level_'+str(l)+'.csv', index=False, columns = ['wid_masked', 'jid_masked', 'year', 'cbo2002', 'cbo2002_first', 'clas_cnae20', 'clas_cnae20_first', 'sector_IBGE', 'occ2Xmeso', 'codemun', 'code_meso', 'c', 'real_hrly_wage_dec', 'ln_real_hrly_wage_dec', 'yob', 'iota', 'gamma'])
+            balanced.rename(columns={iname:'iota',gname:'gamma'}).to_csv('./Data/derived/earnings_panel/panel_'+modelname+'_level_'+str(l)+'.csv', index=False, columns = ['wid_masked', 'jid_masked', 'year', 'sector_IBGE', 'codemun', 'code_meso', 'c', 'real_hrly_wage_dec', 'ln_real_hrly_wage_dec', 'yob', 'iota', 'gamma', 'cbo2002', 'cbo2002_first', 'cbo2002_first_recode', 'clas_cnae20', 'clas_cnae20_first', 'clas_cnae20_first_recode', 'occ2', 'occ2_first', 'occ2_first_recode', 'occ4', 'occ4_first', 'occ4_first_recode', 'occ2Xmeso', 'occ2Xmeso_first', 'occ2Xmeso_first_recode'])
         else:            
-            balanced.rename(columns={iname:'iota',gname:'gamma'}).to_csv('./Data/derived/earnings_panel/panel_'+modelname+'_level_'+str(l)+'.csv.gz', index=False, compression='gzip', columns = ['wid_masked', 'jid_masked', 'year', 'cbo2002', 'cbo2002_first', 'clas_cnae20', 'clas_cnae20_first', 'sector_IBGE', 'occ2Xmeso', 'codemun', 'code_meso', 'c', 'real_hrly_wage_dec', 'ln_real_hrly_wage_dec', 'yob', 'iota', 'gamma'])
+            balanced.rename(columns={iname:'iota',gname:'gamma'}).to_csv('./Data/derived/earnings_panel/panel_'+modelname+'_level_'+str(l)+'.csv.gz', index=False, compression='gzip', columns = ['wid_masked', 'jid_masked', 'year', 'sector_IBGE', 'codemun', 'code_meso', 'c', 'real_hrly_wage_dec', 'ln_real_hrly_wage_dec', 'yob', 'iota', 'gamma', 'cbo2002', 'cbo2002_first', 'cbo2002_first_recode', 'clas_cnae20', 'clas_cnae20_first', 'clas_cnae20_first_recode', 'occ2', 'occ2_first', 'occ2_first_recode', 'occ4', 'occ4_first', 'occ4_first_recode', 'occ2Xmeso', 'occ2Xmeso_first', 'occ2Xmeso_first_recode'])
 
 
 
