@@ -30,8 +30,8 @@ def occ_counts_by_type(data, occ_codes_file, level, w_output=None, j_output=None
     jblock_var = 'gamma'
       
     # These are implicitly weigthed by the number of edges. So if a job has 100 edges, it will be counted 100 times. The total number of obs of the occupation var equals the total number of edges
-    w_occs = data[['cbo2002',wblock_var]].rename(columns={wblock_var:'iota'})
-    j_occs = data[['cbo2002',jblock_var]].rename(columns={jblock_var:'gamma'})	
+    w_occs = df[['cbo2002',wblock_var]].rename(columns={wblock_var:'iota'})
+    j_occs = df[['cbo2002',jblock_var]].rename(columns={jblock_var:'gamma'})	
     w_occs['cbo2002'] = pd.to_numeric(w_occs['cbo2002'])
     j_occs['cbo2002'] = pd.to_numeric(j_occs['cbo2002'])
     
