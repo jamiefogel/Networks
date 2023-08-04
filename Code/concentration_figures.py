@@ -42,91 +42,6 @@ occ4_probabilities_by_gamma['hhi'] = occ4_probabilities_by_gamma.drop(columns='g
 
 
 
-# Public sector
-sector_index = 13
-fig, ax = plt.subplots()
-ax.scatter(np.arange(1,291), sector_probabilities_by_iota[sector_index].sort_values(),s=5)
-ax.set_xlabel('Worker types (sorted by shocked sector share)')            
-ax.set_ylabel('Shocked sector share of Employment')
-ax.set_xticklabels([])
-ax.set_xticks([])
-ax.figure.savefig(figuredir+fname_stub+'_iota_shocked_sector_share.png') #Unused
-
-
-
-
-fig, ax = plt.subplots()
-ax.scatter(np.arange(1,291), sector_probabilities_by_iota['hhi'].sort_values(),s=5)
-ax.set_xlabel('Worker types (sorted by sector employment HHI)')
-ax.set_ylabel('Sector employment HHI')
-ax.set_xticklabels([])
-ax.set_xticks([])
-ax.set_ylim(0,1)
-ax.figure.savefig(figuredir+fname_stub+'_iota_sector_hhi.png') #Unused
-
-
-fig, ax = plt.subplots()
-ax.scatter(np.arange(1,291), gamma_probabilities_by_iota['hhi'].sort_values(),s=5)
-ax.set_xlabel('Worker types (sorted by market employment HHI)')
-ax.set_ylabel('Market employment HHI')
-ax.set_xticklabels([])
-ax.set_xticks([])
-ax.set_ylim(0,1)
-ax.figure.savefig(figuredir+fname_stub+'_iota_gamma_hhi.png') #Unused
-
-
-fig, ax = plt.subplots()
-ax.scatter(np.arange(1,291), sector_probabilities_by_iota['hhi'].sort_values(),s=5,label='Sector')
-ax.scatter(np.arange(1,291), gamma_probabilities_by_iota['hhi'].sort_values(), s=5,label='Market', marker='+')
-ax.set_xlabel('Worker types (sorted by employment HHI)')
-ax.set_ylabel('Concentration (HHI)')
-ax.set_xticklabels([])
-ax.set_xticks([])
-ax.set_ylim(0,1)
-ax.legend()
-ax.figure.savefig(figuredir+fname_stub+'_iota_gamma_sector_hhi.png', dpi=300,bbox_inches='tight') #Unused
-
-
-fig, ax = plt.subplots()
-ax.scatter(np.arange(1,291), sector5_probabilities_by_iota['hhi'].sort_values(),s=5,label='5-digit industry')
-ax.scatter(np.arange(1,291), gamma_probabilities_by_iota['hhi'].sort_values(), s=5,label='Market', marker='+')
-ax.set_xlabel('Worker types (sorted by employment HHI)')
-ax.set_ylabel('Concentration (HHI)')
-ax.set_xticklabels([])
-ax.set_xticks([])
-ax.set_ylim(0,1)
-ax.legend()
-ax.figure.savefig(figuredir+fname_stub+'_iota_gamma_sector5_hhi.png', dpi=300,bbox_inches='tight') #Unused
-
-
-fig, ax = plt.subplots()
-ax.scatter(np.arange(1,291), occ4_probabilities_by_iota['hhi'].sort_values(),s=5,label='4-digit occupation')
-ax.scatter(np.arange(1,291), gamma_probabilities_by_iota['hhi'].sort_values(), s=5,label='Market', marker='+')
-ax.set_xlabel('Worker types (sorted by employment HHI)')
-ax.set_ylabel('Concentration (HHI)')
-ax.set_xticklabels([])
-ax.set_xticks([])
-ax.set_ylim(0,1)
-ax.legend()
-ax.figure.savefig(figuredir+fname_stub+'_iota_gamma_occ4_hhi.png', dpi=300,bbox_inches='tight') #Unused
-
-
-# gamma hhi
-fig, ax = plt.subplots()
-ax.scatter(np.arange(1,428), occ4_probabilities_by_gamma['hhi'].sort_values(),s=5,label='4-digit occupation')
-ax.scatter(np.arange(1,428), iota_probabilities_by_gamma['hhi'].sort_values(), s=5,label='Worker type', marker='+')
-ax.set_xlabel('Markets (sorted by employment HHI)')
-ax.set_ylabel('Concentration (HHI)')
-ax.set_xticklabels([])
-ax.set_xticks([])
-ax.set_ylim(0,1)
-ax.legend()
-ax.figure.savefig(figuredir+fname_stub+'_gamma_iota_occ4_hhi.png', dpi=300,bbox_inches='tight') #Unused
-
-
-
-
-
 factor = 1/mle_data_sums['m_i'].min().numpy()
 i_weights = np.round(factor*np.array(mle_data_sums['m_i']),0)
 
@@ -135,15 +50,11 @@ sector5_probabilities_by_iota['i_weights'] = i_weights
 occ4_probabilities_by_iota['i_weights'] = i_weights
 gamma_probabilities_by_iota['i_weights']  = i_weights
 
-iota_probabilities_by_gamma['g_weights']  = mle_data_sums['sum_count_g'][1:428]
-occ4_probabilities_by_gamma['g_weights']  = mle_data_sums['sum_count_g'][1:428]
+iota_probabilities_by_gamma['g_weights']  = mle_data_sums['sum_count_g'][1:]
+occ4_probabilities_by_gamma['g_weights']  = mle_data_sums['sum_count_g'][1:]
 
 
 l =sector_probabilities_by_iota.loc[sector_probabilities_by_iota.index.repeat(sector_probabilities_by_iota.i_weights)].shape[0]+1
-
- 
-
-
 
 fig, ax = plt.subplots()
 ax.scatter(np.arange(1,l), sector_probabilities_by_iota.loc[sector_probabilities_by_iota.index.repeat(sector_probabilities_by_iota.i_weights)]['hhi'].sort_values(),s=3,label='Sector')
