@@ -6,11 +6,56 @@ Created on Mon Oct  4 14:04:06 2021
 @author: jfogel
 """
 
+################
+## Make into function or loop and then incorporate occ2Xmeso
+##################
 
 
 fname_stub = 'concentration_figures'
 data_full = pd.read_csv(mle_data_filename)
 data_full = data_full.loc[(data_full.iota!=-1) & (data_full.gamma!=-1)]
+
+
+xvar = 'iota'
+yvarlist = ['sector_IBGE','gamma']
+yvarlabels = {'sector_IBGE':'Sector','gamma':'Market'}
+
+fig, ax = plt.subplots()
+dict = {}
+for yvar in yvarlist:
+    print(yvar)
+    crosstab = pd.crosstab(index = data_full[xvar], columns = data_full[yvar])
+    yvar_probabilities_by_xvar = crosstab.div(crosstab.sum(axis=1),axis=0).reset_index()
+    yvar_probabilities_by_xvar['hhi'] = yvar_probabilities_by_xvar.drop(columns=xvar).pow(2).sum(axis=1)
+    xvar_counts = data_full[xvar].value_counts().reset_index().rename(columns={'index':xvar,xvar:'count'})
+    yvar_probabilities_by_xvar = yvar_probabilities_by_xvar.merge(xvar_counts, on=xvar)
+    weighted_hhis = yvar_probabilities_by_xvar.loc[yvar_probabilities_by_xvar.index.repeat(yvar_probabilities_by_xvar['count'])]['hhi'].sort_values()
+    ax.scatter(np.arange(1,weighted_hhis.shape[0]+1), weighted_hhis,s=3,label=yvarlabels[yvar])
+    #del crosstab, yvar_probabilities_by_xvar, xvar_counts, weighted_hhis
+
+ax.set_xlabel('Workers (sorted by employment HHI)')
+ax.set_ylabel('Concentration (HHI)')
+ax.set_xticklabels([])
+ax.set_xticks([])
+ax.set_ylim(0,1)
+ax.legend()
+ax.figure.savefig(figuredir+fname_stub+'_iota_gamma_sector_hhi_worker_weighted_test.png', dpi=300,bbox_inches='tight') # Used by paper and slides
+
+
+# Issue: the way I'm doing the weighting is running out of memory
+
+'''
+fig, ax = plt.subplots()
+ax.scatter(np.arange(1,l), sector_probabilities_by_iota.loc[sector_probabilities_by_iota.index.repeat(sector_probabilities_by_iota.i_weights)]['hhi'].sort_values(),s=3,label='Sector')
+ax.scatter(np.arange(1,l), gamma_probabilities_by_iota.loc[gamma_probabilities_by_iota.index.repeat(gamma_probabilities_by_iota.i_weights)]['hhi'].sort_values(), s=3,label='Market', marker='+')
+ax.set_xlabel('Workers (sorted by employment HHI)')
+ax.set_ylabel('Concentration (HHI)')
+ax.set_xticklabels([])
+ax.set_xticks([])
+ax.set_ylim(0,1)
+ax.legend()
+ax.figure.savefig(figuredir+fname_stub+'_iota_gamma_sector_hhi_worker_weighted.png', dpi=300,bbox_inches='tight') # Used by paper and slides
+'''
 
 # iota concentration
 crosstab_iota_sector = pd.crosstab(index = data_full.iota, columns = data_full.sector_IBGE)
