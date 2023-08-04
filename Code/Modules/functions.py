@@ -104,11 +104,19 @@ def create_earnings_panel(modelname, appended, firstyear_panel, lastyear_panel, 
         balanced = balanced.merge(first, on='wid', how='left',validate='m:1')
         # Set groups that rarely occur to missing. The cutoff at 5000 is totally arbitrary
         balanced[var+'_first'].loc[balanced.groupby([var+'_first'])[var+'_first'].transform('count') < 5000] = np.nan
-        # Create a crosswalk between the original values and the recodes that go from 0 to N and will be useful later.
-        recode, original = pd.factorize(balanced[var+'_first'])
+        # Create a crosswalk between the original values and the recodes that go from 0 to N and will be useful later. Do this for both _first and the original
+        # original
+        recode, original = pd.factorize(balanced[var])
         occ_recode_cw[var] = pd.DataFrame({'recode':range(len(original)), 'original':original})
+        balanced[var+'_recode']  = recode
+        del recode, original
+        # _first
+        recode, original = pd.factorize(balanced[var+'_first'])
+        occ_recode_cw[var+'_first'] = pd.DataFrame({'recode':range(len(original)), 'original':original})
         balanced[var+'_first_recode']  = recode
+        del recode, original
         # Recode missings to -1
+        balanced[var+'_first_recode'].loc[balanced[var+'_recode'].isna()] = -1
         balanced[var+'_first'       ].loc[balanced[var+'_first'       ].isna()] = -1
         balanced[var+'_first_recode'].loc[balanced[var+'_first_recode'].isna()] = -1
 
@@ -134,9 +142,9 @@ def create_earnings_panel(modelname, appended, firstyear_panel, lastyear_panel, 
         iname = 'iota_level_' + str(l)
         # Export an uncompressed version of level 0; compress other levels
         if l==0:
-            balanced.rename(columns={iname:'iota',gname:'gamma'}).to_csv('./Data/derived/earnings_panel/panel_'+modelname+'_level_'+str(l)+'.csv', index=False, columns = ['wid_masked', 'jid_masked', 'year', 'sector_IBGE', 'codemun', 'code_meso', 'c', 'real_hrly_wage_dec', 'ln_real_hrly_wage_dec', 'yob', 'iota', 'gamma', 'cbo2002', 'cbo2002_first', 'cbo2002_first_recode', 'clas_cnae20', 'clas_cnae20_first', 'clas_cnae20_first_recode', 'occ2', 'occ2_first', 'occ2_first_recode', 'occ4', 'occ4_first', 'occ4_first_recode', 'occ2Xmeso', 'occ2Xmeso_first', 'occ2Xmeso_first_recode'])
+            balanced.rename(columns={iname:'iota',gname:'gamma'}).to_csv('./Data/derived/earnings_panel/panel_'+modelname+'_level_'+str(l)+'.csv', index=False, columns = ['wid_masked', 'jid_masked', 'year', 'sector_IBGE', 'codemun', 'code_meso', 'c', 'real_hrly_wage_dec', 'ln_real_hrly_wage_dec', 'yob', 'iota', 'gamma', 'cbo2002', 'cbo2002_first', 'cbo2002_first_recode', 'clas_cnae20', 'clas_cnae20_first', 'clas_cnae20_first_recode', 'occ2', 'occ2_first', 'occ2_first_recode', 'occ4', 'occ4_first', 'occ4_first_recode', 'occ2Xmeso', 'occ2Xmeso_first', 'occ2Xmeso_first_recode', 'occ2Xmeso_recode'])
         else:            
-            balanced.rename(columns={iname:'iota',gname:'gamma'}).to_csv('./Data/derived/earnings_panel/panel_'+modelname+'_level_'+str(l)+'.csv.gz', index=False, compression='gzip', columns = ['wid_masked', 'jid_masked', 'year', 'sector_IBGE', 'codemun', 'code_meso', 'c', 'real_hrly_wage_dec', 'ln_real_hrly_wage_dec', 'yob', 'iota', 'gamma', 'cbo2002', 'cbo2002_first', 'cbo2002_first_recode', 'clas_cnae20', 'clas_cnae20_first', 'clas_cnae20_first_recode', 'occ2', 'occ2_first', 'occ2_first_recode', 'occ4', 'occ4_first', 'occ4_first_recode', 'occ2Xmeso', 'occ2Xmeso_first', 'occ2Xmeso_first_recode'])
+            balanced.rename(columns={iname:'iota',gname:'gamma'}).to_csv('./Data/derived/earnings_panel/panel_'+modelname+'_level_'+str(l)+'.csv.gz', index=False, compression='gzip', columns = ['wid_masked', 'jid_masked', 'year', 'sector_IBGE', 'codemun', 'code_meso', 'c', 'real_hrly_wage_dec', 'ln_real_hrly_wage_dec', 'yob', 'iota', 'gamma', 'cbo2002', 'cbo2002_first', 'cbo2002_first_recode', 'clas_cnae20', 'clas_cnae20_first', 'clas_cnae20_first_recode', 'occ2', 'occ2_first', 'occ2_first_recode', 'occ4', 'occ4_first', 'occ4_first_recode', 'occ2Xmeso', 'occ2Xmeso_first', 'occ2Xmeso_first_recode', 'occ2Xmeso_recode'])
 
 
 
