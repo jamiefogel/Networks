@@ -38,7 +38,7 @@ from alphas_func import load_alphas
 import solve_model_functions as smf
 from occ_counts_by_type import occ_counts_by_type
 #from correlogram import correlogram
-
+from concentration_figures import concentration_figures
 
 
 # Change all the filepaths to the new data
@@ -237,9 +237,22 @@ k = psi_and_k['k']
 
 if run_correlogram==True:
     exec(open(root + 'Code/correlogram.py').read())
-    exec(open(root + 'Code/concentration_figures.py').read())
+
+
+
+
+
+data_full = pd.read_csv(mle_data_filename)
+data_full = data_full.loc[(data_full.iota!=-1) & (data_full.gamma!=-1)]
     
 
+concentration_figures('iota', 'Workers (sorted by employment HHI)', ['sector_IBGE','gamma'],    {'sector_IBGE':'Sector','gamma':'Market'},                     figuredir+'concentration_figures__iota__sector_IBGE__gamma.png',weighted=True)
+concentration_figures('iota', 'Workers (sorted by employment HHI)', ['clas_cnae20','gamma'],    {'clas_cnae20':'5-Digit Industry','gamma':'Market'},           figuredir+'concentration_figures__iota__clas_cnae20__IBGE_gamma.png',weighted=True)
+concentration_figures('iota', 'Workers (sorted by employment HHI)', ['occ2Xmeso','gamma'],      {'occ2Xmeso':'Occ2 X Meso Region','gamma':'Market'},           figuredir+'concentration_figures__iota__occ2Xmeso__IBGE_gamma.png',weighted=True)
+concentration_figures('gamma', 'Markets (sorted by hiring HHI)',    ['occ2Xmeso_first','iota'], {'occ2Xmeso_first':'Occ2 X Meso Region','iota':'Worker Type'}, figuredir+'concentration_figures__gamma__occ2Xmeso_first__iota.png',weighted=True)
+concentration_figures('gamma', 'Markets (sorted by hiring HHI)',    ['occ4_first','iota'],      {'occ4_first':'4-Digit Occupation','iota':'Worker Type'},      figuredir+'concentration_figures__gamma__occ4_first__iota.png',weighted=True)
+
+    
 #--------------------------
 #  ANALYSIS
 #--------------------------
