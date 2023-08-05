@@ -19,7 +19,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-def concentration_figures(xvar, xvarlabel, yvarlist, yvarlabels, savefile, weighted=True):
+def concentration_figures(data, xvar, xvarlabel, yvarlist, yvarlabels, savefile, weighted=True):
     # Example usage: 
     #xvar = 'iota'
     #xvarlabel = 'Workers'
@@ -29,10 +29,10 @@ def concentration_figures(xvar, xvarlabel, yvarlist, yvarlabels, savefile, weigh
     savename_str = ''
     for yvar in yvarlist:
         print(yvar)
-        crosstab = pd.crosstab(index = data_full[xvar], columns = data_full[yvar])
+        crosstab = pd.crosstab(index = data[xvar], columns = data[yvar])
         yvar_probabilities_by_xvar = crosstab.div(crosstab.sum(axis=1),axis=0).reset_index()
         yvar_probabilities_by_xvar['hhi'] = yvar_probabilities_by_xvar.drop(columns=xvar).pow(2).sum(axis=1)
-        xvar_counts = data_full[xvar].value_counts().reset_index().rename(columns={'index':xvar,xvar:'count'})
+        xvar_counts = data[xvar].value_counts().reset_index().rename(columns={'index':xvar,xvar:'count'})
         # Normalize the counts by the minimum count and round to an integer. This avoids having so many points in the scatter plot that it won't print.
         xvar_counts['count'] = np.round(xvar_counts['count']/xvar_counts['count'].min())
         yvar_probabilities_by_xvar = yvar_probabilities_by_xvar.merge(xvar_counts, on=xvar)
