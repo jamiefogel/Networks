@@ -115,8 +115,9 @@ def create_earnings_panel(modelname, appended, firstyear_panel, lastyear_panel, 
         occ_recode_cw[var+'_first'] = pd.DataFrame({'recode':range(len(original)), 'original':original})
         balanced[var+'_first_recode']  = recode
         del recode, original
-        # Recode missings to -1
-        balanced[var+'_first_recode'].loc[balanced[var+'_recode'].isna()] = -1
+        # Recode missings to -1. I think these correspond to people not currently employed who have been added to create a balanced panel.
+        balanced[var                ].loc[balanced[var                ].isna()] = -1
+        balanced[var+'_recode'      ].loc[balanced[var+'_recode'      ].isna()] = -1
         balanced[var+'_first'       ].loc[balanced[var+'_first'       ].isna()] = -1
         balanced[var+'_first_recode'].loc[balanced[var+'_first_recode'].isna()] = -1
 
