@@ -14,8 +14,6 @@ import sys
 import gc
 import matplotlib.pyplot as plt
 import scipy.stats as stats
-import geobr
-import cividis
 import matplotlib.colors as colors
 from haversine import haversine, Unit
 from shapely.geometry import MultiPoint

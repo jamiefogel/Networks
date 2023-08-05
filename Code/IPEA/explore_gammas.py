@@ -14,9 +14,15 @@ from haversine import haversine, Unit
 from shapely.geometry import MultiPoint
 from scipy.stats import mstats
 
+# DIRECTORY WHERE THE DATA IS
+# Automatically chooses the folder between windows vs linux servers
+if os.name == 'nt':
+    homedir = os.path.expanduser('//storage6/usuarios')  # for running this code on windows
+else:
+    homedir = os.path.expanduser('~/labormkt')
 
-homedir = os.path.expanduser('~')
-root = homedir + '/labormkt/labormkt_rafaelpereira/NetworksGit/'
+
+root = homedir + '/labormkt_rafaelpereira/NetworksGit/'
 sys.path.append(root + 'Code/Modules')
 os.chdir(root)
 
@@ -372,3 +378,18 @@ print(lower_triangle_corr_matrix)
 corr_plots(gammas_w_attributes['hhi_code_meso'],gammas_w_attributes['spatial_var_km'])
 corr_plots(gammas_w_attributes['hhi_jid'],gammas_w_attributes['spatial_var_km'])
 corr_plots(gammas_w_attributes['mean_monthly_earnings_rank'],gammas_w_attributes['spatial_var_km'])
+
+# Education and j2j move distance are negatively correlated
+corr_plots(gammas_w_attributes['educ_mean'],gammas_w_attributes['dist_mean'])
+# Spatial variance of jobs within a market uncorrelated with education and j2j move distance
+corr_plots(gammas_w_attributes['spatial_var_km'],gammas_w_attributes['dist_mean'])
+corr_plots(gammas_w_attributes['spatial_var_km'],gammas_w_attributes['educ_mean'])
+
+
+
+corr_plots(gammas_w_attributes['educ_mean'],gammas_w_attributes['mean_monthly_earnings'])
+corr_plots(gammas_w_attributes['educ_mean'],np.log(gammas_w_attributes['mean_monthly_earnings']))
+corr_plots(gammas_w_attributes['dist_mean'],np.log(gammas_w_attributes['mean_monthly_earnings']))
+corr_plots(gammas_w_attributes['spatial_var_km'],np.log(gammas_w_attributes['mean_monthly_earnings']))
+
+# We should weight these correlation by jobs or workers in gamma
