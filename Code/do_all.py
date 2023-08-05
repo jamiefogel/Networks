@@ -37,7 +37,7 @@ from alphas_func import compute_alphas
 from alphas_func import load_alphas
 import solve_model_functions as smf
 from occ_counts_by_type import occ_counts_by_type
-#from correlogram import correlogram
+from correlogram import correlogram
 from concentration_figures import concentration_figures
 
 
@@ -111,7 +111,6 @@ exec(open(root + 'Code/intro_figs.py').read())
 filename_stub = "panel_3states_2013to2016_new"
 # Define filenames
 if 1==1:
-    #mle_data_filename      = homedir + "/Networks/RAIS_exports/earnings_panel/" + filename_stub + "_level_" + str(level) + ".csv"
     mle_data_filename      = root + "Data/derived/earnings_panel/" + filename_stub + "_level_0.csv"
     mle_data_sums_filename = root + "Data/derived/mle_data_sums/" + filename_stub + "_mle_data_sums_" + worker_type_var + "_" + job_type_var + "_" "level_" + str(level) + ".p"
     mle_estimates_filename = root + "Data/derived/MLE_estimates/" + filename_stub + "_mle_estimates_" + worker_type_var + "_" + job_type_var + "_" "level_" + str(level) + ".p"
@@ -235,22 +234,21 @@ k = psi_and_k['k']
 #--------------------------
 
 
+# Correlograms
 if run_correlogram==True:
-    exec(open(root + 'Code/correlogram.py').read())
+    exec(open(root + 'Code/run_correlograms.py').read())
 
 
 
-
-
+# Concentration figures
 data_full = pd.read_csv(mle_data_filename)
-data_full = data_full.loc[(data_full.iota!=-1) & (data_full.gamma!=-1)]
-    
+data_full_concfigs = data_full.loc[(data_full.iota!=-1) & (data_full.gamma!=-1)]
 
-concentration_figures('iota', 'Workers (sorted by employment HHI)', ['sector_IBGE','gamma'],    {'sector_IBGE':'Sector','gamma':'Market'},                     figuredir+'concentration_figures__iota__sector_IBGE__gamma.png',weighted=True)
-concentration_figures('iota', 'Workers (sorted by employment HHI)', ['clas_cnae20','gamma'],    {'clas_cnae20':'5-Digit Industry','gamma':'Market'},           figuredir+'concentration_figures__iota__clas_cnae20__IBGE_gamma.png',weighted=True)
-concentration_figures('iota', 'Workers (sorted by employment HHI)', ['occ2Xmeso','gamma'],      {'occ2Xmeso':'Occ2 X Meso Region','gamma':'Market'},           figuredir+'concentration_figures__iota__occ2Xmeso__IBGE_gamma.png',weighted=True)
-concentration_figures('gamma', 'Markets (sorted by hiring HHI)',    ['occ2Xmeso_first','iota'], {'occ2Xmeso_first':'Occ2 X Meso Region','iota':'Worker Type'}, figuredir+'concentration_figures__gamma__occ2Xmeso_first__iota.png',weighted=True)
-concentration_figures('gamma', 'Markets (sorted by hiring HHI)',    ['occ4_first','iota'],      {'occ4_first':'4-Digit Occupation','iota':'Worker Type'},      figuredir+'concentration_figures__gamma__occ4_first__iota.png',weighted=True)
+concentration_figures(data_full_concfigs, 'iota', 'Workers (sorted by employment HHI)', ['sector_IBGE','gamma'],    {'sector_IBGE':'Sector','gamma':'Market'},                     figuredir+'concentration_figures__iota__sector_IBGE__gamma.png',weighted=True)
+concentration_figures(data_full_concfigs, 'iota', 'Workers (sorted by employment HHI)', ['clas_cnae20','gamma'],    {'clas_cnae20':'5-Digit Industry','gamma':'Market'},           figuredir+'concentration_figures__iota__clas_cnae20__IBGE_gamma.png',weighted=True)
+concentration_figures(data_full_concfigs, 'iota', 'Workers (sorted by employment HHI)', ['occ2Xmeso','gamma'],      {'occ2Xmeso':'Occ2 X Meso Region','gamma':'Market'},           figuredir+'concentration_figures__iota__occ2Xmeso__IBGE_gamma.png',weighted=True)
+concentration_figures(data_full_concfigs, 'gamma', 'Markets (sorted by hiring HHI)',    ['occ2Xmeso_first','iota'], {'occ2Xmeso_first':'Occ2 X Meso Region','iota':'Worker Type'}, figuredir+'concentration_figures__gamma__occ2Xmeso_first__iota.png',weighted=True)
+concentration_figures(data_full_concfigs, 'gamma', 'Markets (sorted by hiring HHI)',    ['occ4_first','iota'],      {'occ4_first':'4-Digit Occupation','iota':'Worker Type'},      figuredir+'concentration_figures__gamma__occ4_first__iota.png',weighted=True)
 
     
 #--------------------------
