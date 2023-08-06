@@ -6,8 +6,6 @@ import numpy as np
 homedir = os.path.expanduser('~')
 
 
-compute_alphas(mle_data_filename, 'gamma', 'real_hrly_wage_dec', alphas_file=alphas_file)
-alphags=load_alphas(alphas_file)
 
 ################################################################################
 # Compute demand shifters a_s
