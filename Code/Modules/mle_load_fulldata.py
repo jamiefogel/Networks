@@ -28,9 +28,6 @@ def mle_load_fulldata(mle_data_filename, mle_data_sums_filename, worker_type_var
     
     data_full = pd.read_csv(mle_data_filename)
 
-    if 'cbo2002_first_recode' in data_full.columns: # This variable didn't exist in some older versions of the raw data
-        data_full['cbo2002_first_recode'] = data_full.groupby('cbo2002_first').grouper.group_info[0]
-        
     if np.isnan(mle_firstyear)==False & np.isnan(mle_lastyear)==False:
         data_full = data_full.loc[(data_full['year']>=mle_firstyear) & (data_full['year']<=mle_lastyear)]
                 
