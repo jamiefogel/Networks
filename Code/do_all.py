@@ -160,7 +160,7 @@ if run_all==True:
                 from torch_mle_diagonal import torch_mle_diag
                 torch_mle_diag(est_mle_data_sums_filename, est_mle_estimates_filename, wtype_var, jtype_var, level)
         compute_alphas(est_mle_data_filename, jtype_var, 'real_hrly_wage_dec', alphas_file=est_alphas_file)
-        alpha_gs=load_alphas(est_alphas_file)
+        alphags=load_alphas(est_alphas_file)
         est_mle_data_sums = pickle.load(open(est_mle_data_sums_filename, "rb"), encoding='bytes')
         est_mle_estimates = pickle.load(open(est_mle_estimates_filename, "rb"), encoding='bytes')
         if jtype_var == 'sector_IBGE':
@@ -173,6 +173,7 @@ if run_all==True:
 
 
 
+        
 
 
 
