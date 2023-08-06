@@ -15,8 +15,7 @@ sys.path.append(root + 'Code/Modules')
 os.chdir(root)
 
 import bisbm
-import functions
-from functions import create_earnings_panel
+from create_earnings_panel import create_earnings_panel
 from pull_one_year import pull_one_year
 
 
@@ -31,10 +30,13 @@ maxrows=None
 modelname = '3states_2009to2012'
 
 
-firstyear = 2009
-lastyear = 2012  
+firstyear_sbm = 2009
+lastyear_sbm  = 2012
+firstyear_panel = 2009
+lastyear_panel  = 2014
 state_codes = [31, 33, 35]
 # Pull region codes
+
 region_codes = pd.read_csv('./Data/raw/munic_microregion_rm.csv', encoding='latin1')
 muni_micro_cw = pd.DataFrame({'code_micro':region_codes.code_micro,'codemun':region_codes.code_munic//10})
 code_list = region_codes.loc[region_codes.rm_dummy==1][['micro','code_micro']].drop_duplicates().sort_values(by='code_micro')
@@ -47,24 +49,23 @@ for m in micro_code_list:
 
 
 # Changes to make:
-# - Restrict age
 # - Choose best measure of earnings
 
-    
+
 ################################################################################################    
 # Pull raw data for SBM
 
 if run_pull==True:
-    for year in range(firstyear,lastyear+1):
+    for year in range(firstyear_panel,lastyear_panel+1):
         pull_one_year(year, 'cbo2002', savefile='./Data/derived/raw_data_sbm_' + modelname + '_' + str(year) + '.p',state_codes=state_codes, age_lower=25, age_upper=55, othervars=['data_adm','data_deslig','data_nasc','tipo_salario','rem_dez_r','horas_contr','clas_cnae20'], parse_dates=['data_adm','data_deslig','data_nasc'], nrows=maxrows)
 
 ################################################################################################
 # Append raw data for SBM
 
 if run_append==True:
-    for year in range(firstyear,lastyear+1):
+    for year in range(firstyear_panel,lastyear_panel+1):
         df = pickle.load( open('./Data/derived/raw_data_sbm_' + modelname + '_' + str(year) + '.p', "rb" ) )
-        if year==firstyear:
+        if year==firstyear_panel:
             appended = df
         else:
             appended = df.append(appended, sort=True)
@@ -78,8 +79,8 @@ appended = pd.read_pickle('./Data/derived/appended_sbm_' + modelname + '.p')
 occvar = 'cbo2002'
 if run_sbm==True:
     # It's kinda inefficient to pickle the edgelist then load it from pickle but kept this for flexibility
-    bipartite_edgelist = appended[['wid','jid']].drop_duplicates(subset=['wid','jid'])
-    jid_occ_cw = appended[['jid',occvar]].drop_duplicates(subset=['jid',occvar])
+    bipartite_edgelist = appended.loc[(appended['year']>=firstyear_sbm) & (appended['year']<=lastyear_sbm)][['wid','jid']].drop_duplicates(subset=['wid','jid'])
+    jid_occ_cw =         appended.loc[(appended['year']>=firstyear_sbm) & (appended['year']<=lastyear_sbm)][['jid','cbo2002']].drop_duplicates(subset=['jid','cbo2002'])
     pickle.dump( bipartite_edgelist,  open('./Data/derived/bipartite_edgelist_'+modelname+'.p', "wb" ) )
     model = bisbm.bisbm()                                                                       
     model.create_graph(filename='./Data/derived/bipartite_edgelist_'+modelname+'.p',min_workers_per_job=5)
