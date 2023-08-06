@@ -16,7 +16,7 @@ from os.path import expanduser
 
 ### Values to be defined elsewhere
 
-def mle_load_fulldata(mle_data_filename, mle_data_sums_filename, worker_type_var, job_type_var, mle_firstyear=np.nan, mle_lastyear=np.nan):
+def mle_load_fulldata(mle_data_filename, mle_data_sums_filename, worker_type_var, job_type_var, earnings_var, alphas_file, mle_firstyear=np.nan, mle_lastyear=np.nan):
     print('Computing sums for ' + worker_type_var + ' and ' + job_type_var)
 
     # Confirm that worker_type_var and job_type_var exist in the data frame before fully loading it
@@ -49,6 +49,17 @@ def mle_load_fulldata(mle_data_filename, mle_data_sums_filename, worker_type_var
     # JSF: I think we want to keep gamma and iota hard-coded here because we're going to want to keep using this restriction for sample definition, but subsequently we will allow the user to specify worker and job type vars.
     data_full_levels = data_full.loc[(data_full['gamma']!=-1) & (data_full['iota']!=-1)]
     data_full_levels = data_full_levels.loc[(data_full['job_type']!=-1) & (data_full['worker_type']!=-1)] #This is sloppy but for now I'm adding this so that we can set occ4_first_recode=-1 for occ4s that appear very rarely
+
+    # Compute the alphas in this file since they should be run on exactly the same data
+    gs_sum = data_full.groupby(['job_type','sector_IBGE'])[earnings_var].sum().to_frame().reset_index().rename(columns={earnings_var:"gs"})
+    s_sum = data_full.groupby(['sector_IBGE'])[earnings_var].sum().to_frame().reset_index().rename(columns={earnings_var:"s"})
+    temp = gs_sum.merge(s_sum, on='sector_IBGE')
+    temp['alpha'] = temp['gs']/temp['s']
+    alphas = temp[['job_type','sector_IBGE','alpha']]
+    if alphas_file is not None:
+        alphas.to_pickle(alphas_file)
+
+    # Now back to computing stuff specifically for the MLE
     data_full_levels['temp2']    = np.square(data_full_levels['ln_real_hrly_wage_dec'])
     data_full_levels['count']    = 1
     

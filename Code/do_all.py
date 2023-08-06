@@ -34,7 +34,6 @@ import matplotlib.pyplot as plt
 from torch_mle import torch_mle
 from mle_load_fulldata import mle_load_fulldata
 from normalization_k import normalization_k
-from alphas_func import compute_alphas
 from alphas_func import load_alphas
 import solve_model_functions as smf
 from occ_counts_by_type import occ_counts_by_type
@@ -152,14 +151,13 @@ if run_all==True:
         est_psi_and_k_file         = root + "Data/derived/MLE_estimates/" + filename_stub + "_psi_normalized_" + suffix + "_eta_" + str(eta) + ".p"
         est_alphas_file            = root + "Data/derived/MLE_estimates/" + filename_stub + "_alphas_" + suffix + "_eta_" + str(eta) + ".p"
         if run_query_sums == 1:
-            mle_load_fulldata(est_mle_data_filename, est_mle_data_sums_filename, wtype_var, jtype_var, mle_firstyear=2013, mle_lastyear=2016)
+            mle_load_fulldata(est_mle_data_filename, est_mle_data_sums_filename, wtype_var, jtype_var, 'real_hrly_wage_dec', est_alphas_file, mle_firstyear=2013, mle_lastyear=2016)
         if run_mle == True:
             if wtype_var != jtype_var:
                 torch_mle(est_mle_data_sums_filename, est_mle_estimates_filename, wtype_var, jtype_var, level)
             else: # Can probably be deleted. torch_mle_diagonal is in june2021 but not aug2021
                 from torch_mle_diagonal import torch_mle_diag
                 torch_mle_diag(est_mle_data_sums_filename, est_mle_estimates_filename, wtype_var, jtype_var, level)
-        compute_alphas(est_mle_data_filename, jtype_var, 'real_hrly_wage_dec', alphas_file=est_alphas_file)
         alphags=load_alphas(est_alphas_file)
         est_mle_data_sums = pickle.load(open(est_mle_data_sums_filename, "rb"), encoding='bytes')
         est_mle_estimates = pickle.load(open(est_mle_estimates_filename, "rb"), encoding='bytes')
@@ -169,13 +167,6 @@ if run_all==True:
             b_gs = alphags * x_s
         if run_normalization == True:
             normalization_k(est_psi_and_k_file,  wtype_var, jtype_var, est_mle_estimates, est_mle_data_sums, S, a_s, b_gs, eta, phi_outopt_scalar, xi_outopt_scalar, level, pre, raw_data_file=est_mle_data_filename) 
-
-
-
-
-        
-
-
 
 
 '''
