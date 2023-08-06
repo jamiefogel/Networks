@@ -107,8 +107,8 @@ def create_earnings_panel(modelname, appended, firstyear_panel, lastyear_panel, 
     for var in ['cbo2002','occ2','occ4','clas_cnae20','occ2Xmeso'] :
         first = balanced.groupby('wid')[var].first().reset_index().rename(columns={var:var+'_first'})
         balanced = balanced.merge(first, on='wid', how='left',validate='m:1')
-        # Set groups that rarely occur to missing. The cutoff at 5000 is totally arbitrary
-        balanced[var+'_first'].loc[balanced.groupby([var+'_first'])[var+'_first'].transform('count') < 5000] = np.nan
+        # Set groups that rarely occur to missing. The cutoff at 500 is totally arbitrary
+        balanced[var+'_first'].loc[balanced.groupby([var+'_first'])[var+'_first'].transform('count') < 500] = np.nan
         # Create a crosswalk between the original values and the recodes that go from 1 to N+1 and will be useful later. Do this for both _first and the original
         # The recodes go from 1 to N+1 because we want to reserve 0 to denote non-employment. This is consistent with how we code iota and gamma.
         # original
