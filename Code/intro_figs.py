@@ -22,13 +22,8 @@ n_w = 60
 n_j = 40 #20
 
 
-homedir = os.path.expanduser('~')
-root = homedir + '/NetworksGit/'
 figuredir = root + 'Results/'
 
-print(homedir)
-print(root)
-print(figuredir)
 
 #P_ig = np.array([[.8, .15, .05],[.2,.3,.5]])
 #P_ig = np.array([[.8, .15, .05],[.1,.4,.5]])
@@ -61,10 +56,10 @@ A = gt.generate_sbm(group_membership, probs, in_degs=indegrees, directed=False)
 
  
 edgelist = pd.DataFrame({'jid':A.get_edges()[:,0],'wid':A.get_edges()[:,1]})
-edgelist.to_pickle(root + '/Data/dump/temp.p')
+edgelist.to_pickle(root + '/Data/derived/dump/temp.p')
 
 model_fake = bisbm.bisbm()
-model_fake.create_graph(filename=root + '/Data/dump/temp.p',min_workers_per_job=1)
+model_fake.create_graph(filename=root + '/Data/derived/dump/temp.p',min_workers_per_job=1)
 
 # I should edit bisbm so that it takes the worker and job ID variables as arguments rather than assuming they are called wid and jid
 model_fake.fit(n_init=1)
@@ -74,8 +69,8 @@ levels = len(model_fake.state.levels)
 
 
 
-pickle.dump([model_fake,A], open(root + '/Data/dump/intro_figs.p', 'wb'))
-pickle.load(open(root + '/Data/dump/intro_figs.p', 'rb'))
+pickle.dump([model_fake,A], open(root + '/Data/derived/dump/intro_figs.p', 'wb'))
+pickle.load(open(root + '/Data/derived/dump/intro_figs.p', 'rb'))
 
 
 colormap_maizeblue =  {0:(1,.8,.02,1),1:(0,.15,.3,1)}

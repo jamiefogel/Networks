@@ -21,7 +21,7 @@ alphags=load_alphas(alphas_file)
 #a_s_new/a_s
 #Out[41]: tensor([[1.0000, 0.7991, 0.9027, 1.1658, 1.1191, 0.9558, 0.9907, 1.0555, 1.0266, 1.2481, 1.1903, 1.0655, 1.0227, 1.0735, 1.1011]], dtype=torch.float64)
 
-sector_data = pd.read_csv(homedir + "/Networks/Data/IBGE/Conta_da_producao_2002_2017_xls/sectors.csv")
+sector_data = pd.read_csv(root + "Data/raw/IBGE/Conta_da_producao_2002_2017_xls/sectors.csv")
 sector_data = sector_data.loc[(sector_data['year']>2002)]
 
 y_ts = sector_data.pivot_table(index=['year'], columns=['s'], values=['y_s'])
@@ -77,7 +77,7 @@ sector_labels = ["Agriculture, livestock, forestry, fisheries and aquaculture",
 
 VA_df = pd.DataFrame(columns=['year', 'value_added', 'sector'])
 for s in range(S):
-    VA_df_temp = pd.read_excel (homedir + "/Networks/Data/IBGE/Conta_da_producao_2002_2017_xls/Tabela22.xls", sheet_name='Tabela22.2', usecols="A,F", skiprows=50, nrows=15, header=None, names=['year','value_added'])
+    VA_df_temp = pd.read_excel(root + "Data/raw/IBGE/Conta_da_producao_2002_2017_xls/Tabela22.xls", sheet_name='Tabela22.2', usecols="A,F", skiprows=50, nrows=15, header=None, names=['year','value_added'])
     VA_df_temp['sector'] = s
     VA_df = VA_df.append(VA_df_temp)
 

@@ -53,25 +53,6 @@ data_full['kmeans'].loc[np.isnan(data_full.kmeans)] = -1
 data_full['kmeans']  = data_full['kmeans'].astype(int)
 
 
-data_full['occ2_first']         = data_full.cbo2002_first.astype(str).str[:2].astype(int)
-data_full['occ2_first_recode']  = data_full.cbo2002_first.astype(str).str[:2].rank(method='dense').astype(int)
-
-data_full['occ4_first']         = data_full.cbo2002_first.astype(str).str[:4].astype(int)
-
-# Set occ4s that rarely occur to missing. The cutoff at 5000 is totally arbitrary
-occ4_count = data_full.groupby('occ4_first')['occ4_first'].transform('count')
-data_full['occ4_first'].loc[occ4_count<5000] = np.nan
-
-# Recode occ4s to go from 1 to I. 
-data_full['occ4_first_recode']  = data_full.occ4_first.rank(method='dense', na_option='keep')
-
-# Recode missings to -1
-data_full['occ4_first'].loc[np.isnan(data_full.occ4_first)] = -1
-data_full['occ4_first_recode'].loc[np.isnan(data_full.occ4_first_recode)] = -1
-
-# Convert from float to int (nans are automatically stored as floats so when we added nans it converted to floats)
-data_full['occ4_first']         = data_full['occ4_first'].astype(int)
-data_full['occ4_first_recode']  = data_full['occ4_first_recode'].astype(int)
 
 data_full.to_csv( root + 'Data/RAIS_exports/earnings_panel/panel_rio_2009_2012_w_kmeans.csv')
 

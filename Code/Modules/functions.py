@@ -87,16 +87,44 @@ def create_earnings_panel(modelname, appended, firstyear_panel, lastyear_panel, 
         balanced.loc[(np.isnan(balanced[gname])),gname] = -1 
         balanced.loc[(np.isnan(balanced[iname])),iname] = -1 
 
-    #Identify first occupation worker is ever observed in
+    # Create occ2Xmeso by first merging on code_meso and then creating the variable
+    region_codes = pd.read_csv('Data/raw/munic_microregion_rm.csv', encoding='latin1')
+    muni_meso_cw = pd.DataFrame({'code_meso':region_codes.code_meso,'codemun':region_codes.code_munic//10})
+    balanced = balanced.merge(muni_meso_cw, how='left', on='codemun', copy=False) # validate='m:1', indicator=True)
+    balanced['occ2Xmeso'] = balanced.cbo2002.str[0:2] + '_' + balanced['code_meso'].astype('str')
+    
+    balanced['occ2'] = balanced.cbo2002.str[:2]
+    balanced['occ4'] = balanced.cbo2002.str[:4]
+    
+    #Identify first occupation/industry/occ2Xmeso worker is ever observed in
     print('Identifying workers first cbo2002 and clas_cnae20')
-    cbo2002_first = balanced.groupby('wid')['cbo2002'].first().reset_index().rename(columns={'cbo2002':'cbo2002_first'})
-    balanced = balanced.merge(cbo2002_first, on='wid', how='left',validate='m:1')
-    clas_cnae20_first = balanced.groupby('wid')['clas_cnae20'].first().reset_index().rename(columns={'clas_cnae20':'clas_cnae20_first'})
-    balanced = balanced.merge(clas_cnae20_first, on='wid', how='left',validate='m:1')
-    ''' Old version that was taking FOREVER
-    balanced['cbo2002_first'] = balanced.loc[balanced.groupby('wid')['cbo2002'].transform(pd.Series.first_valid_index),'cbo2002'].values
-    balanced['clas_cnae20_first'] = balanced.loc[balanced.groupby('wid')['clas_cnae20'].transform(pd.Series.first_valid_index),'clas_cnae20'].values
-    '''
+    occ_recode_cw = {}
+    for var in ['cbo2002','occ2','occ4','clas_cnae20','occ2Xmeso'] :
+        first = balanced.groupby('wid')[var].first().reset_index().rename(columns={var:var+'_first'})
+        balanced = balanced.merge(first, on='wid', how='left',validate='m:1')
+        # Set groups that rarely occur to missing. The cutoff at 5000 is totally arbitrary
+        balanced[var+'_first'].loc[balanced.groupby([var+'_first'])[var+'_first'].transform('count') < 5000] = np.nan
+        # Create a crosswalk between the original values and the recodes that go from 1 to N+1 and will be useful later. Do this for both _first and the original
+        # The recodes go from 1 to N+1 because we want to reserve 0 to denote non-employment. This is consistent with how we code iota and gamma.
+        # original
+        recode, original = pd.factorize(balanced[var])
+        occ_recode_cw[var] = pd.DataFrame({'recode':range(1,len(original)+1), 'original':original})
+        balanced[var+'_recode']  = recode+1
+        del recode, original
+        # _first
+        recode, original = pd.factorize(balanced[var+'_first'])
+        occ_recode_cw[var+'_first'] = pd.DataFrame({'recode':range(len(original)), 'original':original})
+        balanced[var+'_first_recode']  = recode
+        del recode, original
+        # Recode missings to -1. I think these correspond to people not currently employed who have been added to create a balanced panel.
+        balanced[var                ].loc[balanced[var                ].isna()] = -1
+        balanced[var+'_recode'      ].loc[balanced[var+'_recode'      ].isna()] = -1
+        balanced[var+'_first'       ].loc[balanced[var+'_first'       ].isna()] = -1
+        balanced[var+'_first_recode'].loc[balanced[var+'_first_recode'].isna()] = -1
+
+        
+    pickle.dump(occ_recode_cw, open('./Data/derived/occ_recode_cw_'+modelname+'.p', 'wb') )
+
     # Flag every job change (including the worker's first observation). We use jid_temp because the fact that NaN==NaN evaluates to False would cause us to flag every year of a multi-year spell of non-employment as a new job, rather than just the first.
     print('Flagging job changes')
     balanced['jid_temp'] = balanced['jid']
@@ -110,11 +138,16 @@ def create_earnings_panel(modelname, appended, firstyear_panel, lastyear_panel, 
     print('Pickling the BALANCED dataframe')
     balanced.to_pickle('./Data/derived/panel_'+modelname+'.p')
     print('Exporting each level of the model to CSV')
+    export_columns = ['wid_masked', 'jid_masked', 'year', 'sector_IBGE', 'codemun', 'code_meso', 'c', 'real_hrly_wage_dec', 'ln_real_hrly_wage_dec', 'yob', 'iota', 'gamma', 'cbo2002', 'cbo2002_first', 'cbo2002_recode', 'cbo2002_first_recode', 'clas_cnae20', 'clas_cnae20_first', 'clas_cnae20_recode', 'clas_cnae20_first_recode', 'occ2', 'occ2_first', 'occ2_recode', 'occ2_first_recode', 'occ4', 'occ4_first', 'occ4_recode', 'occ4_first_recode', 'occ2Xmeso', 'occ2Xmeso_first', 'occ2Xmeso_recode', 'occ2Xmeso_first_recode']
     for l in range(model.L):
         print('Exporting level ', l)
         gname = 'gamma_level_' + str(l)
         iname = 'iota_level_' + str(l)
-        balanced.rename(columns={iname:'iota',gname:'gamma'}).to_csv('./Data/derived/export/panel_'+modelname+'_level_'+str(l)+'.csv.gz', index=False, compression='gzip', columns = ['wid_masked', 'jid_masked', 'year', 'cbo2002', 'cbo2002_first', 'clas_cnae20', 'clas_cnae20_first', 'sector_IBGE', 'c', 'real_hrly_wage_dec', 'ln_real_hrly_wage_dec', 'yob', 'iota', 'gamma'])
+        # Export an uncompressed version of level 0; compress other levels
+        if l==0:
+            balanced.rename(columns={iname:'iota',gname:'gamma'}).to_csv('./Data/derived/earnings_panel/panel_'+modelname+'_level_'+str(l)+'.csv', index=False, columns = export_columns)
+        else:            
+            balanced.rename(columns={iname:'iota',gname:'gamma'}).to_csv('./Data/derived/earnings_panel/panel_'+modelname+'_level_'+str(l)+'.csv.gz', index=False, compression='gzip', columns = export_columns)
 
 
 
@@ -132,20 +165,20 @@ def do_everything(firstyear_panel, lastyear_panel, firstyear_sbm, lastyear_sbm, 
 
     if pull_raw_data == True:
         for year in range(firstyear_panel,lastyear_panel+1):
-            pull_one_year(year, vars, municipality_codes, savefile='../dump/raw_data_' + modelname + '_' + str(year) + '.p', nrows=nrows)
+            pull_one_year(year, vars, municipality_codes, savefile='./Data/derived/raw_data_' + modelname + '_' + str(year) + '.p', nrows=nrows)
         
     if append_raw_data==True:
         for year in range(firstyear_panel,lastyear_panel+1):
             print(year)
-            df = pickle.load( open('../dump/raw_data_' + modelname + '_' + str(year) + '.p', "rb" ) )
+            df = pickle.load( open('./Data/derived/raw_data_' + modelname + '_' + str(year) + '.p', "rb" ) )
             if year>firstyear_panel:
                 appended = df.append(appended, sort=True)
             else:
                 appended = df
             del df
-        appended.to_pickle('../dump/appended_'+modelname+'.p')
+        appended.to_pickle('./Data/derived/appended_'+modelname+'.p')
     else:
-        appended = pd.read_pickle('../dump/appended_'+modelname+'.p')
+        appended = pd.read_pickle('./Data/derived/appended_'+modelname+'.p')
        
     
     #################################################################
@@ -156,13 +189,13 @@ def do_everything(firstyear_panel, lastyear_panel, firstyear_sbm, lastyear_sbm, 
         # It's kinda inefficient to pickle the edgelist then load it from pickle but kept this for flexibility
         bipartite_edgelist = appended.loc[(appended['year']>=firstyear_sbm) & (appended['year']<=lastyear_sbm)][['wid','jid']].drop_duplicates(subset=['wid','jid'])
         jid_occ_cw = appended.loc[(appended['year']>=firstyear_sbm) & (appended['year']<=lastyear_sbm)][['jid','cbo2002']].drop_duplicates(subset=['jid','cbo2002'])
-        pickle.dump( bipartite_edgelist,  open('./Data/bipartite_edgelist_'+modelname+'.p', "wb" ) )
+        pickle.dump( bipartite_edgelist,  open('./Data/derived/bipartite_edgelist_'+modelname+'.p', "wb" ) )
         model = bisbm.bisbm()                                                                       
-        model.create_graph(filename='./Data/bipartite_edgelist_'+modelname+'.p',min_workers_per_job=5)
+        model.create_graph(filename='./Data/derived/bipartite_edgelist_'+modelname+'.p',min_workers_per_job=5)
         model.fit(n_init=1)
         # In theory it makes more sense to save these as pickles than as csvs but I keep getting an error loading the pickle and the csv works fine
-        model.export_blocks(output='./Data/model_'+modelname+'_blocks.csv', joutput='./Data/model_'+modelname+'_jblocks.csv', woutput='./Data/model_'+modelname+'_wblocks.csv')
-        pickle.dump( model, open('./Data/model_'+modelname+'.p', "wb" ) )
+        model.export_blocks(output='./Data/derived/sbm_output/model_'+modelname+'_blocks.csv', joutput='./Data/model_'+modelname+'_jblocks.csv', woutput='./Data/derived/sbm_output/model_'+modelname+'_wblocks.csv')
+        pickle.dump( model, open('./Data/derived/sbm_output/model_'+modelname+'.p', "wb" ) )
         
     
         
@@ -175,22 +208,3 @@ def do_everything(firstyear_panel, lastyear_panel, firstyear_sbm, lastyear_sbm, 
 
 
 
-
-# Checking the length of id_estab in the raw data    
-#nrows = None
-#for year in range(firstyear_panel,lastyear_panel+1):
-#    #print(year)
-#    now = datetime.now()
-#    currenttime = now.strftime('%H:%M:%S')
-#    #print('Starting ', year, ' at ', currenttime)
-#    if year in [2018, 2019]:
-#        sep = ';'
-#    else:
-#        sep=','
-#    filename = '~/rais/RAIS/csv/brasil' + str(year) + '.csv'
-#    raw_data = pd.read_csv(filename, usecols=['id_estab'], sep=sep, dtype={'id_estab':str}, nrows=nrows)
-#    min = raw_data['id_estab'].apply(len).min()
-#    print(year,min)
-
-
-# THE PANEL WE EXPORT NEEDS TO RSTRICT WHICH VARIABLES ARE INCLUDED
