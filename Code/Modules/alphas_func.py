@@ -17,18 +17,10 @@ import torch
 def load_alphas(alphas_file):
     param = pd.read_pickle(alphas_file)
     
-    S = int(param['sector_IBGE'].max())
-    G = int(param['job_type'].max())
+    # Create a pivot table from the DataFrame
+    pivot_table = param.pivot_table(index='job_type', columns='sector_IBGE', values='alpha', aggfunc='mean').fillna(10e-10)
     
-    alphags = torch.zeros(G,S)
-    
-    alpha_missing = 10e-10
-    
-    for g in range(1, G+1):
-        for s in range(1,S+1):
-            if sum((param['job_type'] == g) & (param['sector_IBGE'] == s)) == 0:
-                alphags[g-1,s-1] = alpha_missing
-            else:
-                alphags[g-1,s-1] = torch.tensor(param.loc[(param['job_type'] == g) & (param['sector_IBGE'] == s),'alpha'].values)
+    # Convert the pivot table to a tensor
+    alphags = torch.tensor(pivot_table.values, dtype=torch.float64)  # Assuming the dtype of 'alpha' is float64
     
     return alphags
