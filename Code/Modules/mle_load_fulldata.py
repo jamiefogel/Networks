@@ -16,7 +16,7 @@ from os.path import expanduser
 
 ### Values to be defined elsewhere
 
-def mle_load_fulldata(mle_data_filename, mle_data_sums_filename, worker_type_var, job_type_var, earnings_var, alphas_file, mle_firstyear=np.nan, mle_lastyear=np.nan):
+def mle_load_fulldata(mle_data_filename, mle_data_sums_filename, worker_type_var, job_type_var, alphas_earnings_var, alphas_file, mle_firstyear=np.nan, mle_lastyear=np.nan):
     print('Computing sums for ' + worker_type_var + ' and ' + job_type_var)
 
     # Confirm that worker_type_var and job_type_var exist in the data frame before fully loading it
@@ -26,7 +26,7 @@ def mle_load_fulldata(mle_data_filename, mle_data_sums_filename, worker_type_var
     if missing_columns:
         raise ValueError(f"The following columns are missing in the CSV file: {', '.join(missing_columns)}")
     
-    data_full = pd.read_csv(mle_data_filename)
+    data_full = pd.read_csv(mle_data_filename,usecols=['wid_masked', 'jid_masked', 'year', 'sector_IBGE', 'c', 'ln_real_hrly_wage_dec', alphas_earnings_var, 'iota', 'gamma', worker_type_var, job_type_var])
 
     if np.isnan(mle_firstyear)==False & np.isnan(mle_lastyear)==False:
         data_full = data_full.loc[(data_full['year']>=mle_firstyear) & (data_full['year']<=mle_lastyear)]
@@ -51,8 +51,8 @@ def mle_load_fulldata(mle_data_filename, mle_data_sums_filename, worker_type_var
     data_full_levels = data_full_levels.loc[(data_full['job_type']!=-1) & (data_full['worker_type']!=-1)] #This is sloppy but for now I'm adding this so that we can set occ4_first_recode=-1 for occ4s that appear very rarely
 
     # Compute the alphas in this file since they should be run on exactly the same data
-    gs_sum = data_full.groupby(['job_type','sector_IBGE'])[earnings_var].sum().to_frame().reset_index().rename(columns={earnings_var:"gs"})
-    s_sum = data_full.groupby(['sector_IBGE'])[earnings_var].sum().to_frame().reset_index().rename(columns={earnings_var:"s"})
+    gs_sum = data_full_levels.groupby(['job_type','sector_IBGE'])[alphas_earnings_var].sum().to_frame().reset_index().rename(columns={alphas_earnings_var:"gs"})
+    s_sum = data_full_levels.groupby(['sector_IBGE'])[alphas_earnings_var].sum().to_frame().reset_index().rename(columns={alphas_earnings_var:"s"})
     temp = gs_sum.merge(s_sum, on='sector_IBGE')
     temp['alpha'] = temp['gs']/temp['s']
     alphas = temp[['job_type','sector_IBGE','alpha']]
