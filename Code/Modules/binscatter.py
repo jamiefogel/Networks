@@ -1,11 +1,9 @@
 # Note: taken from https://github.com/esantorella/binscatter/blob/master/binscatter/binscatter.py and edited to deal with the fact that our numpy installation is older and doesn't have numpy.typing
 """Monkey-patch Matplotlib to add an 'ax.binscatter' method."""
 import warnings
-from typing import Dict, Iterable, List, Optional, Tuple
-
+from typing import Sequence, Optional, Dict, Iterable, Tuple, List
 import matplotlib
 import numpy as np
-import numpy.typing as npt
 from sklearn import linear_model
 
 
@@ -29,7 +27,6 @@ def get_binscatter_objects(
     Parameters are essentially the same as in binscatter.
     """
     # Check if data is sorted
-
     if controls is None:
         if np.any(np.diff(x) < 0):
             argsort = np.argsort(x)
@@ -41,37 +38,31 @@ def get_binscatter_objects(
         # Residualize
         if np.ndim(controls) == 1:
             controls = np.expand_dims(controls, 1)
-
         demeaning_y_reg = linear_model.LinearRegression().fit(controls, y)
         y_data = y - demeaning_y_reg.predict(controls)
-
         demeaning_x_reg = linear_model.LinearRegression().fit(controls, x)
         x_data = x - demeaning_x_reg.predict(controls)
         argsort = np.argsort(x_data)
         x_data = x_data[argsort]
         y_data = y_data[argsort]
-
         if recenter_y:
             y_data += np.mean(y)
         if recenter_x:
             x_data += np.mean(x)
-
     if x_data.ndim == 1:
         x_data = x_data[:, None]
     reg = linear_model.LinearRegression().fit(x_data, y_data)
     if bins is None:
         bins = _get_bins(len(y), n_bins)
-
     x_means = [np.mean(x_data[bin_]) for bin_ in bins]
     y_means = [np.mean(y_data[bin_]) for bin_ in bins]
-
     return x_means, y_means, reg.intercept_, reg.coef_[0]
 
 
 def binscatter(
     self,
-    x: npt.ArrayLike,
-    y: npt.ArrayLike,
+    x: Sequence[float],
+    y: Sequence[float],
     controls=None,
     n_bins=20,
     line_kwargs: Optional[Dict] = None,
@@ -107,11 +98,9 @@ def binscatter(
         warnings.warn("Both fit_reg=False and non-None line_kwargs were passed.")
     if scatter_kwargs is None:
         scatter_kwargs = {}
-
     x_means, y_means, intercept, coef = get_binscatter_objects(
         np.asarray(y), np.asarray(x), controls, n_bins, recenter_x, recenter_y, bins
     )
-
     self.scatter(x_means, y_means, **scatter_kwargs)
     x_range = np.array(self.get_xlim())
     if fit_reg:
