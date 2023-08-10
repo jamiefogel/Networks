@@ -91,7 +91,7 @@ job_type_var    = 'gamma'
 
 
 
-classification_list = [('iota','gamma'), ('occ2_first_recode','sector_IBGE'), ('occ4_first_recode','sector_IBGE'), ('occ4_first_recode','gamma'), ('iota','occ2Xmeso_recode'), ('occ2Xmeso_recode','occ2Xmeso_recode')] # , ('kmeans','sector_IBGE'), ('kmeans','gamma')
+classification_list = [('iota','gamma'), ('occ2_first_recode','sector_IBGE'), ('occ4_first_recode','sector_IBGE'), ('occ4_first_recode','gamma'), ('iota','occ2Xmeso_recode')] # ('occ2Xmeso_recode','occ2Xmeso_recode')] # , ('kmeans','sector_IBGE'), ('kmeans','gamma')
 
 
 ################################################################
@@ -127,16 +127,9 @@ if 1==1:
 
 
 #--------------------------
-# LOAD BETAS AND A_s
+# LOAD sector-level production and other related info
 #--------------------------
 exec(open(root + 'Code/load_model_parameters.py').read())
-
-if job_type_var == 'sector_IBGE':
-    b_gs = torch.diag(x_s * torch.ones(S))
-else:
-    b_gs = alphags * x_s
-
-
 
 
 if run_all==True:
@@ -242,6 +235,12 @@ concentration_figures(data_full_concfigs, 'iota', 'Workers (sorted by employment
 concentration_figures(data_full_concfigs, 'iota', 'Workers (sorted by employment HHI)', ['occ2Xmeso','gamma'],      {'occ2Xmeso':'Occ2 X Meso Region','gamma':'Market'},           figuredir+'concentration_figures__iota__occ2Xmeso__IBGE_gamma.png',weighted=True)
 concentration_figures(data_full_concfigs, 'gamma', 'Markets (sorted by hiring HHI)',    ['occ2Xmeso_first','iota'], {'occ2Xmeso_first':'Occ2 X Meso Region','iota':'Worker Type'}, figuredir+'concentration_figures__gamma__occ2Xmeso_first__iota.png',weighted=True)
 concentration_figures(data_full_concfigs, 'gamma', 'Markets (sorted by hiring HHI)',    ['occ4_first','iota'],      {'occ4_first':'4-Digit Occupation','iota':'Worker Type'},      figuredir+'concentration_figures__gamma__occ4_first__iota.png',weighted=True)
+
+    
+#--------------------------
+#  Add prediction exercise code
+#--------------------------
+
 
     
 #--------------------------
