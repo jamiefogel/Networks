@@ -79,7 +79,7 @@ run_occ_counts = True
 run_correlogram = True
 solve_GE_silently = True
 a_s_variation = True
-
+run_predictions = True
 
 worker_type_var = 'iota'
 #worker_type_var = 'kmeans'
@@ -162,23 +162,6 @@ if run_all==True:
             normalization_k(est_psi_and_k_file,  wtype_var, jtype_var, est_mle_estimates, est_mle_data_sums, S, a_s, b_gs, eta, phi_outopt_scalar, xi_outopt_scalar, level, pre, raw_data_file=est_mle_data_filename) 
 
 
-'''
-# I think this is all totally redundant b/c we ran the MLE for iota-gamma in the loop above
-if run_query_sums == 1:
-    mle_load_fulldata(mle_data_filename, mle_data_sums_filename, worker_type_var, job_type_var, mle_firstyear=2013, mle_lastyear=2016)
-
-if run_mle == True:
-    if worker_type_var != job_type_var:
-        torch_mle(mle_data_sums_filename, mle_estimates_filename, worker_type_var, job_type_var, level)
-    else: # Can probably be deleted. torch_mle_diagonal is in june2021 but not aug2021
-        from torch_mle_diagonal import torch_mle_diag
-        torch_mle_diag(mle_data_sums_filename, mle_estimates_filename, worker_type_var, job_type_var, level)
-
-# Load estimates and data
-if run_normalization == True:
-    normalization_k(psi_and_k_file,  worker_type_var, job_type_var, mle_estimates, mle_data_sums, S, a_s, b_gs, eta, phi_outopt_scalar, xi_outopt_scalar, level, pre, raw_data_file=mle_data_filename) 
-
-'''
 
 mle_data_sums = pickle.load(open(mle_data_sums_filename, "rb"), encoding='bytes')
 mle_estimates = pickle.load(open(mle_estimates_filename, "rb"), encoding='bytes')
@@ -241,8 +224,13 @@ concentration_figures(data_full_concfigs, 'gamma', 'Markets (sorted by hiring HH
 #  Add prediction exercise code
 #--------------------------
 
+if run_predictions==True:
+    exec(open(root + 'Code/IPEA/predicting_flows_data_pull.py').read())
+    # WE have been running the actual predictions (coded in the script below) in parallel using the following script: NetworksGit\Code\IPEA\bash_parallel_jobtransitions_market_based_mutiple_mkts.sh
+    exec(open(root + 'Code/IPEA/parallel_jobtransitions_market_based_multiple_mkts.py').read())
+    exec(open(root + 'Code/IPEA/parallel_jobtransitions_stack_results.py').read())
 
-    
+
 #--------------------------
 #  ANALYSIS
 #--------------------------
