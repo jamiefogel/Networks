@@ -29,11 +29,11 @@ os.chdir(root)
 import bisbm
 from pull_one_year import pull_one_year
 from explore_gammas_functions import *
-
+from binscatter import *
 
 state_codes = [31, 33, 35]
 
-region_codes = pd.read_csv('./Data/raw/munic_microregion_rm.csv', encoding='latin1')
+region_codes = pd.read_csv(root + '/Data/raw/munic_microregion_rm.csv', encoding='latin1')
 region_codes = region_codes.loc[region_codes.code_uf.isin(state_codes)]
 state_cw = region_codes[['code_meso','uf']].drop_duplicates()
 muni_meso_cw = pd.DataFrame({'code_meso':region_codes.code_meso,'codemun':region_codes.code_munic//10})
@@ -41,19 +41,25 @@ muni_meso_cw = pd.DataFrame({'code_meso':region_codes.code_meso,'codemun':region
 modelname = '3states_2013to2016_mcmc'
 # 2004 appears to be the first year in which we have job start end dates (data_adm and data_deslig)
 
-#appended = pd.read_pickle('../dump/appended_sbm_' + modelname + '.p')
+#appended = pd.read_pickle(root + '/dump/appended_sbm_' + modelname + '.p')
 
 
 # Load gammas
                            
-columns = ['jid']
-rename = {}
+jcolumns = ['jid']     
+wcolumns = ['wid']
+jrename = {}
+wrename = {}
 for l in range(0,1):
-    columns = columns + ['job_blocks_level_'+str(l)]
-    rename['job_blocks_level_'+str(l)] = 'gamma'
+    jcolumns = jcolumns + ['job_blocks_level_'+str(l)]
+    jrename['job_blocks_level_'+str(l)] = 'gamma'
+    wcolumns = wcolumns + ['worker_blocks_level_'+str(l)]
+    wrename['worker_blocks_level_'+str(l)] = 'iota'
 
-gammas = pd.read_csv('./Data/derived/sbm_output/model_' + modelname + '_jblocks.csv', usecols=columns).rename(columns=rename)
-#model = pickle.load(open('../data/model_'+modelname+'.p', "rb" ))
+gammas = pd.read_csv(root + '/Data/derived/sbm_output/model_' + modelname + '_jblocks.csv', usecols=jcolumns).rename(columns=jrename)
+iotas  = pd.read_csv(root + '/Data/derived/sbm_output/model_' + modelname + '_wblocks.csv', usecols=wcolumns).rename(columns=wrename)
+iotas['wid'] = iotas['wid'].astype('str')
+#model = pickle.load(open(root + '/Data/derived/sbm_output/model_'+modelname+'.p', "rb" ))
 
 
                            
@@ -63,7 +69,9 @@ gammas = pd.read_csv('./Data/derived/sbm_output/model_' + modelname + '_jblocks.
 
 raw2016 = pull_one_year(2016, 'cbo2002', othervars=['grau_instr','rem_med_r','clas_cnae20','codemun'], state_codes=state_codes, age_lower=25, age_upper=55, nrows=None)
 
-raw2016 = raw2016.merge(gammas, how='left', validate='m:1', on='jid',indicator=True)
+raw2016 = raw2016.merge(gammas, how='left', validate='m:1', on='jid',indicator=False)
+raw2016 = raw2016.merge(iotas, how='left', validate='m:1', on='wid',indicator=False)
+
 raw2016 = raw2016.merge(muni_meso_cw, on='codemun')
 
 raw2016['occ2'] = raw2016['cbo2002'].str[0:2]
@@ -90,8 +98,8 @@ raw2016['sector_IBGE'].loc[(90<=raw2016['ind2']) & (raw2016['ind2'] <=97)] = 15
 # Recode education variable to approximately reflect years of schooling
 raw2016['grau_instr'] = raw2016['grau_instr'].replace({1:1, 2:3, 3:5, 4:7, 5:9, 6:10, 7:12, 8:14, 9:16, 10:18, 11:21})
 
-raw2016.to_pickle('./Data/derived/explore_gammas_raw2016.p')
-#raw2016 = pd.read_pickle('./Data/derived/explore_gammas_raw2016.p')
+raw2016.to_pickle(root + '/Data/derived/explore_gammas_raw2016.p')
+#raw2016 = pd.read_pickle(root + '/Data/derived/explore_gammas_raw2016.p')
 
 ######################################
 # Compute HHIs
@@ -143,7 +151,7 @@ sector_labels = ["Agriculture/forestry",
                   "Arts/culture/sports/recreation"]
 
 # Scatterplots color coded by sector
-colors = {1: 'red', 2: 'blue', 3: 'green', 4: 'orange', 5: 'purple', 6: 'brown', 7: 'pink', 8: 'gray', 9: 'olive', 10: 'cyan', 11: 'magenta', 12: 'darkred', 13: 'navy', 14: 'lime', 15: 'teal'}
+sector_colors = {1: 'red', 2: 'blue', 3: 'green', 4: 'orange', 5: 'purple', 6: 'brown', 7: 'pink', 8: 'gray', 9: 'olive', 10: 'cyan', 11: 'magenta', 12: 'darkred', 13: 'navy', 14: 'lime', 15: 'teal'}
 var1='hhi_codemun'
 var2='hhi_occ4'
 corr = np.corrcoef(gammas_w_attributes[var1], gammas_w_attributes[var2])[0][1]
@@ -156,17 +164,17 @@ ax.set_xlabel(var1)
 ax.set_ylabel(var2)
 #plt.colorbar()
 # Create legend handles and labels for each unique value of 'ind'
-handles = [plt.plot([], [], marker="o", ls="", color=color)[0] for color in np.unique(list(colors.values()))]
-labels = list(colors.keys())
+handles = [plt.plot([], [], marker="o", ls="", color=color)[0] for color in np.unique(list(sector_colors.values()))]
+labels = list(sector_colors.keys())
 #plt.legend(handles, labels, title='ind', bbox_to_anchor=(1.05, 1), loc='upper left')
 plt.legend(handles, labels, title='ind', loc='best')
-plt.savefig('./Results/hhi_scatterplot_' + var1 + '_' + var2 +' .pdf', format='pdf')
+plt.savefig(root + '/Results/hhi_scatterplot_' + var1 + '_' + var2 +' .pdf', format='pdf')
 plt.close()
 
     
 
 #############################################################################################
-# Move distances 
+# J2J Move distances from the predicting flows transitions data
 
 
 # Pull meso codes for our states of interest
@@ -178,7 +186,7 @@ munis['lon'] = munis.geometry.centroid.x
 munis['lat'] = munis.geometry.centroid.y
 munis['codemun'] = munis.code_muni//10
 
-df_trans = pd.read_pickle('./Data/derived/predicting_flows/pred_flows_df_trans_ins.p')
+df_trans = pd.read_pickle(root + '/Data/derived/predicting_flows/pred_flows_df_trans_ins.p')
 
 # Assign each jid its modal municipality code based on 2016 data
 raw = pd.read_csv('~/rais/RAIS/csv/brasil2016.csv', usecols=['id_estab','cbo2002','codemun'], sep=';', dtype={'id_estab':str, 'cbo2002':str})
@@ -200,13 +208,13 @@ distances['distance'] = distances.apply(lambda row: haversine(row['point'], row[
 
 distance_stats = distances.groupby('gamma')['distance'].agg(['mean', 'median', 'max', 'min', 'std', lambda x: x.quantile(0.25), lambda x: x.quantile(0.75)])
 distance_stats = distance_stats.rename(columns={
-    'mean': 'dist_mean',
-    'median': 'dist_median',
-    'max': 'dist_max',
-    'min': 'dist_min',
-    'std': 'dist_std',
-    '<lambda_0>': 'dist_25th',
-    '<lambda_1>': 'dist_75th'
+    'mean': 'j2j_dist_mean',
+    'median': 'j2j_dist_median',
+    'max': 'j2j_dist_max',
+    'min': 'j2j_dist_min',
+    'std': 'j2j_dist_std',
+    '<lambda_0>': 'j2j_dist_25th',
+    '<lambda_1>': 'j2j_dist_75th'
 })
 
 
@@ -220,7 +228,7 @@ pd.set_option('display.max_columns', None)
 pd.set_option('display.width', 200)
 pd.set_option('display.precision', 3)
 
-print(gammas_w_attributes.drop(columns=['gamma','modal_ind2','modal_sector','dist_min']).corr())
+print(gammas_w_attributes.drop(columns=['gamma','modal_ind2','modal_sector','j2j_dist_min']).corr())
 '''
                        educ_median  educ_mean  educ_mode  mean_monthly_earnings  hhi_occ4  hhi_occ2  hhi_code_meso  hhi_codemun  dist_mean  dist_median  dist_max  dist_std  dist_25th  dist_75th
 educ_median                  1.000      0.855      0.833                  0.529    -0.210    -0.294         -0.076       -0.038     -0.334       -0.360    -0.077    -0.220     -0.268     -0.269
@@ -265,11 +273,11 @@ gammas_w_attributes = gammas_w_attributes.merge(spatial_var_km, left_on='gamma',
 
 
 gammas_w_attributes['spatial_var_km_rank'] = gammas_w_attributes['spatial_var_km'].rank(method='dense', pct=True)
-gammas_w_attributes['dist_mean_rank'] = gammas_w_attributes['dist_mean'].rank(method='dense', pct=True)
+gammas_w_attributes['j2j_dist_mean_rank'] = gammas_w_attributes['j2j_dist_mean'].rank(method='dense', pct=True)
 
 
-gammas_w_attributes.to_pickle('./Data/derived/explore_gammas_gammas_w_attributes.p')
-gammas_w_attributes = pd.read_pickle('./Data/derived/explore_gammas_gammas_w_attributes.p')
+gammas_w_attributes.to_pickle(root + '/Data/derived/explore_gammas_gammas_w_attributes.p')
+gammas_w_attributes = pd.read_pickle(root + '/Data/derived/explore_gammas_gammas_w_attributes.p')
 
                                                                                            
 
@@ -288,12 +296,13 @@ meso_mg = geobr.read_meso_region(code_meso='MG', year=2016)
 mesos = pd.concat([meso_sp, meso_rj, meso_mg], ignore_index=True)
 
 
-#Issue: the meso codes from geobr only have 4 digitsl in state_cw they sometimes have 5. Basically in state_cw there is always a 0 between the 2 state digits and the 2 meso code digits; in geo_br there is only a 0 if the meso code has 1 digit. Check with Bernardo about this
+#Issue: the meso codes from geobr only have 4 digits but in state_cw they sometimes have 5. Basically in state_cw there is always a 0 between the 2 state digits and the 2 meso code digits; in geo_br there is only a 0 if the meso code has 1 digit. Check with Bernardo about this
 
 state_cw.loc[state_cw.uf=='São Paulo']
 
+
 # Calculate share of jid observations for each gamma in each code_meso
-pivot_df = pd.pivot_table(df.loc[df.gamma!=-1], index='code_meso', columns='gamma', aggfunc='size', fill_value=0)
+pivot_df = pd.pivot_table(raw2016.loc[raw2016.gamma!=-1], index='code_meso', columns='gamma', aggfunc='size', fill_value=0)
 meso_share_df = pivot_df.apply(lambda x: x/x.sum(), axis=0).reset_index()
 
 # Remove the midde 0 from code_meso to be consistent with the meso codes downloaded by geobr
@@ -313,18 +322,18 @@ meso_share_norm_df = mesos.merge(meso_share_norm_df, how="left", on="code_meso")
 
 
 from occ_counts_by_type import occ_counts_by_type
-[iota_dict, gamma_dict] = occ_counts_by_type(df, 'Data/raw/translated_occ_codes_english_only.csv', 0)
+[iota_dict, gamma_dict] = occ_counts_by_type(raw2016, root + 'Data/raw/translated_occ_codes_english_only.csv', 0)
                           
 
-pickle.dump( iota_dict,          open('./Data/derived/dump/' + modelname + '_iota_dict.p', "wb" ) )
-pickle.dump( gamma_dict,         open('./Data/derived/dump/' + modelname + '_gamma_dict.p', "wb" ) )
-pickle.dump( meso_share_df,      open('./Data/derived/dump/' + modelname + '_meso_share_df.p', "wb" ) )
-pickle.dump( meso_share_norm_df, open('./Data/derived/dump/' + modelname + '_meso_share_norm_df.p', "wb" ) )
+pickle.dump( iota_dict,          open(root + '/Data/derived/dump/' + modelname + '_iota_dict.p', "wb" ) )
+pickle.dump( gamma_dict,         open(root + '/Data/derived/dump/' + modelname + '_gamma_dict.p', "wb" ) )
+pickle.dump( meso_share_df,      open(root + '/Data/derived/dump/' + modelname + '_meso_share_df.p', "wb" ) )
+pickle.dump( meso_share_norm_df, open(root + '/Data/derived/dump/' + modelname + '_meso_share_norm_df.p', "wb" ) )
 
-iota_dict=         pickle.load(  open('./Data/derived/dump/' + modelname + '_iota_dict.p', "rb" ) )
-gamma_dict=        pickle.load(  open('./Data/derived/dump/' + modelname + '_gamma_dict.p', "rb" ) )
-meso_share_df=     pickle.load(  open('./Data/derived/dump/' + modelname + '_meso_share_df.p', "rb" ) )
-meso_share_norm_df=pickle.load(  open('./Data/derived/dump/' + modelname + '_meso_share_norm_df.p', "rb" ) )
+iota_dict=         pickle.load(  open(root + '/Data/derived/dump/' + modelname + '_iota_dict.p', "rb" ) )
+gamma_dict=        pickle.load(  open(root + '/Data/derived/dump/' + modelname + '_gamma_dict.p', "rb" ) )
+meso_share_df=     pickle.load(  open(root + '/Data/derived/dump/' + modelname + '_meso_share_df.p', "rb" ) )
+meso_share_norm_df=pickle.load(  open(root + '/Data/derived/dump/' + modelname + '_meso_share_norm_df.p', "rb" ) )
 
 
 
@@ -355,10 +364,10 @@ for g in range(0,1154):
 corr_plots(gammas_w_attributes['hhi_codemun'],gammas_w_attributes['hhi_occ4'])
 
 corr_plots(gammas_w_attributes['hhi_jid'],gammas_w_attributes['educ_mean'])
-corr_plots(gammas_w_attributes['hhi_jid'],gammas_w_attributes['dist_mean'])
+corr_plots(gammas_w_attributes['hhi_jid'],gammas_w_attributes['j2j_dist_mean'])
 
 # Create the correlation matrix
-correlation_matrix = gammas_w_attributes[['educ_mean', 'educ_mean_rank', 'mean_monthly_earnings', 'mean_monthly_earnings_rank', 'hhi_occ4', 'hhi_code_meso', 'hhi_codemun', 'hhi_jid', 'num_unique_jids', 'num_unique_wids', 'num_unique_wid_jids', 'dist_mean', 'dist_std', 'dist_25th', 'dist_75th', 'spatial_var_km']].corr()
+correlation_matrix = gammas_w_attributes[['educ_mean', 'educ_mean_rank', 'mean_monthly_earnings', 'mean_monthly_earnings_rank', 'hhi_occ4', 'hhi_code_meso', 'hhi_codemun', 'hhi_jid', 'num_unique_jids', 'num_unique_wids', 'num_unique_wid_jids', 'j2j_dist_mean', 'j2j_dist_std', 'j2j_dist_25th', 'j2j_dist_75th', 'spatial_var_km']].corr()
 
 # Display all columns
 pd.set_option('display.max_columns', None)
@@ -374,22 +383,34 @@ lower_triangle_corr_matrix = correlation_matrix.mask(mask)
 print(lower_triangle_corr_matrix)
 
 
-
-corr_plots(gammas_w_attributes['hhi_code_meso'],gammas_w_attributes['spatial_var_km'])
-corr_plots(gammas_w_attributes['hhi_jid'],gammas_w_attributes['spatial_var_km'])
-corr_plots(gammas_w_attributes['mean_monthly_earnings_rank'],gammas_w_attributes['spatial_var_km'])
-
-# Education and j2j move distance are negatively correlated
-corr_plots(gammas_w_attributes['educ_mean'],gammas_w_attributes['dist_mean'])
-# Spatial variance of jobs within a market uncorrelated with education and j2j move distance
-corr_plots(gammas_w_attributes['spatial_var_km'],gammas_w_attributes['dist_mean'])
-corr_plots(gammas_w_attributes['spatial_var_km'],gammas_w_attributes['educ_mean'])
-
-
-
+gammas_w_attributes['log_mean_monthly_earnings'] = np.log(gammas_w_attributes['mean_monthly_earnings'])
 corr_plots(gammas_w_attributes['educ_mean'],gammas_w_attributes['mean_monthly_earnings'])
-corr_plots(gammas_w_attributes['educ_mean'],np.log(gammas_w_attributes['mean_monthly_earnings']))
-corr_plots(gammas_w_attributes['dist_mean'],np.log(gammas_w_attributes['mean_monthly_earnings']))
-corr_plots(gammas_w_attributes['spatial_var_km'],np.log(gammas_w_attributes['mean_monthly_earnings']))
+corr_plots(gammas_w_attributes['educ_mean'],gammas_w_attributes['log_mean_monthly_earnings'])
+corr_plots(gammas_w_attributes['j2j_dist_mean'],gammas_w_attributes['log_mean_monthly_earnings'])
+corr_plots(gammas_w_attributes['spatial_var_km'],gammas_w_attributes['log_mean_monthly_earnings'])
 
-# We should weight these correlation by jobs or workers in gamma
+
+binscatter_list = [('educ_mean','log_mean_monthly_earnings'),  
+                   ('j2j_dist_mean','log_mean_monthly_earnings'),  
+                   ('spatial_var_km','log_mean_monthly_earnings'),  
+                   ('spatial_var_km','j2j_dist_mean'),  
+                   ('spatial_var_km','educ_mean'),  
+                   ('hhi_jid','log_mean_monthly_earnings'),  
+                   ('hhi_occ4','log_mean_monthly_earnings'),  
+                   ('hhi_code_meso','log_mean_monthly_earnings')]
+
+for idx in binscatter_list: 
+    xvar = idx[0]
+    yvar = idx[1]
+    fig, ax = plt.subplots()
+    # Binned scatter plot of Wage vs Tenure
+    ax.binscatter(gammas_w_attributes[xvar],gammas_w_attributes[yvar])
+    xmax_gamma = int(gammas_w_attributes.loc[gammas_w_attributes[xvar].idxmax(), 'gamma'])
+    ymax_gamma = int(gammas_w_attributes.loc[gammas_w_attributes[yvar].idxmax(), 'gamma'])
+    print(xmax_gamma,ymax_gamma)
+
+
+plot_mesos(xmax_gamma, gammas_w_attributes, meso_share_df, meso_share_norm_df, gamma_dict)
+plot_mesos(xmax_gamma, gammas_w_attributes, meso_share_df, meso_share_norm_df, gamma_dict)
+
+# Next step: start looking at these for a compelling story. Also see if there are interesting binscatters with the HHIs
