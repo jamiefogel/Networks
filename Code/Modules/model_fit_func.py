@@ -27,7 +27,6 @@ plt.rcParams.update({
     "font.family": "sans-serif",
     "font.sans-serif": ["Helvetica"]})
 
-# Imoved these two functions out of model_fit() on 8/23/2021. Need to test that this doesn't break anything. 
 
 def compute_expected_Phi(p_ig, psi, w_g, sigma_hat):
     return torch.sum( p_ig * (psi * w_g * torch.exp(sigma_hat**2/2)), dim=1) 
@@ -39,13 +38,12 @@ def compute_expected_U(p_ig, psi, xi, nu, w_g):
     E_U      = E_phi_xi + nu * entropy
     return E_U
     
-def model_fit(mle_data_filename, mle_data_sums, mle_estimates, psi_hat, S, eta, level, b_gs, worker_type_var, job_type_var, a_ts, p_ts, figuredir, phi_outopt_scalar=0, xi_outopt_scalar=0):
+def model_fit(mle_data_filename, mle_data_sums, mle_estimates, psi_hat, S, eta, level, b_gs, worker_type_var, job_type_var, a_ts, p_ts, pre, post, figuredir, phi_outopt_scalar=0, xi_outopt_scalar=0):
     
     
 
     
     def make_scatter(x, y, x_str, y_str, xlabel, ylabel, xlim, ylim, title='', filename='', printvars=True, cmap=None, c=None):
-
         wgt = mle_data_sums['m_i'].flatten()
         y = torch.tensor(y.values)
         if worker_type_var=='occ2_first_recode':  #These occ types collectively have 6 obs in 2014 and 0 in 2009. The 0 in 2009 creates problems
@@ -95,10 +93,6 @@ def model_fit(mle_data_filename, mle_data_sums, mle_estimates, psi_hat, S, eta, 
         
         return {'slope':m, 'intercept':b, 'slope_se':m_se, 'intercept_se':b_se, 'mse':MSE, 'n':int(result.nobs), 'reg_result':result}
 
-
-    pre=2009
-    post=2014    
-    
     # Pull data
     data_full = pd.read_csv(mle_data_filename)
     data_full['ln_real_hrly_wage_dec'] = data_full['ln_real_hrly_wage_dec'].fillna(0)
