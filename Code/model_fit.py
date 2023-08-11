@@ -55,7 +55,7 @@ for idx in classification_list: #
         fit_b_gs = fit_alphags * x_s
 
 
-    rvals =  model_fit(fit_mle_data_filename, fit_mle_data_sums, fit_mle_estimates, fit_psi_hat, S, eta, level, fit_b_gs, wtype_var, jtype_var, a_ts, p_ts, 2013, 2018 figuredir)
+    rvals =  model_fit(fit_mle_data_filename, fit_mle_data_sums, fit_mle_estimates, fit_psi_hat, S, eta, level, fit_b_gs, wtype_var, jtype_var, a_ts, p_ts, 2013, 2016, figuredir)
     fit_returnvals.append(rvals)
 
 
@@ -66,8 +66,10 @@ for idx in classification_list:
     jtype_var = idx[1]
     print(wtype_var,jtype_var,round(fit_returnvals[i]['intercept'],3),round(fit_returnvals[i]['slope'],3),round(fit_returnvals[i]['mse'],3))
     i+=1
-    
-    
+
+print('###########################################################################################################################')
+print('The code below this needs to be updated to allow for a different set of classifications so it will fail soon (TEMP MEESAGE)')
+print('###########################################################################################################################')    
     
 ###################
 # Make table 
