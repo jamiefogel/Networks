@@ -41,10 +41,8 @@ muni_meso_cw = pd.DataFrame({'code_meso':region_codes.code_meso,'codemun':region
 modelname = '3states_2013to2016_mcmc'
 # 2004 appears to be the first year in which we have job start end dates (data_adm and data_deslig)
 
-#appended = pd.read_pickle(root + '/dump/appended_sbm_' + modelname + '.p')
 
-
-# Load gammas
+# Load iotas and gammas
                            
 jcolumns = ['jid']     
 wcolumns = ['wid']
@@ -101,81 +99,38 @@ raw2016['grau_instr'] = raw2016['grau_instr'].replace({1:1, 2:3, 3:5, 4:7, 5:9, 
 raw2016.to_pickle(root + '/Data/derived/explore_gammas_raw2016.p')
 #raw2016 = pd.read_pickle(root + '/Data/derived/explore_gammas_raw2016.p')
 
-######################################
-# Compute HHIs
-
-
-hhi_occ4 = gamma_hhi(raw2016,'gamma','occ4')
-hhi_occ2 = gamma_hhi(raw2016,'gamma','occ2')
-hhi_code_meso = gamma_hhi(raw2016,'gamma','code_meso')
-hhi_codemun = gamma_hhi(raw2016,'gamma','codemun')
-hhi_jid = gamma_hhi(raw2016,'gamma','jid')
-
 # Collapse a bunch of the variables in raw2016 by gamma
 gammas_w_attributes = raw2016.groupby(['gamma']).agg(educ_median=('grau_instr','median'), educ_mean=('grau_instr','mean'), educ_mode=('grau_instr',lambda x: stats.mode(x)[0][0]), mean_monthly_earnings=('rem_med_r','mean'),modal_ind2=('ind2', lambda x: stats.mode(x)[0][0]), modal_sector=('sector_IBGE', lambda x: stats.mode(x)[0][0]), modal_occ2=('occ2', lambda x: stats.mode(x)[0][0]), modal_occ4=('occ4', lambda x: stats.mode(x)[0][0]))
 
 # Create some rank variables 
 gammas_w_attributes['educ_mean_rank'] = gammas_w_attributes['educ_mean'].rank(method='dense', pct=True)
 gammas_w_attributes['mean_monthly_earnings_rank'] = gammas_w_attributes['mean_monthly_earnings'].rank(method='dense', pct=True)
+gammas_w_attributes['log_mean_monthly_earnings'] = np.log(gammas_w_attributes['mean_monthly_earnings'])
 
-
+# Compute the number of unique workers and jobs and worker--job pairs 
 num_unique_jids = raw2016.groupby('gamma')['jid'].nunique().reset_index().rename(columns={'jid':'num_unique_jids'})
 num_unique_wids = raw2016.groupby('gamma')['wid'].nunique().reset_index().rename(columns={'wid':'num_unique_wids'})
 num_unique_wid_jids = raw2016.groupby('gamma').apply(lambda x: x[['jid', 'wid']].drop_duplicates().shape[0]).astype(int).reset_index().rename(columns={0:'num_unique_wid_jids'})
 
-# Merge on HHIs
-gammas_w_attributes = gammas_w_attributes.merge(hhi_occ4, on='gamma', validate='1:1')
-gammas_w_attributes = gammas_w_attributes.merge(hhi_occ2, on='gamma', validate='1:1')
-gammas_w_attributes = gammas_w_attributes.merge(hhi_code_meso, on='gamma', validate='1:1')
-gammas_w_attributes = gammas_w_attributes.merge(hhi_codemun, on='gamma', validate='1:1')
-gammas_w_attributes = gammas_w_attributes.merge(hhi_jid, on='gamma', validate='1:1')
-gammas_w_attributes = gammas_w_attributes.merge(num_unique_jids, on='gamma', validate='1:1')
-gammas_w_attributes = gammas_w_attributes.merge(num_unique_wids, on='gamma', validate='1:1')
-gammas_w_attributes = gammas_w_attributes.merge(num_unique_wid_jids, on='gamma', validate='1:1')
+
+######################################
+# Compute HHIs
+
+hhi_iota = gamma_hhi(raw2016,'gamma','iota')
+hhi_occ4 = gamma_hhi(raw2016,'gamma','occ4')
+hhi_occ2 = gamma_hhi(raw2016,'gamma','occ2')
+hhi_code_meso = gamma_hhi(raw2016,'gamma','code_meso')
+hhi_codemun = gamma_hhi(raw2016,'gamma','codemun')
+hhi_jid = gamma_hhi(raw2016,'gamma','jid')
 
 
-sector_labels = ["Agriculture/forestry",
-                  "Extractive",
-                  "Manufacturing",
-                  "Utilities",
-                  "Construction",
-                  "Commerce;  repair of motor vehicles",
-                  "Transport, storage and mail",
-                  "Accommodation and food",
-                  "Information/communication",
-                  "Finance/insurance",
-                  "Real estate",
-                  "Professional/sci/tech",
-                  "Public sector",
-                  "Private health/educ",
-                  "Arts/culture/sports/recreation"]
+# Merge on gamma characteristics 
+for var in [hhi_iota, hhi_occ4, hhi_occ2, hhi_code_meso,, hhi_codemun hhi_jid, num_unique_jids, num_unique_wids, num_unique_wid_jids]:
+    gammas_w_attributes = gammas_w_attributes.merge(var, on='gamma', validate='1:1')
 
-# Scatterplots color coded by sector
-sector_colors = {1: 'red', 2: 'blue', 3: 'green', 4: 'orange', 5: 'purple', 6: 'brown', 7: 'pink', 8: 'gray', 9: 'olive', 10: 'cyan', 11: 'magenta', 12: 'darkred', 13: 'navy', 14: 'lime', 15: 'teal'}
-var1='hhi_codemun'
-var2='hhi_occ4'
-corr = np.corrcoef(gammas_w_attributes[var1], gammas_w_attributes[var2])[0][1]
-print('Correlation: ', round(corr,3))
-fig, ax = plt.subplots()
-ax.scatter(gammas_w_attributes[var1], gammas_w_attributes[var2], s=5, c=gammas_w_attributes['modal_sector'], cmap='Set1')
-ax.scatter(gammas_w_attributes[var1], gammas_w_attributes[var2], s=5, c=gammas_w_attributes['modal_sector'].apply(lambda x: colors[x]))
-ax.annotate("Correlation = {:.2f}".format(corr), xy=(0.05, 0.95), xycoords='axes fraction')
-ax.set_xlabel(var1)            
-ax.set_ylabel(var2)
-#plt.colorbar()
-# Create legend handles and labels for each unique value of 'ind'
-handles = [plt.plot([], [], marker="o", ls="", color=color)[0] for color in np.unique(list(sector_colors.values()))]
-labels = list(sector_colors.keys())
-#plt.legend(handles, labels, title='ind', bbox_to_anchor=(1.05, 1), loc='upper left')
-plt.legend(handles, labels, title='ind', loc='best')
-plt.savefig(root + '/Results/hhi_scatterplot_' + var1 + '_' + var2 +' .pdf', format='pdf')
-plt.close()
-
-    
 
 #############################################################################################
-# J2J Move distances from the predicting flows transitions data
-
+# Job-to-job Move distances from the predicting flows transitions data
 
 # Pull meso codes for our states of interest
 muni_sp = geobr.read_municipality(code_muni="SP", year=2016)
@@ -224,47 +179,12 @@ gammas_w_attributes = gammas_w_attributes.merge(distance_stats, left_on='gamma',
 #############################################################################################
 # Gamma spatial variances
 
-pd.set_option('display.max_columns', None)
-pd.set_option('display.width', 200)
-pd.set_option('display.precision', 3)
-
-print(gammas_w_attributes.drop(columns=['gamma','modal_ind2','modal_sector','j2j_dist_min']).corr())
-'''
-                       educ_median  educ_mean  educ_mode  mean_monthly_earnings  hhi_occ4  hhi_occ2  hhi_code_meso  hhi_codemun  dist_mean  dist_median  dist_max  dist_std  dist_25th  dist_75th
-educ_median                  1.000      0.855      0.833                  0.529    -0.210    -0.294         -0.076       -0.038     -0.334       -0.360    -0.077    -0.220     -0.268     -0.269
-educ_mean                    0.855      1.000      0.751                  0.620    -0.096    -0.196         -0.003        0.051     -0.360       -0.304    -0.121    -0.292     -0.228     -0.260
-educ_mode                    0.833      0.751      1.000                  0.501    -0.170    -0.228         -0.024       -0.012     -0.287       -0.361    -0.115    -0.157     -0.322     -0.236
-mean_monthly_earnings        0.529      0.620      0.501                  1.000    -0.088    -0.132         -0.124       -0.091     -0.096       -0.099    -0.062    -0.052     -0.038     -0.089
-hhi_occ4                    -0.210     -0.096     -0.170                 -0.088     1.000     0.951          0.636        0.660      0.328        0.387    -0.242     0.074      0.157      0.428
-hhi_occ2                    -0.294     -0.196     -0.228                 -0.132     0.951     1.000          0.678        0.679      0.343        0.409    -0.274     0.079      0.177      0.429
-hhi_code_meso               -0.076     -0.003     -0.024                 -0.124     0.636     0.678          1.000        0.877     -0.004        0.150    -0.433    -0.196      0.081      0.095
-hhi_codemun                 -0.038      0.051     -0.012                 -0.091     0.660     0.679          0.877        1.000      0.059        0.154    -0.394    -0.102      0.127      0.131
-dist_mean                   -0.334     -0.360     -0.287                 -0.096     0.328     0.343         -0.004        0.059      1.000        0.725     0.049     0.859      0.436      0.906
-dist_median                 -0.360     -0.304     -0.361                 -0.099     0.387     0.409          0.150        0.154      0.725        1.000    -0.017     0.348      0.795      0.701
-dist_max                    -0.077     -0.121     -0.115                 -0.062    -0.242    -0.274         -0.433       -0.394      0.049       -0.017     1.000     0.157      0.012     -0.002
-dist_std                    -0.220     -0.292     -0.157                 -0.052     0.074     0.079         -0.196       -0.102      0.859        0.348     0.157     1.000      0.125      0.665
-dist_25th                   -0.268     -0.228     -0.322                 -0.038     0.157     0.177          0.081        0.127      0.436        0.795     0.012     0.125      1.000      0.346
-dist_75th                   -0.269     -0.260     -0.236                 -0.089     0.428     0.429          0.095        0.131      0.906        0.701    -0.002     0.665      0.346      1.000
-'''
-
-
-
-
 
 # Spatial variance
 
 jid_spatial_dist = raw2016[['jid','gamma']].merge(jid_muni, left_on='jid', right_on='jid', validate='m:1')
 jid_spatial_dist['mean_lat'] = jid_spatial_dist.groupby('gamma')['lat'].transform('mean')
 jid_spatial_dist['mean_lon'] = jid_spatial_dist.groupby('gamma')['lon'].transform('mean')
-
-''' This gave me an error when I use transform but when I did it one gamma at a time I confirmed that it gave the same answer as the simple version just taking the mean below. Therefore I'm going with the simple version and accepting approximation error created by the curvature of the earth
-def compute_centroid(row):
-    coords = MultiPoint(list(zip(row['lon'], row['lat'])))
-    return (coords.centroid.x, coords.centroid.y)
-
-jid_spatial_dist['centroid'] = jid_spatial_dist.groupby('gamma').transform(compute_centroid)
-'''
-
 
 jid_spatial_dist['distance'] = jid_spatial_dist.apply(compute_distance, axis=1)
 spatial_var_km = jid_spatial_dist.groupby('gamma')['distance'].mean().reset_index().rename(columns={'distance':'spatial_var_km'})
@@ -281,14 +201,11 @@ gammas_w_attributes = pd.read_pickle(root + '/Data/derived/explore_gammas_gammas
 
                                                                                            
 
-#############################################################################################
-#############################################################################################
-# Spatial and occupation distribution figures    
-#############################################################################################
-#############################################################################################
+
+###########################################################
+# Compute the distribution of meso regions for each gamma
 
 
-########################################################
 # Pull meso codes for our states of interest
 meso_sp = geobr.read_meso_region(code_meso="SP", year=2016)
 meso_rj = geobr.read_meso_region(code_meso='RJ', year=2016)
@@ -296,15 +213,12 @@ meso_mg = geobr.read_meso_region(code_meso='MG', year=2016)
 mesos = pd.concat([meso_sp, meso_rj, meso_mg], ignore_index=True)
 
 
-#Issue: the meso codes from geobr only have 4 digits but in state_cw they sometimes have 5. Basically in state_cw there is always a 0 between the 2 state digits and the 2 meso code digits; in geo_br there is only a 0 if the meso code has 1 digit. Check with Bernardo about this
-
-state_cw.loc[state_cw.uf=='São Paulo']
-
-
 # Calculate share of jid observations for each gamma in each code_meso
 pivot_df = pd.pivot_table(raw2016.loc[raw2016.gamma!=-1], index='code_meso', columns='gamma', aggfunc='size', fill_value=0)
 meso_share_df = pivot_df.apply(lambda x: x/x.sum(), axis=0).reset_index()
 
+# Issue: the meso codes from geobr only have 4 digits but in state_cw they sometimes have 5. Basically in state_cw there is always a 0 between the 2 state digits and the 2 meso code digits; in geo_br there is only a 0 if the meso code has 1 digit. Check with Bernardo about this
+# For details, try: state_cw.loc[state_cw.uf=='São Paulo']
 # Remove the midde 0 from code_meso to be consistent with the meso codes downloaded by geobr
 num_str = meso_share_df['code_meso'].astype(str)
 num_str.loc[num_str.str.len() == 5] = num_str.str[:2] + num_str.str[3:]
@@ -321,32 +235,51 @@ meso_share_df      = mesos.merge(meso_share_df, how="left", on="code_meso")
 meso_share_norm_df = mesos.merge(meso_share_norm_df, how="left", on="code_meso")
 
 
+pickle.dump( meso_share_df,      open(root + '/Data/derived/dump/' + modelname + '_meso_share_df.p', "wb" ) )
+pickle.dump( meso_share_norm_df, open(root + '/Data/derived/dump/' + modelname + '_meso_share_norm_df.p', "wb" ) )
+
+
+
+
+
+
+
+##############################################################################################################################
+# Compute occupation distributions for each iota and gamma in 2016
+
 from occ_counts_by_type import occ_counts_by_type
 [iota_dict, gamma_dict] = occ_counts_by_type(raw2016, root + 'Data/raw/translated_occ_codes_english_only.csv', 0)
                           
 
 pickle.dump( iota_dict,          open(root + '/Data/derived/dump/' + modelname + '_iota_dict.p', "wb" ) )
 pickle.dump( gamma_dict,         open(root + '/Data/derived/dump/' + modelname + '_gamma_dict.p', "wb" ) )
-pickle.dump( meso_share_df,      open(root + '/Data/derived/dump/' + modelname + '_meso_share_df.p', "wb" ) )
-pickle.dump( meso_share_norm_df, open(root + '/Data/derived/dump/' + modelname + '_meso_share_norm_df.p', "wb" ) )
 
-iota_dict=         pickle.load(  open(root + '/Data/derived/dump/' + modelname + '_iota_dict.p', "rb" ) )
-gamma_dict=        pickle.load(  open(root + '/Data/derived/dump/' + modelname + '_gamma_dict.p', "rb" ) )
+
+
+
+
+
+#############################################################################################
+#############################################################################################
+# Spatial and occupation distribution figures    
+#############################################################################################
+#############################################################################################
+
+
+
+
+
 meso_share_df=     pickle.load(  open(root + '/Data/derived/dump/' + modelname + '_meso_share_df.p', "rb" ) )
 meso_share_norm_df=pickle.load(  open(root + '/Data/derived/dump/' + modelname + '_meso_share_norm_df.p', "rb" ) )
 
+iota_dict=         pickle.load(  open(root + '/Data/derived/dump/' + modelname + '_iota_dict.p', "rb" ) )
+gamma_dict=        pickle.load(  open(root + '/Data/derived/dump/' + modelname + '_gamma_dict.p', "rb" ) )
 
 
 
-'''
-from scipy.stats import mstats
 
-# Winsorize the "col" column of the "df" dataframe at the 1% and 99% levels
-winsorized_col = mstats.winsorize(df["col"], limits=[0.01, 0.01])
-
-# Replace the "col" column in the original dataframe with the winsorized values
-df["col"] = winsorized_col
-'''
+##############################################################################################################################
+# Create figures for each of the gammas displaying the geographic and occupation distributions, along with other stats
 
 for g in range(0,1154):
     print(g)
@@ -356,17 +289,9 @@ for g in range(0,1154):
 
 
 
-
-
 ##############################################################################################################################
-# A bunch of exploratory correlation plots
+# Print the correlation matrix for gamma atrributes
 
-corr_plots(gammas_w_attributes['hhi_codemun'],gammas_w_attributes['hhi_occ4'])
-
-corr_plots(gammas_w_attributes['hhi_jid'],gammas_w_attributes['educ_mean'])
-corr_plots(gammas_w_attributes['hhi_jid'],gammas_w_attributes['j2j_dist_mean'])
-
-# Create the correlation matrix
 correlation_matrix = gammas_w_attributes[['educ_mean', 'educ_mean_rank', 'mean_monthly_earnings', 'mean_monthly_earnings_rank', 'hhi_occ4', 'hhi_code_meso', 'hhi_codemun', 'hhi_jid', 'num_unique_jids', 'num_unique_wids', 'num_unique_wid_jids', 'j2j_dist_mean', 'j2j_dist_std', 'j2j_dist_25th', 'j2j_dist_75th', 'spatial_var_km']].corr()
 
 # Display all columns
@@ -383,7 +308,15 @@ lower_triangle_corr_matrix = correlation_matrix.mask(mask)
 print(lower_triangle_corr_matrix)
 
 
-gammas_w_attributes['log_mean_monthly_earnings'] = np.log(gammas_w_attributes['mean_monthly_earnings'])
+
+
+##############################################################################################################################
+# A bunch of exploratory correlation plots
+
+corr_plots(gammas_w_attributes['hhi_codemun'],gammas_w_attributes['hhi_occ4'])
+corr_plots(gammas_w_attributes['hhi_jid'],gammas_w_attributes['educ_mean'])
+corr_plots(gammas_w_attributes['hhi_jid'],gammas_w_attributes['j2j_dist_mean'])
+
 corr_plots(gammas_w_attributes['educ_mean'],gammas_w_attributes['mean_monthly_earnings'])
 corr_plots(gammas_w_attributes['educ_mean'],gammas_w_attributes['log_mean_monthly_earnings'])
 corr_plots(gammas_w_attributes['j2j_dist_mean'],gammas_w_attributes['log_mean_monthly_earnings'])
@@ -414,3 +347,43 @@ plot_mesos(xmax_gamma, gammas_w_attributes, meso_share_df, meso_share_norm_df, g
 plot_mesos(xmax_gamma, gammas_w_attributes, meso_share_df, meso_share_norm_df, gamma_dict)
 
 # Next step: start looking at these for a compelling story. Also see if there are interesting binscatters with the HHIs
+
+############################################################################################
+# Scatter plots by sector (can probably be converted to a function if we get interesting results)
+
+sector_labels = ["Agriculture/forestry",
+                  "Extractive",
+                  "Manufacturing",
+                  "Utilities",
+                  "Construction",
+                  "Commerce;  repair of motor vehicles",
+                  "Transport, storage and mail",
+                  "Accommodation and food",
+                  "Information/communication",
+                  "Finance/insurance",
+                  "Real estate",
+                  "Professional/sci/tech",
+                  "Public sector",
+                  "Private health/educ",
+                  "Arts/culture/sports/recreation"]
+
+# Scatterplots color coded by sector
+sector_colors = {1: 'red', 2: 'blue', 3: 'green', 4: 'orange', 5: 'purple', 6: 'brown', 7: 'pink', 8: 'gray', 9: 'olive', 10: 'cyan', 11: 'magenta', 12: 'darkred', 13: 'navy', 14: 'lime', 15: 'teal'}
+var1='hhi_codemun'
+var2='hhi_occ4'
+corr = np.corrcoef(gammas_w_attributes[var1], gammas_w_attributes[var2])[0][1]
+print('Correlation: ', round(corr,3))
+fig, ax = plt.subplots()
+ax.scatter(gammas_w_attributes[var1], gammas_w_attributes[var2], s=5, c=gammas_w_attributes['modal_sector'], cmap='Set1')
+ax.scatter(gammas_w_attributes[var1], gammas_w_attributes[var2], s=5, c=gammas_w_attributes['modal_sector'].apply(lambda x: colors[x]))
+ax.annotate("Correlation = {:.2f}".format(corr), xy=(0.05, 0.95), xycoords='axes fraction')
+ax.set_xlabel(var1)            
+ax.set_ylabel(var2)
+#plt.colorbar()
+# Create legend handles and labels for each unique value of 'ind'
+handles = [plt.plot([], [], marker="o", ls="", color=color)[0] for color in np.unique(list(sector_colors.values()))]
+labels = list(sector_colors.keys())
+#plt.legend(handles, labels, title='ind', bbox_to_anchor=(1.05, 1), loc='upper left')
+plt.legend(handles, labels, title='ind', loc='best')
+plt.savefig(root + '/Results/hhi_scatterplot_' + var1 + '_' + var2 +' .pdf', format='pdf')
+plt.close()
