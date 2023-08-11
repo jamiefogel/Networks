@@ -219,6 +219,9 @@ concentration_figures(data_full_concfigs, 'iota', 'Workers (sorted by employment
 concentration_figures(data_full_concfigs, 'gamma', 'Markets (sorted by hiring HHI)',    ['occ2Xmeso_first','iota'], {'occ2Xmeso_first':'Occ2 X Meso Region','iota':'Worker Type'}, figuredir+'concentration_figures__gamma__occ2Xmeso_first__iota.png',weighted=True)
 concentration_figures(data_full_concfigs, 'gamma', 'Markets (sorted by hiring HHI)',    ['occ4_first','iota'],      {'occ4_first':'4-Digit Occupation','iota':'Worker Type'},      figuredir+'concentration_figures__gamma__occ4_first__iota.png',weighted=True)
 
+# Gamma summary stats including binscatters and meso_plots
+exec(open(root + 'Code/gamma_summary_stats.py').read())
+
     
 #--------------------------
 #  Add prediction exercise code
