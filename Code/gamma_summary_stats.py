@@ -125,7 +125,7 @@ hhi_jid = gamma_hhi(raw2016,'gamma','jid')
 
 
 # Merge on gamma characteristics 
-for var in [hhi_iota, hhi_occ4, hhi_occ2, hhi_code_meso,, hhi_codemun hhi_jid, num_unique_jids, num_unique_wids, num_unique_wid_jids]:
+for var in [hhi_iota, hhi_occ4, hhi_occ2, hhi_code_meso, hhi_codemun, hhi_jid, num_unique_jids, num_unique_wids, num_unique_wid_jids]:
     gammas_w_attributes = gammas_w_attributes.merge(var, on='gamma', validate='1:1')
 
 
@@ -351,39 +351,44 @@ plot_mesos(xmax_gamma, gammas_w_attributes, meso_share_df, meso_share_norm_df, g
 ############################################################################################
 # Scatter plots by sector (can probably be converted to a function if we get interesting results)
 
-sector_labels = ["Agriculture/forestry",
-                  "Extractive",
-                  "Manufacturing",
-                  "Utilities",
-                  "Construction",
-                  "Commerce;  repair of motor vehicles",
-                  "Transport, storage and mail",
-                  "Accommodation and food",
-                  "Information/communication",
-                  "Finance/insurance",
-                  "Real estate",
-                  "Professional/sci/tech",
-                  "Public sector",
-                  "Private health/educ",
-                  "Arts/culture/sports/recreation"]
+def sector_scatter_plots(var1,var2):
+    sector_labels = ["Agriculture/forestry",
+                      "Extractive",
+                      "Manufacturing",
+                      "Utilities",
+                      "Construction",
+                      "Sales/repair of vehicles",
+                      "Transport, storage/ mail",
+                      "Accommodation and food",
+                      "Information/communication",
+                      "Finance/insurance",
+                      "Real estate",
+                      "Professional/sci/tech",
+                      "Public sector",
+                      "Private health/educ",
+                      "Arts/culture/sports/rec"]
+    # Scatterplots color coded by sector
+    sector_colors = {1: 'red', 2: 'blue', 3: 'green', 4: 'orange', 5: 'purple', 6: 'brown', 7: 'pink', 8: 'gray', 9: 'olive', 10: 'cyan', 11: 'magenta', 12: 'darkred', 13: 'navy', 14: 'lime', 15: 'teal'}
+    corr = np.corrcoef(gammas_w_attributes[var1], gammas_w_attributes[var2])[0][1]
+    print('Correlation: ', round(corr,3))
+    fig, ax = plt.subplots(figsize=(10,5))
+    ax.scatter(gammas_w_attributes[var1], gammas_w_attributes[var2], s=2, c=gammas_w_attributes['modal_sector'].apply(lambda x: sector_colors[x]))
+    ax.annotate("Correlation = {:.2f}".format(corr), xy=(0.05, 0.95), xycoords='axes fraction')
+    ax.set_xlabel(var1)            
+    ax.set_ylabel(var2)
+    #plt.colorbar()
+    # Create legend handles and labels for each unique value of 'ind'
+    handles = [plt.plot([], [], marker="o", ls="", color=color)[0] for color in np.unique(list(sector_colors.values()))]
+    # Adjust the main plot's width (2/3 for the plot, 1/3 for the legend)
+    plt.subplots_adjust(right=0.69)
+    plt.legend(handles, sector_labels, title='ind', loc='upper left', bbox_to_anchor=(1, 1))
+    plt.tight_layout()
+    plt.savefig(root + '/Results/sector_scatterplot_' + var1 + '_' + var2 +' .pdf', format='pdf')
+    plt.show()
+    
+    
 
-# Scatterplots color coded by sector
-sector_colors = {1: 'red', 2: 'blue', 3: 'green', 4: 'orange', 5: 'purple', 6: 'brown', 7: 'pink', 8: 'gray', 9: 'olive', 10: 'cyan', 11: 'magenta', 12: 'darkred', 13: 'navy', 14: 'lime', 15: 'teal'}
-var1='hhi_codemun'
-var2='hhi_occ4'
-corr = np.corrcoef(gammas_w_attributes[var1], gammas_w_attributes[var2])[0][1]
-print('Correlation: ', round(corr,3))
-fig, ax = plt.subplots()
-ax.scatter(gammas_w_attributes[var1], gammas_w_attributes[var2], s=5, c=gammas_w_attributes['modal_sector'], cmap='Set1')
-ax.scatter(gammas_w_attributes[var1], gammas_w_attributes[var2], s=5, c=gammas_w_attributes['modal_sector'].apply(lambda x: colors[x]))
-ax.annotate("Correlation = {:.2f}".format(corr), xy=(0.05, 0.95), xycoords='axes fraction')
-ax.set_xlabel(var1)            
-ax.set_ylabel(var2)
-#plt.colorbar()
-# Create legend handles and labels for each unique value of 'ind'
-handles = [plt.plot([], [], marker="o", ls="", color=color)[0] for color in np.unique(list(sector_colors.values()))]
-labels = list(sector_colors.keys())
-#plt.legend(handles, labels, title='ind', bbox_to_anchor=(1.05, 1), loc='upper left')
-plt.legend(handles, labels, title='ind', loc='best')
-plt.savefig(root + '/Results/hhi_scatterplot_' + var1 + '_' + var2 +' .pdf', format='pdf')
-plt.close()
+for idx in binscatter_list: 
+    xvar = idx[0]
+    yvar = idx[1]
+    sector_scatter_plots(xvar,yvar)
