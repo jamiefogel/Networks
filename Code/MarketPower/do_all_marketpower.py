@@ -31,8 +31,7 @@ figuredir = root + 'Results/'
 from torch_mle import torch_mle
 from mle_load_fulldata import mle_load_fulldata
 
-
-mle_data_filename      = root + "Data/RAIS_exports/earnings_panel/panel_rio_2009_2012_w_kmeans.csv"
+mle_data_filename      = root + "Data/derived/earnings_panel/panel_3states_2013to2016_new_level_0.csv"
 
 inv_eta_mayara   = 0.985
 inv_theta_mayara = 1.257
@@ -52,7 +51,7 @@ sector_probabilities_by_iota['hhi'] = sector_probabilities_by_iota.drop(columns=
 
 
 
-# According to Mayara's equation (9) on page 11, the average markwodn in labor market 
+# According to Mayara's equation (9) on page 11, the average markdown in labor market 
 
 #Felix, p. 27: Appendix C.2.4 shows that the country-level average markdown—that is, the country- level ratio of (employment-weighted) average MRPL to (employment-weighted) average wage—is a weighted average of the market-level markdowns in Proposition 1, where the weights are each market’s payroll share of the country’s total payroll.
 
