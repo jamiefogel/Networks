@@ -37,10 +37,6 @@ figuredir = root + 'Results/'
 from torch_mle import torch_mle
 from mle_load_fulldata import mle_load_fulldata
 
-<<<<<<< Updated upstream
-=======
-
->>>>>>> Stashed changes
 mle_data_filename      = root + "Data/derived/earnings_panel/panel_3states_2013to2016_new_level_0.csv"
 
 inv_eta_mayara   = 0.985
