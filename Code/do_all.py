@@ -329,11 +329,11 @@ exec(open(root + 'Code/gamma_summary_stats.py').read())
 #--------------------------
 
 if run_predictions==True:
-    exec(open(root + 'Code/IPEA/predicting_flows_data_pull.py').read())
-    # WE have been running the actual predictions (coded in the script below) in parallel using the following script: NetworksGit\Code\IPEA\bash_parallel_jobtransitions_market_based_mutiple_mkts.sh
+    exec(open(root + 'Code/predicting_flows_data_pull.py').read())
+    # WE have been running the actual predictions (coded in the script below) in parallel using the following script: NetworksGit\Code\bash_parallel_jobtransitions_market_based_mutiple_mkts.sh
     # XX Code ran successfully through here on 8/11/2023. Failed somewhere in in the next script
-    exec(open(root + 'Code/IPEA/parallel_jobtransitions_market_based_multiple_mkts.py').read())
-    exec(open(root + 'Code/IPEA/parallel_jobtransitions_stack_results.py').read())
+    exec(open(root + 'Code/parallel_jobtransitions_market_based_multiple_mkts.py').read())
+    exec(open(root + 'Code/parallel_jobtransitions_stack_results.py').read())
 
 
 #--------------------------
