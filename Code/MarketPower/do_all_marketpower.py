@@ -15,13 +15,19 @@ import pickle
 from datetime import datetime
 import sys
 import matplotlib.pyplot as plt
-
+import getpass
 
 from IPython.display import display, Math, Latex
 display((Math(r'P(Purchase|Male)= \frac{Numero\ total\ de\ compras\ hechas\ por\ hombres\}{Total\ de\ hombres\ en\ el\ grupo\} = \frac{Purchase\cap Male}{Male}')))
 
+
 homedir = os.path.expanduser('~')
-root = homedir + '/NetworksGit/'
+if getpass.getuser()=='p13861161':
+    print("Running on Linux")
+    root = homedir + '/labormkt/labormkt_rafaelpereira/NetworksGit/'
+elif getpass.getuser()=='jfogel':
+    print("Running on Jamie's home laptop")
+    root = homedir + '/NetworksGit/'
 
 sys.path.append(root + 'Code/Modules')
 figuredir = root + 'Results/'
@@ -31,6 +37,10 @@ figuredir = root + 'Results/'
 from torch_mle import torch_mle
 from mle_load_fulldata import mle_load_fulldata
 
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
 mle_data_filename      = root + "Data/derived/earnings_panel/panel_3states_2013to2016_new_level_0.csv"
 
 inv_eta_mayara   = 0.985
@@ -94,4 +104,6 @@ s_ij = a_probs_b('iota','jid_masked',   data_full.loc[(data_full.iota!=-1) & (da
 s_ig = a_probs_b('iota','gamma',        data_full.loc[(data_full.iota!=-1) & (data_full.gamma!=-1) & (data_full.gamma!=-0)])
 s_jg = a_probs_b('jid_masked','gamma',  data_full.loc[(data_full.iota!=-1) & (data_full.gamma!=-1) & (data_full.gamma!=-0)])
 
+
+# Still need to compute pi_{j \iota}, which is share of efficiency units in job j supplied by type iota workers. Can we just use earnings shares? At least as a first a pass earnings shares should be a good approximation because we can only get efficiency units after solving the MLE 
 Elasticity_s_ij_w_j = (1/theta) * ( (1/nu)*(1-s_ig)*s_ij + (1-s_ij))
