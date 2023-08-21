@@ -21,7 +21,7 @@ if getpass.getuser()=='p13861161':
     root = homedir + '/labormkt/labormkt_rafaelpereira/NetworksGit/'
 elif getpass.getuser()=='jfogel':
     print("Running on Jamie's home laptop")
-    homedir = os.path.expanduser('~')
+    root = homedir + '/NetworksGit/'
 
 sys.path.append(root + 'Code/Modules')
 figuredir = root + 'Results/'
