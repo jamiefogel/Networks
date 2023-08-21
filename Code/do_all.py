@@ -291,13 +291,6 @@ psi_hat = psi_and_k['psi_hat']
 k = psi_and_k['k']    
     
 
-#--------------------------
-#  SOLVE MODEL
-#--------------------------
-#exec(open(root + 'Code/solve_model.py').read())
-
-
-
 
 #--------------------------
 #  Descriptive analysis
