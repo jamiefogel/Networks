@@ -28,6 +28,9 @@ figuredir = root + 'Results/'
 
 os.chdir(root)
 
+import bisbm
+from create_earnings_panel import create_earnings_panel
+from pull_one_year import pull_one_year
 
 
 import matplotlib.pyplot as plt
@@ -47,6 +50,25 @@ from concentration_figures import concentration_figures
 ## STRUCTURAL OBJECTS
 ################################################################
 
+
+#####################################
+# Options from IPEA/do_all_ipea.py
+
+run_sbm = True
+run_pull=True
+run_append = True
+maxrows=None
+modelname = '3states_2009to2012'
+
+firstyear_sbm = 2009
+lastyear_sbm  = 2012
+firstyear_panel = 2009
+lastyear_panel  = 2014
+state_codes = [31, 33, 35]
+
+
+#####################################
+# Options from do_all.py
 
 # Default is 100. 1000 looks better. 10000 crashed the computer.
 plt.rcParams['figure.dpi'] = 100
@@ -94,8 +116,86 @@ job_type_var    = 'gamma'
 classification_list = [('iota','gamma'), ('occ2_first_recode','sector_IBGE'), ('occ4_first_recode','sector_IBGE'), ('occ4_first_recode','gamma'), ('iota','occ2Xmeso_recode')] # ('occ2Xmeso_recode','occ2Xmeso_recode')] # , ('kmeans','sector_IBGE'), ('kmeans','gamma')
 
 
+
+
 ################################################################
-## RUNNING
+## PULL RAW DATA FROM RAIS, RUN SBM, CREATE EARNINGS PANEL (from original IPEA/do_all_ipea.py)
+################################################################
+
+
+# Pull region codes
+region_codes = pd.read_csv('./Data/raw/munic_microregion_rm.csv', encoding='latin1')
+muni_micro_cw = pd.DataFrame({'code_micro':region_codes.code_micro,'codemun':region_codes.code_munic//10})
+code_list = region_codes.loc[region_codes.rm_dummy==1][['micro','code_micro']].drop_duplicates().sort_values(by='code_micro')
+micro_code_list = code_list.code_micro.values
+dict = {}
+for m in micro_code_list:
+    value_list = [n//10 for n in region_codes.loc[region_codes.code_micro==m].code_munic.values.tolist()]
+    dict[m] = {'micro':code_list.loc[code_list.code_micro==m]['micro'].iloc[0],'muni_codes':value_list}
+
+
+
+# Changes to make:
+# - Choose best measure of earnings
+
+
+################################################################################################    
+# Pull raw data for SBM
+
+if run_pull==True:
+    print('Starting pull_one_year() at ', datetime.datetime.now())
+    for year in range(firstyear_panel,lastyear_panel+1):
+        print(year, ' ', datetime.datetime.now())
+        pull_one_year(year, 'cbo2002', savefile='./Data/derived/raw_data_sbm_' + modelname + '_' + str(year) + '.p',state_codes=state_codes, age_lower=25, age_upper=55, othervars=['data_adm','data_deslig','data_nasc','tipo_salario','rem_dez_r','horas_contr','clas_cnae20'], parse_dates=['data_adm','data_deslig','data_nasc'], nrows=maxrows)
+
+################################################################################################
+# Append raw data for SBM
+
+if run_append==True:
+    print('Starting append at ', datetime.datetime.now())
+    for year in range(firstyear_panel,lastyear_panel+1):
+        print(year, ' ', datetime.datetime.now())
+        df = pickle.load( open('./Data/derived/raw_data_sbm_' + modelname + '_' + str(year) + '.p', "rb" ) )
+        if year==firstyear_panel:
+            appended = df
+        else:
+            appended = df.append(appended, sort=True)
+        del df
+    appended.to_pickle('./Data/derived/appended_sbm_' + modelname + '.p')
+
+################################################################################################
+# Run SBM
+
+appended = pd.read_pickle('./Data/derived/appended_sbm_' + modelname + '.p')
+occvar = 'cbo2002'
+if run_sbm==True:
+    print('Starting SBM section at ', datetime.datetime.now())
+    # It's kinda inefficient to pickle the edgelist then load it from pickle but kept this for flexibility
+    bipartite_edgelist = appended.loc[(appended['year']>=firstyear_sbm) & (appended['year']<=lastyear_sbm)][['wid','jid']].drop_duplicates(subset=['wid','jid'])
+    jid_occ_cw =         appended.loc[(appended['year']>=firstyear_sbm) & (appended['year']<=lastyear_sbm)][['jid','cbo2002']].drop_duplicates(subset=['jid','cbo2002'])
+    pickle.dump( bipartite_edgelist,  open('./Data/derived/bipartite_edgelist_'+modelname+'.p', "wb" ) )
+    model = bisbm.bisbm()                                                                       
+    model.create_graph(filename='./Data/derived/bipartite_edgelist_'+modelname+'.p',min_workers_per_job=5)
+    model.fit(n_init=1)
+    # In theory it makes more sense to save these as pickles than as csvs but I keep getting an error loading the pickle and the csv works fine
+    model.export_blocks(output='./Data/derived/sbm_output/model_'+modelname+'_blocks.csv', joutput='./Data/derived/sbm_output/model_'+modelname+'_jblocks.csv', woutput='./Data/derived/sbm_output/model_'+modelname+'_wblocks.csv')
+    pickle.dump( model, open('./Data/derived/sbm_output/model_'+modelname+'.p', "wb" ), protocol=4 )
+    print('SBM section complete at ', datetime.datetime.now())
+
+
+################################################################################################
+# Create earnings panel that we can use for the MLE
+
+print('Starting create_earnings_panel() section at ', datetime.datetime.now())
+create_earnings_panel(modelname, appended, 2009, 2016, sbm_modelname='3states_2013to2016_mcmc')
+print('create_earnings_panel() section finished  at ', datetime.datetime.now())
+
+
+
+
+
+################################################################
+## MLE AND ANALYSIS (from original do_all.py)
 ################################################################
 
 #--------------------------
@@ -108,7 +208,8 @@ exec(open(root + 'Code/intro_figs.py').read())
 #--------------------------
 #  LOAD DATA AND RUN MLE
 #--------------------------
-filename_stub = "panel_3states_2013to2016_new"
+filename_stub = "panel_"+modelname
+#filename_stub = "panel_3states_2013to2016_new"
 # Define filenames
 if 1==1:
     mle_data_filename      = root + "Data/derived/earnings_panel/" + filename_stub + "_level_0.csv"
@@ -230,6 +331,7 @@ exec(open(root + 'Code/gamma_summary_stats.py').read())
 if run_predictions==True:
     exec(open(root + 'Code/IPEA/predicting_flows_data_pull.py').read())
     # WE have been running the actual predictions (coded in the script below) in parallel using the following script: NetworksGit\Code\IPEA\bash_parallel_jobtransitions_market_based_mutiple_mkts.sh
+    # XX Code ran successfully through here on 8/11/2023. Failed somewhere in in the next script
     exec(open(root + 'Code/IPEA/parallel_jobtransitions_market_based_multiple_mkts.py').read())
     exec(open(root + 'Code/IPEA/parallel_jobtransitions_stack_results.py').read())
 
