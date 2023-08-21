@@ -39,4 +39,4 @@ for col in date_cols:
 original_data['pis'] = range(1, 1 + len(original_data))
 
 # 3. Save the synthetic dataset
-original_data.to_csv('/Data/raw/synthetic_data.csv', index=False)
+original_data.to_csv('./Data/raw/synthetic_data.csv', index=False)
