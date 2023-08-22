@@ -146,7 +146,7 @@ if run_pull==True:
     print('Starting pull_one_year() at ', datetime.datetime.now())
     for year in range(firstyear_panel,lastyear_panel+1):
         print(year, ' ', datetime.datetime.now())
-        pull_one_year(year, 'cbo2002', savefile='./Data/derived/raw_data_sbm_' + modelname + '_' + str(year) + '.p',state_codes=state_codes, age_lower=25, age_upper=55, othervars=['data_adm','data_deslig','data_nasc','tipo_salario','rem_dez_r','horas_contr','clas_cnae20'], parse_dates=['data_adm','data_deslig','data_nasc'], nrows=maxrows)
+        pull_one_year(year, 'cbo2002', savefile='./Data/derived/raw_data_sbm_' + modelname + '_' + str(year) + '.p',state_codes=state_codes, age_lower=25, age_upper=55, othervars=['data_adm','data_deslig','tipo_salario','rem_dez_r','horas_contr','clas_cnae20'], parse_dates=['data_adm','data_deslig'], nrows=maxrows)
 
 ################################################################################################
 # Append raw data for SBM
