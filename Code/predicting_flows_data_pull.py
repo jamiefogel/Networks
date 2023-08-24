@@ -74,7 +74,7 @@ iotas['iota'] = iotas.iota.fillna(-1)
 
 if run_pull==True:
     for year in range(firstyear,lastyear+1):
-        raw = pull_one_year(year, 'cbo2002', othervars=['data_adm'], state_codes=state_codes, age_lower=25, age_upper=55, parse_dates=['data_adm'], nrows=maxrows)
+        raw = pull_one_year(year, 'cbo2002', othervars=['data_adm'], state_codes=state_codes, age_lower=25, age_upper=55, parse_dates=['data_adm'], nrows=maxrows, filename=rais_filename_stub + str(year) + '.csv')
         # Deflate
         raw['start_date'] = pd.to_datetime(raw['data_adm'])
         raw = raw.merge(muni_meso_cw, how='left', on='codemun', copy=False) # validate='m:1', indicator=True)

@@ -58,7 +58,11 @@ run_sbm = True
 run_pull=True
 run_append = True
 maxrows=None
-modelname = '3states_2009to2012'
+#modelname = '3states_2009to2012'
+modelname = 'synthetic_data_3states_2009to2012'
+#rais_filename_stub =  '~/rais/RAIS/csv/brasil' 
+rais_filename_stub = root + './Data/raw/synthetic_data_'
+
 
 firstyear_sbm = 2009
 lastyear_sbm  = 2012
@@ -77,8 +81,8 @@ plt.rcParams['figure.dpi'] = 100
 level = 0
 #level = int(sys.argv[1])
 
-pre = 2013
-post = 2018
+pre = 2009
+post = 2014
 eta = 2
 year = pre
 S = 15
@@ -146,8 +150,8 @@ if run_pull==True:
     print('Starting pull_one_year() at ', datetime.datetime.now())
     for year in range(firstyear_panel,lastyear_panel+1):
         print(year, ' ', datetime.datetime.now())
-        pull_one_year(year, 'cbo2002', savefile='./Data/derived/raw_data_sbm_' + modelname + '_' + str(year) + '.p',state_codes=state_codes, age_lower=25, age_upper=55, othervars=['data_adm','data_deslig','tipo_salario','rem_dez_r','horas_contr','clas_cnae20'], parse_dates=['data_adm','data_deslig'], nrows=maxrows)
-
+        pull_one_year(year, 'cbo2002', savefile='./Data/derived/raw_data_sbm_' + modelname + '_' + str(year) + '.p',state_codes=state_codes, age_lower=25, age_upper=55, othervars=['data_adm','data_deslig','tipo_salario','rem_dez_r','horas_contr','clas_cnae20'], parse_dates=['data_adm','data_deslig'], nrows=maxrows, filename=rais_filename_stub + str(year) + '.csv')
+        
 ################################################################################################
 # Append raw data for SBM
 

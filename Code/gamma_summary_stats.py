@@ -65,7 +65,7 @@ iotas['wid'] = iotas['wid'].astype('str')
 # Pull other variables like education for 2016
 # - These are variables that we want to merge on by wid-jid but then collapse by gamma to better characterize the different gammas
 
-raw2016 = pull_one_year(2016, 'cbo2002', othervars=['grau_instr','rem_med_r','clas_cnae20','codemun'], state_codes=state_codes, age_lower=25, age_upper=55, nrows=None)
+raw2016 = pull_one_year(2016, 'cbo2002', othervars=['grau_instr','rem_med_r','clas_cnae20','codemun'], state_codes=state_codes, age_lower=25, age_upper=55, nrows=None, filename=rais_filename_stub + str(year) + '.csv')
 
 raw2016 = raw2016.merge(gammas, how='left', validate='m:1', on='jid',indicator=False)
 raw2016 = raw2016.merge(iotas, how='left', validate='m:1', on='wid',indicator=False)
