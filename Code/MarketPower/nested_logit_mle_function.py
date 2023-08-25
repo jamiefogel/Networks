@@ -12,10 +12,13 @@ data
 theta = 1
 eta = 0
 x = csr_matrix(data[['i1','i2','i3']])
-x.toarray()
 g = csr_matrix(data['g'])
-g.toarray()
 
+# USING OUR REAL DATA
+x = mean_wage_matrix
+x.shape
+g = csr_matrix(jid_gamma_cw.astype(int))
+g.shape
 
 def collapse_rows(z, g, G, G_min):
     for i in range(G_min,G+1):
@@ -25,6 +28,11 @@ def collapse_rows(z, g, G, G_min):
             zgi = vstack([zgi, csr_matrix(z[g.data == i].sum(axis=0))])
     return zgi
 
+def log_or_zero(matrix):
+    A = matrix.copy()
+    A.data = np.where(A.toarray() != 0, np.log(A.toarray()), 0)
+    return A
+
 # DATA PREP FOR EFICIENCY
 I = x.shape[1]
 J = x.shape[0]
@@ -32,13 +40,15 @@ G = np.max(g)
 G_min = np.min(g)
 g_card = csr_matrix(np.unique(g.toarray(), return_counts=True)[1])
 
-z = x.power(1+eta)    
-zgi = collapse_rows(z, g, G, G_min)
-
 # NESTED LOGIT LOG LIKELIHOOD
 # I am following our overleaf document, nested logit MLE subsection:
 # https://www.overleaf.com/project/63852b08ac01347091649216
-def nested_logit_log_likelihood(x,g,theta,eta,z,zgi,I,G,J,G_min,g_card):
+def nested_logit_log_likelihood(x,g,theta,eta,I,G,J,G_min,g_card):
+    ###########################
+    # Quick data prep
+    z = x.power(1+eta)    
+    zgi = collapse_rows(z, g, G, G_min)
+
     ###########################
     # TERM 3
     term3 = np.sum(np.log(z.data))
@@ -54,5 +64,15 @@ def nested_logit_log_likelihood(x,g,theta,eta,z,zgi,I,G,J,G_min,g_card):
 
     return term1 + term2 + term3
 
+nested_logit_log_likelihood(x,g,theta,eta,I,G,J,G_min,g_card)
 
-nested_logit_log_likelihood(x,g,theta,eta,z,zgi,I,G,J,G_min,g_card)
+
+
+
+
+
+
+
+
+
+
