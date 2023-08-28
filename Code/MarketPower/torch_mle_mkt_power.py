@@ -1,18 +1,13 @@
-# srun --pty --account=lsa1 /bin/bash  
-# module load python3.6-anaconda
-
 import pandas as pd
 import numpy as np
 import pickle
 import os
 import sys
 import torch
-from scipy.sparse import csr_matrix, vstack
 from datetime import datetime
 
 homedir = os.path.expanduser('~')
 data_dir = homedir + '/labormkt/labormkt_rafaelpereira/NetworksGit/Data/derived'
-
 
 def torch_mle(data_dir):
     '''
@@ -21,50 +16,56 @@ def torch_mle(data_dir):
     - Take arguments  saved_mle_sums, estimates_savefile
     '''    
     print("Now running")
+    start = datetime.now()
+    print(start)
     os.chdir(data_dir)    
     ################################
     # LOAD AND PREP DATA
     ################################
     # Load data
-    x = pickle.load(open('nested_logit.p', "rb" ))[0]
-    g = csr_matrix(pickle.load(open('nested_logit.p', "rb" ))[1].astype(int))
+    x, g = pickle.load(open('nested_logit.p', "rb" ))
+    x = torch.tensor(x.values)
+    g = torch.tensor(g.values, dtype=torch.int32)
     def collapse_rows(z, g, G, G_min):
-        for i in range(G_min,G+1):
+        for i in range(G_min, G+1):
+            z_sum = torch.sum(z[g == i], dim=0)
             if i == G_min:
-                zgi = csr_matrix(z[g.data == i].sum(axis=0))
+                zgi = z_sum
+            elif i == 2:
+                zgi = torch.cat((zgi.unsqueeze(0), z_sum.unsqueeze(0)), dim=0)        
             else:
-                zgi = vstack([zgi, csr_matrix(z[g.data == i].sum(axis=0))])
+                zgi = torch.cat((zgi, z_sum.unsqueeze(0)), dim=0)
         return zgi
     def log_or_zero(matrix):
-        return csr_matrix(np.where(matrix.toarray() != 0, np.log(matrix.toarray()), 0))
-    # DATA PREP FOR EFICIENCY
+        return torch.where(matrix != 0, torch.log(matrix), torch.zeros_like(matrix))
+    # DATA PREP FOR EFFICIENCY
     I = x.shape[1]
     J = x.shape[0]
-    G = np.max(g)
-    G_min = np.min(g)
-    g_card = csr_matrix(np.unique(g.toarray(), return_counts=True)[1])
+    G = torch.max(torch.tensor(g))
+    G_min = torch.min(torch.tensor(g))
+    unique_g, g_counts = torch.unique(g, return_counts=True)
+    g_card = torch.tensor(g_counts, dtype=torch.float32).view(1,I)
     ################################
     # LOG-LIKELIHOOD FUNCTION
     ################################
     # NESTED LOGIT LOG LIKELIHOOD
     # I am following our overleaf document, nested logit MLE subsection:
     # https://www.overleaf.com/project/63852b08ac01347091649216
-    def nested_logit_log_likelihood(x,g,theta,eta,I,G,J,G_min,g_card):
+    def nested_logit_log_likelihood(x, g, theta, eta, I, G, J, G_min, g_card):
         ###########################
         # Quick data prep
-        z = x.power(1+eta)    
+        z = x.pow(1 + eta)
         zgi = collapse_rows(z, g, G, G_min)
         ###########################
         # TERM 3
-        term3 = np.sum(log_or_zero(z))
+        term3 = torch.sum(log_or_zero(z))
         ###########################
         # TERM 1
         log_zgi = log_or_zero(zgi)
-        term1 = ((theta - eta) / (eta+1)) * np.sum(g_card * log_zgi)
+        term1 = ((theta - eta) / (eta + 1)) * torch.sum(torch.mm(g_card,log_zgi))
         ###########################
         # TERM 2
-        #term2 = np.sum(np.log((g_card * zgi.power((theta+1)/(eta+1))).toarray()))*J # old code
-        term2 = np.sum(log_or_zero((g_card * zgi.power((theta+1)/(eta+1)))))*J
+        term2 = J * torch.sum(log_or_zero(torch.mm(g_card,zgi.pow((theta + 1) / (eta + 1)))))
         return term1 + term2 + term3
     ################################
     # OPTIMIZATION
@@ -88,9 +89,9 @@ def torch_mle(data_dir):
         negloglike.backward() # computes the gradient of the function at the current value of the argument                                                                    
         optimizer.step() # updates the argument using gradient descent                                                                                                        
         #print(negloglike)
-        print('Negative log-likelihood = ', negloglike, 'step = ', iter)
-        print('theta = ', theta)
-        print('eta = ', eta)
+        end = datetime.now()
+        print('Negative log-likelihood = ', negloglike, 'step = ', iter, ' t =',end - start)
+        print('theta = ', theta, 'eta = ', eta)
         if iter % 10:
             negloglike_vec.append(negloglike)
         if torch.max(torch.abs(theta-theta_prev)) <tol and  torch.max(torch.abs(eta-eta_prev)) <tol:
