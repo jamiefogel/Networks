@@ -41,10 +41,10 @@ def log_or_zero(matrix):
 # DATA PREP FOR EFFICIENCY
 I = x.shape[1]
 J = x.shape[0]
-G = torch.max(torch.tensor(g))
-G_min = torch.min(torch.tensor(g))
+G = torch.max(g)
+G_min = torch.min(g)
 unique_g, g_counts = torch.unique(g, return_counts=True)
-g_card = torch.tensor(g_counts, dtype=torch.float32).view(1,I)
+g_card = torch.tensor(g_counts, dtype=torch.float32).view(1,G)
 
 # NESTED LOGIT LOG LIKELIHOOD
 def nested_logit_log_likelihood(x, g, theta, eta, I, G, J, G_min, g_card):

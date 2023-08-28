@@ -5,6 +5,8 @@ import os
 import sys
 import torch
 from datetime import datetime
+from scipy.sparse import csr_matrix
+
 
 homedir = os.path.expanduser('~')
 data_dir = homedir + '/labormkt/labormkt_rafaelpereira/NetworksGit/Data/derived'
@@ -24,8 +26,8 @@ def torch_mle(data_dir):
     ################################
     # Load data
     x, g = pickle.load(open('nested_logit.p', "rb" ))
-    x = torch.tensor(x.values)
-    g = torch.tensor(g.values, dtype=torch.int32)
+    x = torch.tensor(x.toarray(), requires_grad=False)
+    g = torch.tensor(g.values, dtype=torch.int32, requires_grad=False)
     def collapse_rows(z, g, G, G_min):
         for i in range(G_min, G+1):
             z_sum = torch.sum(z[g == i], dim=0)
@@ -41,10 +43,10 @@ def torch_mle(data_dir):
     # DATA PREP FOR EFFICIENCY
     I = x.shape[1]
     J = x.shape[0]
-    G = torch.max(torch.tensor(g))
-    G_min = torch.min(torch.tensor(g))
+    G = torch.max(g)
+    G_min = torch.min(g)
     unique_g, g_counts = torch.unique(g, return_counts=True)
-    g_card = torch.tensor(g_counts, dtype=torch.float32).view(1,I)
+    g_card = g_counts.view(1,G).to(torch.float64)
     ################################
     # LOG-LIKELIHOOD FUNCTION
     ################################
