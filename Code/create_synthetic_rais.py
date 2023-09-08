@@ -43,7 +43,7 @@ columns = ['id_estab', 'cbo2002', 'codemun', 'data_adm', 'pis',
            'tipo_vinculo', 'idade', 'grau_instr', 'rem_med_r', 'clas_cnae20', 
            'data_deslig', 'tipo_salario', 'rem_dez_r', 'horas_contr', 
            'uf', 'salario']
-sample_size = 100000
+sample_size = 1000000
 years = list(range(2008, 2020))
 
 # 1. Extract sample PIS values from the first year

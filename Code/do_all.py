@@ -87,6 +87,7 @@ eta = 2
 year = pre
 S = 15
 
+
 xi_outopt_scalar = 0
 phi_outopt_scalar = 0
 
@@ -147,18 +148,18 @@ for m in micro_code_list:
 # Pull raw data for SBM
 
 if run_pull==True:
-    print('Starting pull_one_year() at ', datetime.datetime.now())
+    print('Starting pull_one_year() at ', datetime.now())
     for year in range(firstyear_panel,lastyear_panel+1):
-        print(year, ' ', datetime.datetime.now())
+        print(year, ' ', datetime.now())
         pull_one_year(year, 'cbo2002', savefile='./Data/derived/raw_data_sbm_' + modelname + '_' + str(year) + '.p',state_codes=state_codes, age_lower=25, age_upper=55, othervars=['data_adm','data_deslig','tipo_salario','rem_dez_r','horas_contr','clas_cnae20'], parse_dates=['data_adm','data_deslig'], nrows=maxrows, filename=rais_filename_stub + str(year) + '.csv')
         
 ################################################################################################
 # Append raw data for SBM
 
 if run_append==True:
-    print('Starting append at ', datetime.datetime.now())
+    print('Starting append at ', datetime.now())
     for year in range(firstyear_panel,lastyear_panel+1):
-        print(year, ' ', datetime.datetime.now())
+        print(year, ' ', datetime.now())
         df = pickle.load( open('./Data/derived/raw_data_sbm_' + modelname + '_' + str(year) + '.p', "rb" ) )
         if year==firstyear_panel:
             appended = df
@@ -173,7 +174,7 @@ if run_append==True:
 appended = pd.read_pickle('./Data/derived/appended_sbm_' + modelname + '.p')
 occvar = 'cbo2002'
 if run_sbm==True:
-    print('Starting SBM section at ', datetime.datetime.now())
+    print('Starting SBM section at ', datetime.now())
     # It's kinda inefficient to pickle the edgelist then load it from pickle but kept this for flexibility
     bipartite_edgelist = appended.loc[(appended['year']>=firstyear_sbm) & (appended['year']<=lastyear_sbm)][['wid','jid']].drop_duplicates(subset=['wid','jid'])
     jid_occ_cw =         appended.loc[(appended['year']>=firstyear_sbm) & (appended['year']<=lastyear_sbm)][['jid','cbo2002']].drop_duplicates(subset=['jid','cbo2002'])
@@ -184,15 +185,15 @@ if run_sbm==True:
     # In theory it makes more sense to save these as pickles than as csvs but I keep getting an error loading the pickle and the csv works fine
     model.export_blocks(output='./Data/derived/sbm_output/model_'+modelname+'_blocks.csv', joutput='./Data/derived/sbm_output/model_'+modelname+'_jblocks.csv', woutput='./Data/derived/sbm_output/model_'+modelname+'_wblocks.csv')
     pickle.dump( model, open('./Data/derived/sbm_output/model_'+modelname+'.p', "wb" ), protocol=4 )
-    print('SBM section complete at ', datetime.datetime.now())
+    print('SBM section complete at ', datetime.now())
 
 
 ################################################################################################
 # Create earnings panel that we can use for the MLE
 
-print('Starting create_earnings_panel() section at ', datetime.datetime.now())
-create_earnings_panel(modelname, appended, 2009, 2016, sbm_modelname='3states_2013to2016_mcmc')
-print('create_earnings_panel() section finished  at ', datetime.datetime.now())
+print('Starting create_earnings_panel() section at ', datetime.now())
+create_earnings_panel(modelname, appended, 2009, 2014)
+print('create_earnings_panel() section finished  at ', datetime.now())
 
 
 
