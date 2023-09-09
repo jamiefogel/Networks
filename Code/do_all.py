@@ -1,13 +1,12 @@
 # conda activate gt
 
-
 import os
+import sys
 import pandas as pd
 import torch
 import numpy as np
 import pickle
 from datetime import datetime
-import sys
 import getpass
 
 
@@ -27,6 +26,9 @@ sys.path.append(root + 'Code/Modules')
 figuredir = root + 'Results/'
 
 os.chdir(root)
+
+
+
 
 import bisbm
 from create_earnings_panel import create_earnings_panel
@@ -58,10 +60,10 @@ run_sbm = True
 run_pull=True
 run_append = True
 maxrows=None
-#modelname = '3states_2009to2012'
-modelname = 'synthetic_data_3states_2009to2012'
-#rais_filename_stub =  '~/rais/RAIS/csv/brasil' 
-rais_filename_stub = root + './Data/raw/synthetic_data_'
+modelname = '3states_2009to2012'
+#modelname = 'synthetic_data_3states_2009to2012'
+rais_filename_stub =  '~/rais/RAIS/csv/brasil' 
+#rais_filename_stub = root + './Data/raw/synthetic_data_'
 
 
 firstyear_sbm = 2009
