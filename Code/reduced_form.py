@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 # -*- coding: utf-8 -*-
 """
 Created on Wed Jul 28 17:03:46 2021
@@ -34,8 +35,8 @@ np.random.seed(20210316)
 #mle_dir = root + "MLE_estimates/"
 #sums_dir= root + "Data/mle_data_sums/"
 
-firstyear=2009
-lastyear=2012
+firstyear=2013
+lastyear=2016
 
 
 
@@ -43,21 +44,19 @@ lastyear=2012
 # 1. Load everything: mle data, mle data sums, mle estimates, psi and k, model parameters (a_s and alphas)
 ########################################################################################################################
 
-# Comment out old filepaths for transition to git. Can probably delete once I confirm this works
-#mle_data_filename      = homedir + "/Networks/RAIS_exports/earnings_panel/panel_rio_2009_2012_level_" + str(level) + ".csv"
-# mle_data_filename      = homedir + "/Networks/RAIS_exports/earnings_panel/panel_rio_2009_2012_w_kmeans.csv"
-# mle_data_sums_filename = sums_dir + "panel_rio_2009_2012_mle_data_sums_iota_gamma_level_" + str(level) + ".p"
-# mle_estimates_filename = mle_dir  + "panel_rio_2009_2012_mle_estimates_iota_gamma_level_" + str(level) + ".p"
-# psi_and_k_file         = mle_dir  + "panel_rio_2009_2012_psi_normalized_iota_gamma_level_" + str(level) + "_eta_" + str(eta) + ".p"
-# alphas_file            = homedir + "/Networks/Code/jmp_version/MLE_estimates/panel_rio_2009_2012_alphas_iota_gamma_level_" + str(level) + "_eta_" + str(eta) + ".p"
 
-mle_data_filename      = root + "Data/RAIS_exports/earnings_panel/panel_rio_2009_2012_w_kmeans.csv"
-mle_data_sums_filename = root + "Data/mle_data_sums/panel_rio_2009_2012_mle_data_sums_iota_gamma_level_" + str(level) + ".p"
-mle_estimates_filename = root + "MLE_estimates/panel_rio_2009_2012_mle_estimates_iota_gamma_level_" + str(level) + ".p"
+worker_type_var = 'iota'
+job_type_var    = 'gamma'
+#XX worker_type_var, job_type_var and filename_stub should probably all be arguments to a function
 
-psi_and_k_file         = root + "MLE_estimates/panel_rio_2009_2012_psi_normalized_iota_gamma_level_" + str(level) + "_eta_" + str(eta) + ".p"
-alphas_file            = root + "MLE_estimates/panel_rio_2009_2012_alphas_iota_gamma_level_" + str(level) + "_eta_" + str(eta) + ".p"
 
+
+
+mle_data_filename      = root + "Data/derived/earnings_panel/" + filename_stub + "_level_0.csv"
+mle_data_sums_filename = root + "Data/derived/mle_data_sums/" + filename_stub + "_mle_data_sums_" + worker_type_var + "_" + job_type_var + "_" "level_" + str(level) + ".p"
+mle_estimates_filename = root + "Data/derived/MLE_estimates/" + filename_stub + "_mle_estimates_" + worker_type_var + "_" + job_type_var + "_" "level_" + str(level) + ".p"
+psi_and_k_file         = root + "Data/derived/MLE_estimates/" + filename_stub + "_psi_normalized_" + worker_type_var + "_" + job_type_var + "_" "level_" + str(level) + "_eta_" + str(eta) + ".p"
+alphas_file            = root + "Data/derived/MLE_estimates/" + filename_stub + "_alphas_" + worker_type_var + "_" + job_type_var + "_" "level_" + str(level) + ".p"
 
 mle_data_sums = pickle.load(open(mle_data_sums_filename, "rb"), encoding='bytes')
 mle_estimates = pickle.load(open(mle_estimates_filename, "rb"), encoding='bytes')
@@ -66,7 +65,7 @@ psi_hat = pickle.load(open(psi_and_k_file, "rb"), encoding='bytes')['psi_hat']
 alphags = load_alphas(alphas_file)
 b_gs = alphags * x_s
 
-a_s_pre = torch.tensor(a_ts[p_ts.index == 2009,])
+a_s_pre = torch.tensor(a_ts[p_ts.index == 2013,])
 
 
 phi_outopt = torch.reshape(torch.tensor([phi_outopt_scalar]*mle_data_sums['I'], requires_grad=False), (mle_data_sums['I'],1))
@@ -100,7 +99,7 @@ if 1==1:
                 )
     
     phi_pre = equi_pre['w_g'] * psi_hat
-    pickle.dump(equi_pre,  open(root + "Data/dgp/dgp_equi_pre.p", "wb"))
+    pickle.dump(equi_pre,  open(root + "Data/derived/dgp/dgp_equi_pre.p", "wb"))
 
 
     
@@ -108,7 +107,7 @@ if 1==1:
 if 1==1:
         
     #shock = torch.ones(S)
-    a_s_rio = torch.tensor(a_ts[p_ts.index == 2014,])
+    a_s_rio = torch.tensor(a_ts[p_ts.index == 2016,])
 
     equi_rio = solve_model(eta,
                 mle_data_sums['I'],
@@ -131,7 +130,7 @@ if 1==1:
                 )
     
     phi_rio = equi_rio['w_g'] * psi_hat
-    pickle.dump(equi_rio,  open(root + "Data/dgp/dgp_equi_rio.p", "wb"))
+    pickle.dump(equi_rio,  open(root + "Data/derived/dgp/dgp_equi_rio.p", "wb"))
  
 
 # XXX Shock (arbitrarily defined shock that we used in dgp_adh)
@@ -165,7 +164,7 @@ if 1==1:
                 )
     
     phi_xxx = equi_xxx['w_g'] * psi_hat
-    pickle.dump(equi_xxx, open(root + "Data/dgp/dgp_equi_xxx.p", "wb"))
+    pickle.dump(equi_xxx, open(root + "Data/derived/dgp/dgp_equi_xxx.p", "wb"))
 
 
 
@@ -197,37 +196,37 @@ if 1==1:
                 )
     
     phi_china = equi_china['w_g'] * psi_hat
-    pickle.dump(equi_china,  open(root + "Data/dgp/dgp_equi_china.p", "wb"))
+    pickle.dump(equi_china,  open(root + "Data/derived/dgp/dgp_equi_china.p", "wb"))
   
     
 
 
-fake_data_pre       = dgp(mle_data_filename, mle_data_sums, phi_pre,       mle_estimates['sigma_hat'], equi_pre,       2009, 2009)
+fake_data_pre       = dgp(mle_data_filename, mle_data_sums, phi_pre,       mle_estimates['sigma_hat'], equi_pre,       2013, 2013)
 # The version we used for the current figures didn't get saved. This is a new version of fake_data_free
-fake_data_pre_filename = root + "Data/dgp/fake_data_pre_rio_2009_2012_level_" + str(level) + ".csv"
+fake_data_pre_filename = root + "Data/derived/dgp/fake_data_pre_rio_2013_2013_level_" + str(level) + ".csv"
 fake_data_pre.to_csv(fake_data_pre_filename, index=False)
 fake_data_pre = pd.read_csv(fake_data_pre_filename)
 
 
-fake_data_pre_rio   = dgp(mle_data_filename, mle_data_sums, phi_pre,       mle_estimates['sigma_hat'], equi_pre,     2009, 2012)
-fake_data_rio       = dgp(mle_data_filename, mle_data_sums, phi_rio,       mle_estimates['sigma_hat'], equi_rio,     2014, 2014)
-fake_data_xxx       = dgp(mle_data_filename, mle_data_sums, phi_xxx,       mle_estimates['sigma_hat'], equi_xxx,     2014, 2014)
+fake_data_pre_rio   = dgp(mle_data_filename, mle_data_sums, phi_pre,       mle_estimates['sigma_hat'], equi_pre,     2013, 2013)
+fake_data_rio       = dgp(mle_data_filename, mle_data_sums, phi_rio,       mle_estimates['sigma_hat'], equi_rio,     2016, 2016)
+fake_data_xxx       = dgp(mle_data_filename, mle_data_sums, phi_xxx,       mle_estimates['sigma_hat'], equi_xxx,     2016, 2016)
 
 
 
-equi_pre = pickle.load(open(root + "Data/dgp/dgp_equi_pre.p", "rb"))
-equi_rio = pickle.load(open(root + "Data/dgp/dgp_equi_rio.p", "rb"))
+equi_pre = pickle.load(open(root + "Data/derived/dgp/dgp_equi_pre.p", "rb"))
+equi_rio = pickle.load(open(root + "Data/derived/dgp/dgp_equi_rio.p", "rb"))
 
 
 
-fake_data_rio_filename = root + "Data/dgp/fake_data_rio_rio_2009_2012_level_" + str(level) + ".csv"
+fake_data_rio_filename = root + "Data/derived/dgp/fake_data_rio_rio_2013_2013_level_" + str(level) + ".csv"
 fake_data_rio = fake_data_rio.append(fake_data_pre_rio)
 fake_data_rio.sort_values(by=['wid_masked','year'], inplace=True)
 fake_data_rio.to_csv(fake_data_rio_filename, index=False)
 fake_data_rio = pd.read_csv(fake_data_rio_filename)
 
 # We don't actually use the xxx version in the paper. Keeping it for now because it simulates a shock that leads to Bartik regressions with much large R2's, which may help satisfy the concerns John raised in his emails the weekend of 7/23/2022
-fake_data_xxx_filename = root + "Data/dgp/fake_data_xxx_rio_2009_2012_level_" + str(level) + ".csv"
+fake_data_xxx_filename = root + "Data/derived/dgp/fake_data_xxx_rio_2013_2013_level_" + str(level) + ".csv"
 fake_data_xxx = fake_data_xxx.append(fake_data_pre_rio)
 fake_data_xxx.sort_values(by=['wid_masked','year'], inplace=True)
 fake_data_xxx.to_csv(fake_data_xxx_filename, index=False)
@@ -247,7 +246,7 @@ bartik_analysis(fake_data_xxx_filename,         equi_shock=equi_xxx,       equi_
 
 
 # Actual data
-mle_data_filename      = root + 'Data/RAIS_exports/earnings_panel/panel_rio_2009_2012_w_kmeans.csv'
+mle_data_filename      = root + 'Data/RAIS_exports/earnings_panel/panel_rio_2013_2013_w_kmeans.csv'
 bartik_analysis(mle_data_filename,  y_ts=y_ts, shock_source='data', figuredir=figuredir, savefile_stub='real_data') # Produces real_data_iota_occ4_exposure_regs_ln_wage_N.tex
 
 
@@ -293,8 +292,8 @@ for s in range(S):
                 )
     
     phi_shock_loop = equi_neg['w_g'] * psi_hat    
-    fake_data = dgp(mle_data_filename, mle_data_sums, phi_shock_loop,  mle_estimates['sigma_hat'], equi_neg,  2009, 2009, replaceyear='2014')
-    fake_data_filename = root + "Data/dgp/fake_data_temp.csv"
+    fake_data = dgp(mle_data_filename, mle_data_sums, phi_shock_loop,  mle_estimates['sigma_hat'], equi_neg,  2013, 2013, replaceyear='2016')
+    fake_data_filename = root + "Data/derived/dgp/fake_data_temp.csv"
     fake_data = fake_data.append(fake_data_pre)
     fake_data.sort_values(by=['wid_masked','year'], inplace=True)
     fake_data.to_csv(fake_data_filename, index=False)
@@ -337,8 +336,8 @@ for s in range(S):
                 )
     
     phi_shock_loop = equi_pos['w_g'] * psi_hat    
-    fake_data = dgp(mle_data_filename, mle_data_sums, phi_shock_loop,  mle_estimates['sigma_hat'], equi_pos,  2009, 2009, replaceyear='2014')
-    fake_data_filename = root + "Data/dgp/fake_data_temp.csv"
+    fake_data = dgp(mle_data_filename, mle_data_sums, phi_shock_loop,  mle_estimates['sigma_hat'], equi_pos,  2013, 2013, replaceyear='2016')
+    fake_data_filename = root + "Data/derived/dgp/fake_data_temp.csv"
     fake_data = fake_data.append(fake_data_pre)
     fake_data.sort_values(by=['wid_masked','year'], inplace=True)
     fake_data.to_csv(fake_data_filename, index=False)

@@ -37,11 +37,12 @@ for idx in classification_list: #
 
     suffix = wtype_var + "_" + jtype_var + "_" "level_" + str(level)
 
-    fit_mle_data_filename      = homedir + "/Networks/RAIS_exports/earnings_panel/panel_rio_2009_2012_w_kmeans.csv"
-    fit_mle_data_sums_filename = homedir + "/Networks/RAIS_exports/earnings_panel/panel_rio_2009_2012_mle_data_sums_" + suffix + ".p"
-    fit_mle_estimates_filename = homedir + "/Networks/Code/jmp_version/MLE_estimates/panel_rio_2009_2012_mle_estimates_"  + suffix + ".p"
-    fit_psi_and_k_file         = homedir + "/Networks/Code/jmp_version/MLE_estimates/panel_rio_2009_2012_psi_normalized_" + suffix + "_eta_" + str(eta) + ".p"
-    fit_alphas_file            = homedir + "/Networks/Code/jmp_version/MLE_estimates/panel_rio_2009_2012_alphas_" + suffix + "_eta_" + str(eta) + ".p"
+    suffix = wtype_var + "_" + jtype_var + "_" "level_" + str(level)
+    fit_mle_data_filename      = root + "Data/derived/earnings_panel/" + filename_stub + "_level_0.csv"
+    fit_mle_data_sums_filename = root + "Data/derived/mle_data_sums/" + filename_stub + "_mle_data_sums_" + suffix + ".p"
+    fit_mle_estimates_filename = root + "Data/derived/MLE_estimates/" + filename_stub + "_mle_estimates_"  + suffix + ".p"
+    fit_psi_and_k_file         = root + "Data/derived/MLE_estimates/" + filename_stub + "_psi_normalized_" + suffix + "_eta_" + str(eta) + ".p"
+    fit_alphas_file            = root + "Data/derived/MLE_estimates/" + filename_stub + "_alphas_" + suffix + "_eta_" + str(eta) + ".p"
     
     fit_mle_data_sums = pickle.load(open(fit_mle_data_sums_filename, "rb"), encoding='bytes')
     fit_mle_estimates = pickle.load(open(fit_mle_estimates_filename, "rb"), encoding='bytes')
@@ -54,8 +55,9 @@ for idx in classification_list: #
         fit_b_gs = fit_alphags * x_s
 
 
-    rvals =  model_fit(fit_mle_data_filename, fit_mle_data_sums, fit_mle_estimates, fit_psi_hat, S, eta, level, fit_b_gs, wtype_var, jtype_var, a_ts, p_ts, figuredir)
+    rvals =  model_fit(fit_mle_data_filename, fit_mle_data_sums, fit_mle_estimates, fit_psi_hat, S, eta, level, fit_b_gs, wtype_var, jtype_var, a_ts, p_ts, 2013, 2016, figuredir)
     fit_returnvals.append(rvals)
+
 
 
 i=0
@@ -64,8 +66,10 @@ for idx in classification_list:
     jtype_var = idx[1]
     print(wtype_var,jtype_var,round(fit_returnvals[i]['intercept'],3),round(fit_returnvals[i]['slope'],3),round(fit_returnvals[i]['mse'],3))
     i+=1
-    
-    
+
+print('###########################################################################################################################')
+print('The code below this needs to be updated to allow for a different set of classifications so it will fail soon (TEMP MEESAGE)')
+print('###########################################################################################################################')    
     
 ###################
 # Make table 

@@ -1,6 +1,6 @@
 Data
 Data/*
-Results/error_analysis_*
+Results/**/
 Results/*
 .DS_Store
 *.aux
@@ -15,3 +15,12 @@ job_transitions_results/*
 .DS_Store
 *.png
 *.pyc
+Results/intro_figs_part3_3.png
+Results/intro_figs_part3_2.png
+Results/intro_figs_part3_1.png
+Results/concentration_figures_iota_shocked_sector_share.png
+Results/concentration_figures_iota_sector_hhi.png
+Results/concentration_figures_iota_gamma_sector_hhi_worker_weighted.png
+Results/concentration_figures_iota_gamma_sector5_hhi_worker_weighted.png
+Results/concentration_figures_iota_gamma_occ4_hhi_worker_weighted.png
+Results/concentration_figures_gamma_iota_occ4_hhi_market_weighted.png

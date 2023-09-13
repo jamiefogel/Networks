@@ -1,10 +1,13 @@
+
+
+
 from datetime import datetime
 import pickle
 import pandas as pd
 import numpy as np
 import gc
 
-def pull_one_year(year, occvar, savefile=None, municipality_codes=None, state_codes=None, nrows=None, othervars=None, age_upper=None, age_lower=None, parse_dates=None):
+def pull_one_year(year, occvar, savefile=None, municipality_codes=None, state_codes=None, nrows=None, othervars=None, age_upper=None, age_lower=None, parse_dates=None, filename=None):
     print('new version')
     print(year)
     now = datetime.now()
@@ -17,7 +20,8 @@ def pull_one_year(year, occvar, savefile=None, municipality_codes=None, state_co
     vars = ['pis','id_estab',occvar,'codemun','tipo_vinculo','idade'] 
     if othervars is not None:
         vars = vars + othervars
-    filename = '~/rais/RAIS/csv/brasil' + str(year) + '.csv'
+    if filename is None:
+        filename = '~/rais/RAIS/csv/brasil' + str(year) + '.csv'
     raw_data = pd.read_csv(filename, usecols=vars, sep=sep, dtype={'id_estab':str, 'pis':str, occvar:str}, nrows=nrows, parse_dates=parse_dates)
     if municipality_codes is not None:
         raw_data = raw_data[raw_data['codemun'].isin(municipality_codes)]   

@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
@@ -106,7 +107,7 @@ def plot_mesos(gamma, gammas_w_attributes, meso_share_df, meso_share_norm_df, ga
     # remove the padding between subplots
     fig.tight_layout(pad=0)
     # Print gamma stats at the bottom
-    [educ,earn,dist,var,educ_rank,earn_rank,dist_rank,var_rank] = gammas_w_attributes.loc[gammas_w_attributes.gamma==gamma][['educ_mean','mean_monthly_earnings','dist_mean','spatial_var_km','educ_mean_rank','mean_monthly_earnings_rank','dist_mean_rank','spatial_var_km_rank']].values.tolist()[0]
+    [educ,earn,dist,var,educ_rank,earn_rank,dist_rank,var_rank] = gammas_w_attributes.loc[gammas_w_attributes.gamma==gamma][['educ_mean','mean_monthly_earnings','j2j_dist_mean','spatial_var_km','educ_mean_rank','mean_monthly_earnings_rank','j2j_dist_mean_rank','spatial_var_km_rank']].values.tolist()[0]
     textstr1 = 'Mean education: {:.2f};                   Rank: {:.2f} \nMean monthly earnings: {:.2f};     Rank: {:.2f} \nMean move distance (km): {:.2f};     Rank: {:.2f}\nSpatial variance (km): {:.2f};          Rank: {:.2f}'.format(educ,educ_rank,earn,earn_rank,dist,dist_rank,var,var_rank)
     fig.text(0.05, 0.08, textstr1, ha='left', va='center')
     [hhi_jid,num_unique_jids,num_unique_wids,num_unique_wid_jids] = gammas_w_attributes.loc[gammas_w_attributes.gamma==gamma][['hhi_jid','num_unique_jids','num_unique_wids','num_unique_wid_jids']].values.tolist()[0]
@@ -114,5 +115,7 @@ def plot_mesos(gamma, gammas_w_attributes, meso_share_df, meso_share_norm_df, ga
     fig.text(0.7, 0.08, textstr2, ha='left', va='center')
     plt.axis('off')
     plt.savefig("./Results/meso_maps/map_mesos_gamma_"+str(gamma)+".pdf")
+    plt.savefig("./Results/meso_maps/map_mesos_gamma_"+str(gamma)+".png")
+
 
  

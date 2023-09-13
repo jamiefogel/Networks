@@ -1,13 +1,12 @@
 # conda activate gt
 
-
 import os
+import sys
 import pandas as pd
 import torch
 import numpy as np
 import pickle
 from datetime import datetime
-import sys
 import getpass
 
 
@@ -21,13 +20,19 @@ if getpass.getuser()=='p13861161':
     root = homedir + '/labormkt/labormkt_rafaelpereira/NetworksGit/'
 elif getpass.getuser()=='jfogel':
     print("Running on Jamie's home laptop")
-    homedir = os.path.expanduser('~')
+    root = homedir + '/NetworksGit/'
 
 sys.path.append(root + 'Code/Modules')
 figuredir = root + 'Results/'
 
 os.chdir(root)
 
+
+
+
+import bisbm
+from create_earnings_panel import create_earnings_panel
+from pull_one_year import pull_one_year
 
 
 import matplotlib.pyplot as plt
@@ -48,6 +53,29 @@ from concentration_figures import concentration_figures
 ################################################################
 
 
+#####################################
+# Options from IPEA/do_all_ipea.py
+
+run_sbm = True
+run_pull=True
+run_append = True
+maxrows=None
+modelname = '3states_2009to2012'
+#modelname = 'synthetic_data_3states_2009to2012'
+rais_filename_stub =  '~/rais/RAIS/csv/brasil' 
+#rais_filename_stub = root + './Data/raw/synthetic_data_'
+
+
+firstyear_sbm = 2009
+lastyear_sbm  = 2012
+firstyear_panel = 2009
+lastyear_panel  = 2014
+state_codes = [31, 33, 35]
+
+
+#####################################
+# Options from do_all.py
+
 # Default is 100. 1000 looks better. 10000 crashed the computer.
 plt.rcParams['figure.dpi'] = 100
 #plt.rcParams['figure.dpi'] = 1000
@@ -55,11 +83,12 @@ plt.rcParams['figure.dpi'] = 100
 level = 0
 #level = int(sys.argv[1])
 
-pre = 2013
-post = 2018
+pre = 2009
+post = 2014
 eta = 2
 year = pre
 S = 15
+
 
 xi_outopt_scalar = 0
 phi_outopt_scalar = 0
@@ -79,7 +108,7 @@ run_occ_counts = True
 run_correlogram = True
 solve_GE_silently = True
 a_s_variation = True
-
+run_predictions = True
 
 worker_type_var = 'iota'
 #worker_type_var = 'kmeans'
@@ -91,11 +120,89 @@ job_type_var    = 'gamma'
 
 
 
-classification_list = [('iota','gamma'), ('occ2_first_recode','sector_IBGE'), ('occ4_first_recode','sector_IBGE'), ('occ4_first_recode','gamma'), ('iota','occ2Xmeso_recode'), ('occ2Xmeso_recode','occ2Xmeso_recode')] # , ('kmeans','sector_IBGE'), ('kmeans','gamma')
+classification_list = [('iota','gamma'), ('occ2_first_recode','sector_IBGE'), ('occ4_first_recode','sector_IBGE'), ('occ4_first_recode','gamma'), ('iota','occ2Xmeso_recode')] # ('occ2Xmeso_recode','occ2Xmeso_recode')] # , ('kmeans','sector_IBGE'), ('kmeans','gamma')
+
+
 
 
 ################################################################
-## RUNNING
+## PULL RAW DATA FROM RAIS, RUN SBM, CREATE EARNINGS PANEL (from original IPEA/do_all_ipea.py)
+################################################################
+
+
+# Pull region codes
+region_codes = pd.read_csv('./Data/raw/munic_microregion_rm.csv', encoding='latin1')
+muni_micro_cw = pd.DataFrame({'code_micro':region_codes.code_micro,'codemun':region_codes.code_munic//10})
+code_list = region_codes.loc[region_codes.rm_dummy==1][['micro','code_micro']].drop_duplicates().sort_values(by='code_micro')
+micro_code_list = code_list.code_micro.values
+dict = {}
+for m in micro_code_list:
+    value_list = [n//10 for n in region_codes.loc[region_codes.code_micro==m].code_munic.values.tolist()]
+    dict[m] = {'micro':code_list.loc[code_list.code_micro==m]['micro'].iloc[0],'muni_codes':value_list}
+
+
+
+# Changes to make:
+# - Choose best measure of earnings
+
+
+################################################################################################    
+# Pull raw data for SBM
+
+if run_pull==True:
+    print('Starting pull_one_year() at ', datetime.now())
+    for year in range(firstyear_panel,lastyear_panel+1):
+        print(year, ' ', datetime.now())
+        pull_one_year(year, 'cbo2002', savefile='./Data/derived/raw_data_sbm_' + modelname + '_' + str(year) + '.p',state_codes=state_codes, age_lower=25, age_upper=55, othervars=['data_adm','data_deslig','tipo_salario','rem_dez_r','horas_contr','clas_cnae20'], parse_dates=['data_adm','data_deslig'], nrows=maxrows, filename=rais_filename_stub + str(year) + '.csv')
+        
+################################################################################################
+# Append raw data for SBM
+
+if run_append==True:
+    print('Starting append at ', datetime.now())
+    for year in range(firstyear_panel,lastyear_panel+1):
+        print(year, ' ', datetime.now())
+        df = pickle.load( open('./Data/derived/raw_data_sbm_' + modelname + '_' + str(year) + '.p', "rb" ) )
+        if year==firstyear_panel:
+            appended = df
+        else:
+            appended = df.append(appended, sort=True)
+        del df
+    appended.to_pickle('./Data/derived/appended_sbm_' + modelname + '.p')
+
+################################################################################################
+# Run SBM
+
+appended = pd.read_pickle('./Data/derived/appended_sbm_' + modelname + '.p')
+occvar = 'cbo2002'
+if run_sbm==True:
+    print('Starting SBM section at ', datetime.now())
+    # It's kinda inefficient to pickle the edgelist then load it from pickle but kept this for flexibility
+    bipartite_edgelist = appended.loc[(appended['year']>=firstyear_sbm) & (appended['year']<=lastyear_sbm)][['wid','jid']].drop_duplicates(subset=['wid','jid'])
+    jid_occ_cw =         appended.loc[(appended['year']>=firstyear_sbm) & (appended['year']<=lastyear_sbm)][['jid','cbo2002']].drop_duplicates(subset=['jid','cbo2002'])
+    pickle.dump( bipartite_edgelist,  open('./Data/derived/bipartite_edgelist_'+modelname+'.p', "wb" ) )
+    model = bisbm.bisbm()                                                                       
+    model.create_graph(filename='./Data/derived/bipartite_edgelist_'+modelname+'.p',min_workers_per_job=5)
+    model.fit(n_init=1)
+    # In theory it makes more sense to save these as pickles than as csvs but I keep getting an error loading the pickle and the csv works fine
+    model.export_blocks(output='./Data/derived/sbm_output/model_'+modelname+'_blocks.csv', joutput='./Data/derived/sbm_output/model_'+modelname+'_jblocks.csv', woutput='./Data/derived/sbm_output/model_'+modelname+'_wblocks.csv')
+    pickle.dump( model, open('./Data/derived/sbm_output/model_'+modelname+'.p', "wb" ), protocol=4 )
+    print('SBM section complete at ', datetime.now())
+
+
+################################################################################################
+# Create earnings panel that we can use for the MLE
+
+print('Starting create_earnings_panel() section at ', datetime.now())
+create_earnings_panel(modelname, appended, 2009, 2014)
+print('create_earnings_panel() section finished  at ', datetime.now())
+
+
+
+
+
+################################################################
+## MLE AND ANALYSIS (from original do_all.py)
 ################################################################
 
 #--------------------------
@@ -108,7 +215,8 @@ exec(open(root + 'Code/intro_figs.py').read())
 #--------------------------
 #  LOAD DATA AND RUN MLE
 #--------------------------
-filename_stub = "panel_3states_2013to2016_new"
+filename_stub = "panel_"+modelname
+#filename_stub = "panel_3states_2013to2016_new"
 # Define filenames
 if 1==1:
     mle_data_filename      = root + "Data/derived/earnings_panel/" + filename_stub + "_level_0.csv"
@@ -127,16 +235,9 @@ if 1==1:
 
 
 #--------------------------
-# LOAD BETAS AND A_s
+# LOAD sector-level production and other related info
 #--------------------------
 exec(open(root + 'Code/load_model_parameters.py').read())
-
-if job_type_var == 'sector_IBGE':
-    b_gs = torch.diag(x_s * torch.ones(S))
-else:
-    b_gs = alphags * x_s
-
-
 
 
 if run_all==True:
@@ -169,23 +270,6 @@ if run_all==True:
             normalization_k(est_psi_and_k_file,  wtype_var, jtype_var, est_mle_estimates, est_mle_data_sums, S, a_s, b_gs, eta, phi_outopt_scalar, xi_outopt_scalar, level, pre, raw_data_file=est_mle_data_filename) 
 
 
-'''
-# I think this is all totally redundant b/c we ran the MLE for iota-gamma in the loop above
-if run_query_sums == 1:
-    mle_load_fulldata(mle_data_filename, mle_data_sums_filename, worker_type_var, job_type_var, mle_firstyear=2013, mle_lastyear=2016)
-
-if run_mle == True:
-    if worker_type_var != job_type_var:
-        torch_mle(mle_data_sums_filename, mle_estimates_filename, worker_type_var, job_type_var, level)
-    else: # Can probably be deleted. torch_mle_diagonal is in june2021 but not aug2021
-        from torch_mle_diagonal import torch_mle_diag
-        torch_mle_diag(mle_data_sums_filename, mle_estimates_filename, worker_type_var, job_type_var, level)
-
-# Load estimates and data
-if run_normalization == True:
-    normalization_k(psi_and_k_file,  worker_type_var, job_type_var, mle_estimates, mle_data_sums, S, a_s, b_gs, eta, phi_outopt_scalar, xi_outopt_scalar, level, pre, raw_data_file=mle_data_filename) 
-
-'''
 
 mle_data_sums = pickle.load(open(mle_data_sums_filename, "rb"), encoding='bytes')
 mle_estimates = pickle.load(open(mle_estimates_filename, "rb"), encoding='bytes')
@@ -214,13 +298,6 @@ psi_hat = psi_and_k['psi_hat']
 k = psi_and_k['k']    
     
 
-#--------------------------
-#  SOLVE MODEL
-#--------------------------
-#exec(open(root + 'Code/solve_model.py').read())
-
-
-
 
 #--------------------------
 #  Descriptive analysis
@@ -243,7 +320,22 @@ concentration_figures(data_full_concfigs, 'iota', 'Workers (sorted by employment
 concentration_figures(data_full_concfigs, 'gamma', 'Markets (sorted by hiring HHI)',    ['occ2Xmeso_first','iota'], {'occ2Xmeso_first':'Occ2 X Meso Region','iota':'Worker Type'}, figuredir+'concentration_figures__gamma__occ2Xmeso_first__iota.png',weighted=True)
 concentration_figures(data_full_concfigs, 'gamma', 'Markets (sorted by hiring HHI)',    ['occ4_first','iota'],      {'occ4_first':'4-Digit Occupation','iota':'Worker Type'},      figuredir+'concentration_figures__gamma__occ4_first__iota.png',weighted=True)
 
+# Gamma summary stats including binscatters and meso_plots
+exec(open(root + 'Code/gamma_summary_stats.py').read())
+
     
+#--------------------------
+#  Add prediction exercise code
+#--------------------------
+
+if run_predictions==True:
+    exec(open(root + 'Code/predicting_flows_data_pull.py').read())
+    # WE have been running the actual predictions (coded in the script below) in parallel using the following script: NetworksGit\Code\bash_parallel_jobtransitions_market_based_mutiple_mkts.sh
+    # XX Code ran successfully through here on 8/11/2023. Failed somewhere in in the next script
+    exec(open(root + 'Code/parallel_jobtransitions_market_based_multiple_mkts.py').read())
+    exec(open(root + 'Code/parallel_jobtransitions_stack_results.py').read())
+
+
 #--------------------------
 #  ANALYSIS
 #--------------------------
