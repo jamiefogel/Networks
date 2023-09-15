@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.17 (TeX Live 2016) (preloaded format=pdflatex 2016.5.22)  15 SEP 2023 08:37
+This is pdfTeX, Version 3.14159265-2.6-1.40.17 (TeX Live 2016) (preloaded format=pdflatex 2016.5.22)  15 SEP 2023 13:03
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1475,7 +1475,7 @@ Overfull \hbox (15.01497pt too wide) in paragraph at lines 619--620
 i-par-tite stochas-tic block model (BiSBM),
  []
 
-[16] <../Results/intro_figs_part3_2.png, id=536, 838.332pt x 474.3321pt>
+[16] <../Results/intro_figs_part3_2.png, id=535, 838.332pt x 474.3321pt>
 File: ../Results/intro_figs_part3_2.png Graphic file (type png)
 
 <use ../Results/intro_figs_part3_2.png>
@@ -1487,7 +1487,7 @@ Underfull \hbox (badness 10000) in paragraph at lines 650--651
 
  []
 
-<../Results/intro_figs_part3_1.png, id=538, 838.332pt x 474.3321pt>
+<../Results/intro_figs_part3_1.png, id=537, 838.332pt x 474.3321pt>
 File: ../Results/intro_figs_part3_1.png Graphic file (type png)
 
 <use ../Results/intro_figs_part3_1.png>
@@ -1521,7 +1521,7 @@ Missing character: There is no £ in font cmr10!
 Missing character: There is no Ã in font cmr10!
 Missing character: There is no § in font cmr10!
  [26]
-<../Results/worker_degree_distribution_hist.png, id=678, 357.9774pt x 292.4526p
+<../Results/worker_degree_distribution_hist.png, id=677, 357.9774pt x 292.4526p
 t>
 File: ../Results/worker_degree_distribution_hist.png Graphic file (type png)
  <use ../Results/worker_degree_distribution_hist.png>
@@ -1529,7 +1529,7 @@ Package pdftex.def Info: ../Results/worker_degree_distribution_hist.png used on
  input line 895.
 (pdftex.def)             Requested size: 328.82707pt x 268.64018pt.
 
-<../Results/job_degree_distribution_hist.png, id=679, 357.9774pt x 292.4526pt>
+<../Results/job_degree_distribution_hist.png, id=678, 357.9774pt x 292.4526pt>
 File: ../Results/job_degree_distribution_hist.png Graphic file (type png)
 
 <use ../Results/job_degree_distribution_hist.png>
@@ -1542,7 +1542,7 @@ LaTeX Warning: Float too large for page by 12.49477pt on input line 906.
 
 [27] [28 <../Results/worker_degree_distribution_hist.png> <../Results/job_degre
 e_distribution_hist.png>] (../Results/transitions_table.tex) [29]
-<../Results/iota_size_distribution.png, id=708, 353.8821pt x 292.4526pt>
+<../Results/iota_size_distribution.png, id=707, 353.8821pt x 292.4526pt>
 File: ../Results/iota_size_distribution.png Graphic file (type png)
 
 <use ../Results/iota_size_distribution.png>
@@ -1550,7 +1550,7 @@ Package pdftex.def Info: ../Results/iota_size_distribution.png used on input li
 ne 948.
 (pdftex.def)             Requested size: 328.82707pt x 271.75052pt.
 
-<../Results/gamma_size_distribution.png, id=709, 353.8821pt x 292.4526pt>
+<../Results/gamma_size_distribution.png, id=708, 353.8821pt x 292.4526pt>
 File: ../Results/gamma_size_distribution.png Graphic file (type png)
 
 <use ../Results/gamma_size_distribution.png>
@@ -1573,7 +1573,7 @@ Underfull \hbox (badness 10000) in alignment at lines 22--22
  []
 
 ) [33] [34] [35]
-<../Results/correlograms_iota_gamma_sorted.png, id=757, 339.669pt x 291.489pt>
+<../Results/correlograms_iota_gamma_sorted.png, id=756, 339.669pt x 291.489pt>
 File: ../Results/correlograms_iota_gamma_sorted.png Graphic file (type png)
 
 <use ../Results/correlograms_iota_gamma_sorted.png>
@@ -1581,7 +1581,7 @@ Package pdftex.def Info: ../Results/correlograms_iota_gamma_sorted.png used on
 input line 1101.
 (pdftex.def)             Requested size: 189.48254pt x 162.6075pt.
 
-<../Results/correlograms_hist_iota_gamma_sorted.png, id=758, 393.3897pt x 298.4
+<../Results/correlograms_hist_iota_gamma_sorted.png, id=757, 393.3897pt x 298.4
 751pt>
 File: ../Results/correlograms_hist_iota_gamma_sorted.png Graphic file (type png
 )
@@ -1595,7 +1595,7 @@ Overfull \hbox (2.92978pt too wide) in paragraph at lines 1107--1109
  []
 
 
-<../Results/correlograms_occ4_first_recode_sector_IBGE_sorted.png, id=759, 339.
+<../Results/correlograms_occ4_first_recode_sector_IBGE_sorted.png, id=758, 339.
 669pt x 291.489pt>
 File: ../Results/correlograms_occ4_first_recode_sector_IBGE_sorted.png Graphic 
 file (type png)
@@ -1605,7 +1605,7 @@ Package pdftex.def Info: ../Results/correlograms_occ4_first_recode_sector_IBGE_
 sorted.png used on input line 1113.
 (pdftex.def)             Requested size: 189.48254pt x 162.6075pt.
 
-<../Results/correlograms_hist_occ4_first_recode_sector_IBGE_sorted.png, id=760,
+<../Results/correlograms_hist_occ4_first_recode_sector_IBGE_sorted.png, id=759,
  380.622pt x 298.4751pt>
 File: ../Results/correlograms_hist_occ4_first_recode_sector_IBGE_sorted.png Gra
 phic file (type png)
@@ -1615,7 +1615,7 @@ Package pdftex.def Info: ../Results/correlograms_hist_occ4_first_recode_sector_
 IBGE_sorted.png used on input line 1119.
 (pdftex.def)             Requested size: 207.36226pt x 162.6075pt.
 
-<../Results/correlograms_occ4_first_recode_gamma_sorted.png, id=761, 339.669pt 
+<../Results/correlograms_occ4_first_recode_gamma_sorted.png, id=760, 339.669pt 
 x 291.489pt>
 File: ../Results/correlograms_occ4_first_recode_gamma_sorted.png Graphic file (
 type png)
@@ -1624,7 +1624,7 @@ Package pdftex.def Info: ../Results/correlograms_occ4_first_recode_gamma_sorted
 .png used on input line 1125.
 (pdftex.def)             Requested size: 189.48254pt x 162.6075pt.
 
-<../Results/correlograms_hist_occ4_first_recode_gamma_sorted.png, id=762, 387.1
+<../Results/correlograms_hist_occ4_first_recode_gamma_sorted.png, id=761, 387.1
 263pt x 298.4751pt>
 File: ../Results/correlograms_hist_occ4_first_recode_gamma_sorted.png Graphic f
 ile (type png)
@@ -1643,7 +1643,7 @@ r_IBGE_sorted.png> <../Results/correlograms_hist_occ4_first_recode_sector_IBGE_
 sorted.png> <../Results/correlograms_occ4_first_recode_gamma_sorted.png> <../Re
 sults/correlograms_hist_occ4_first_recode_gamma_sorted.png>]
 <../Results/concentration_figures_iota_gamma_sector_hhi_worker_weighted.png, id
-=783, 383.7537pt x 253.1859pt>
+=782, 383.7537pt x 253.1859pt>
 File: ../Results/concentration_figures_iota_gamma_sector_hhi_worker_weighted.pn
 g Graphic file (type png)
 
@@ -1654,7 +1654,7 @@ _worker_weighted.png used on input line 1207.
 (pdftex.def)             Requested size: 375.80544pt x 247.94276pt.
 
 <../Results/concentration_figures_iota_gamma_sector5_hhi_worker_weighted.png, i
-d=784, 383.7537pt x 253.1859pt>
+d=783, 383.7537pt x 253.1859pt>
 File: ../Results/concentration_figures_iota_gamma_sector5_hhi_worker_weighted.p
 ng Graphic file (type png)
 
@@ -1678,7 +1678,7 @@ LaTeX Warning: `!h' float specifier changed to `!ht'.
 [40] [41] [42] [43] (../Results/real_data_iota_occ4_exposure_regs_ln_wage_N.tex
 ) [44] [45] (../Results/fake_data_rio_iota_occ4_exposure_regs_ln_wage_N.tex)
 [46] [47] (../Results/fake_data_all_sector_shocks_means.tex)
-<../Results/fake_data_all_sector_shocks_coef.png, id=894, 401.8212pt x 261.6174
+<../Results/fake_data_all_sector_shocks_coef.png, id=893, 401.8212pt x 261.6174
 pt>
 File: ../Results/fake_data_all_sector_shocks_coef.png Graphic file (type png)
  <use ../Results/fake_data_all_sector_shocks_coef.png>
@@ -1686,7 +1686,7 @@ Package pdftex.def Info: ../Results/fake_data_all_sector_shocks_coef.png used o
 n input line 1418.
 (pdftex.def)             Requested size: 328.82707pt x 214.09651pt.
 
-<../Results/fake_data_all_sector_shocks_r2.png, id=895, 393.1488pt x 261.6174pt
+<../Results/fake_data_all_sector_shocks_r2.png, id=894, 393.1488pt x 261.6174pt
 >
 File: ../Results/fake_data_all_sector_shocks_r2.png Graphic file (type png)
  <use ../Results/fake_data_all_sector_shocks_r2.png>
@@ -1721,7 +1721,7 @@ s, lo-cal la-bor mar-ket con-cen-tra-tion, and
 ] [57] [58]) [59] [60
 
 ]
-<../Results/simple_bipartite_network.png, id=991, 911.405pt x 867.24pt>
+<../Results/simple_bipartite_network.png, id=990, 911.405pt x 867.24pt>
 File: ../Results/simple_bipartite_network.png Graphic file (type png)
 
 <use ../Results/simple_bipartite_network.png>
@@ -1779,7 +1779,7 @@ Overfull \hbox (31.61179pt too wide) in paragraph at lines 1874--1874
 [] 
  []
 
-[65] [66] [67] <../Results/intro_fig_v2_21.png, id=1051, 175.6161pt x 240.9pt>
+[65] [66] [67] <../Results/intro_fig_v2_21.png, id=1050, 175.6161pt x 240.9pt>
 File: ../Results/intro_fig_v2_21.png Graphic file (type png)
 
 <use ../Results/intro_fig_v2_21.png>
@@ -1885,7 +1885,7 @@ Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
 (hyperref)                removing `math shift' on input line 2242.
 
 [78] [79] [80]
-<../Results/misclassification_demo_coef.png, id=1164, 265.9536pt x 248.6088pt>
+<../Results/misclassification_demo_coef.png, id=1163, 265.9536pt x 248.6088pt>
 File: ../Results/misclassification_demo_coef.png Graphic file (type png)
 
 <use ../Results/misclassification_demo_coef.png>
@@ -1893,7 +1893,7 @@ Package pdftex.def Info: ../Results/misclassification_demo_coef.png used on inp
 ut line 2336.
 (pdftex.def)             Requested size: 469.75502pt x 439.14226pt.
 
-<../Results/misclassification_demo_r2.png, id=1165, 278.2395pt x 250.7769pt>
+<../Results/misclassification_demo_r2.png, id=1164, 278.2395pt x 250.7769pt>
 File: ../Results/misclassification_demo_r2.png Graphic file (type png)
 
 <use ../Results/misclassification_demo_r2.png>
@@ -1953,18 +1953,15 @@ LaTeX Warning: There were multiply-defined labels.
 
  ) 
 Here is how much of TeX's memory you used:
- 30594 strings out of 493014
- 569522 string characters out of 6133351
+ 30593 strings out of 493014
+ 569510 string characters out of 6133351
  753990 words of memory out of 5000000
  33106 multiletter control sequences out of 15000+600000
  25703 words of font info for 105 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  59i,37n,94p,2385b,1112s stack positions out of 5000i,500n,10000p,200000b,80000s
-pdfTeX warning (dest): name{Hfootnote.31} has been referenced but does not ex
+pdfTeX warning (dest): name{Hfootnote.30} has been referenced but does not ex
 ist, replaced by a fixed one
-
-pdfTeX warning (dest): name{Hfootnote.30} has been referenced but does not exis
-t, replaced by a fixed one
 
 pdfTeX warning (dest): name{Hfootnote.29} has been referenced but does not exis
 t, replaced by a fixed one
@@ -2083,10 +2080,10 @@ onts/type1/public/amsfonts/cm/cmtt12.pfb></usr/local/texlive/2016/texmf-dist/fo
 nts/type1/public/amsfonts/symbols/msam10.pfb></usr/local/texlive/2016/texmf-dis
 t/fonts/type1/public/amsfonts/symbols/msbm10.pfb></usr/local/texlive/2016/texmf
 -dist/fonts/type1/public/amsfonts/symbols/msbm7.pfb>
-Output written on FogelModenesi2021_vGitHub.pdf (86 pages, 7074983 bytes).
+Output written on FogelModenesi2021_vGitHub.pdf (86 pages, 7074066 bytes).
 PDF statistics:
- 1373 PDF objects out of 1440 (max. 8388607)
- 1202 compressed objects within 13 object streams
- 319 named destinations out of 1000 (max. 500000)
+ 1370 PDF objects out of 1440 (max. 8388607)
+ 1200 compressed objects within 12 object streams
+ 318 named destinations out of 1000 (max. 500000)
  521 words of extra memory for PDF output out of 10000 (max. 10000000)
 
