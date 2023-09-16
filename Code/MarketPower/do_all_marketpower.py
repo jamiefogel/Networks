@@ -150,3 +150,5 @@ def compute_shares_and_mean_wages(df, job_id, worker_type, job_type, wage_var):
     return employment_share_matrix, mean_wage_matrix, job_id_to_type_crosswalk
 
 employment_share_matrix, mean_wage_matrix, jid_gamma_cw = compute_shares_and_mean_wages(data_full, 'jid_masked', 'iota', 'gamma', 'real_hrly_wage_dec')
+
+pickle.dump([employment_share_matrix, mean_wage_matrix, jid_gamma_cw], open('nested_logit.p', 'wb'))
