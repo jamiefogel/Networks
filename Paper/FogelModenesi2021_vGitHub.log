@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.17 (TeX Live 2016) (preloaded format=pdflatex 2016.5.22)  15 SEP 2023 13:03
+This is pdfTeX, Version 3.14159265-2.6-1.40.17 (TeX Live 2016) (preloaded format=pdflatex 2016.5.22)  22 SEP 2023 14:35
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1450,68 +1450,71 @@ Non-PDF special ignored!
 {/usr/local/texlive/2016/texmf-var/fonts/map/pdftex/updmap/pdftex.map}] [2
 
 
-] [3] [4] [5] [6]
+] [3]
+Missing character: There is no ‚ in font cmr12!
+Missing character: There is no Ä in font cmr12!
+Missing character: There is no ú in font cmr12!
+Missing character: There is no ‚ in font cmr12!
+Missing character: There is no Ä in font cmr12!
+Missing character: There is no ù in font cmr12!
+ [4] [5] [6]
 LaTeX Font Info:    Font shape `OMS/cmr/m/n' in size <12> not available
 (Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 321.
 Missing character: There is no ¬ in font cmr12!
 Missing character: There is no † in font cmr12!
- [7] [8]
+ [7]
 
-Package natbib Warning: Citation `ModenesiFogel2021' on page 9 undefined on inp
-ut line 374.
+Package natbib Warning: Citation `ModenesiFogel2021' on page 8 undefined on inp
+ut line 337.
 
-[9]
-LaTeX Font Info:    Try loading font information for U+bbm on input line 405.
+[8]
+LaTeX Font Info:    Try loading font information for U+bbm on input line 362.
  (/usr/local/texlive/2016/texmf-dist/tex/latex/bbm-macros/ubbm.fd
 File: ubbm.fd 1999/03/15 V 1.2 Font definition for bbm font - TH
-) [10]
-[11]
+) [9]
 
-LaTeX Warning: Characters dropped after `\end{comment}' on input line 470.
+LaTeX Warning: Characters dropped after `\end{comment}' on input line 412.
 
-[12] [13] [14] [15]
-Overfull \hbox (15.01497pt too wide) in paragraph at lines 619--620
+[10] [11] [12] [13] [14] [15]
+Overfull \hbox (15.01497pt too wide) in paragraph at lines 567--568
 []\OT1/cmr/m/n/12 Equation ([][]14[][]) cor-re-sponds to the degree-corrected b
 i-par-tite stochas-tic block model (BiSBM),
  []
 
-[16] <../Results/intro_figs_part3_2.png, id=535, 838.332pt x 474.3321pt>
+[16] <../Results/intro_figs_part3_2.png, id=540, 838.332pt x 474.3321pt>
 File: ../Results/intro_figs_part3_2.png Graphic file (type png)
 
 <use ../Results/intro_figs_part3_2.png>
-Package pdftex.def Info: ../Results/intro_figs_part3_2.png used on input line 6
-44.
+Package pdftex.def Info: ../Results/intro_figs_part3_2.png used on input line 5
+92.
 (pdftex.def)             Requested size: 375.80544pt x 212.63684pt.
 
-Underfull \hbox (badness 10000) in paragraph at lines 650--651
+Underfull \hbox (badness 10000) in paragraph at lines 598--599
 
  []
 
-<../Results/intro_figs_part3_1.png, id=537, 838.332pt x 474.3321pt>
+<../Results/intro_figs_part3_1.png, id=542, 838.332pt x 474.3321pt>
 File: ../Results/intro_figs_part3_1.png Graphic file (type png)
 
 <use ../Results/intro_figs_part3_1.png>
 Package pdftex.def Info: ../Results/intro_figs_part3_1.png used on input line 6
-56.
+04.
 (pdftex.def)             Requested size: 375.80544pt x 212.63684pt.
  [17] [18 <../Results/intro_figs_part3_2.png> <../Results/intro_figs_part3_1.pn
 g>] [19]
 
 Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
-(hyperref)                removing `math shift' on input line 746.
+(hyperref)                removing `math shift' on input line 693.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
-(hyperref)                removing `\Psi' on input line 746.
+(hyperref)                removing `\Psi' on input line 693.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
-(hyperref)                removing `math shift' on input line 746.
+(hyperref)                removing `math shift' on input line 693.
 
-[20] [21] [22] [23] [24] [25]
-Missing character: There is no ‚ in font cmr10!
-Missing character: There is no Ä in font cmr10!
-Missing character: There is no î in font cmr10!
+[20] [21] [22] [23]
 Missing character: There is no √ in font cmr10!
 Missing character: There is no ç in font cmr10!
 Missing character: There is no √ in font cmr10!
@@ -1520,49 +1523,49 @@ Missing character: There is no √ in font cmr10!
 Missing character: There is no £ in font cmr10!
 Missing character: There is no √ in font cmr10!
 Missing character: There is no ß in font cmr10!
- [26]
-<../Results/worker_degree_distribution_hist.png, id=677, 357.9774pt x 292.4526p
+ [24]
+<../Results/worker_degree_distribution_hist.png, id=649, 357.9774pt x 292.4526p
 t>
 File: ../Results/worker_degree_distribution_hist.png Graphic file (type png)
  <use ../Results/worker_degree_distribution_hist.png>
 Package pdftex.def Info: ../Results/worker_degree_distribution_hist.png used on
- input line 895.
+ input line 829.
 (pdftex.def)             Requested size: 328.82707pt x 268.64018pt.
 
-<../Results/job_degree_distribution_hist.png, id=678, 357.9774pt x 292.4526pt>
+<../Results/job_degree_distribution_hist.png, id=650, 357.9774pt x 292.4526pt>
 File: ../Results/job_degree_distribution_hist.png Graphic file (type png)
 
 <use ../Results/job_degree_distribution_hist.png>
 Package pdftex.def Info: ../Results/job_degree_distribution_hist.png used on in
-put line 901.
+put line 835.
 (pdftex.def)             Requested size: 328.82707pt x 268.64018pt.
 
 
-LaTeX Warning: Float too large for page by 12.49477pt on input line 906.
+LaTeX Warning: Float too large for page by 12.49477pt on input line 840.
 
-[27] [28 <../Results/worker_degree_distribution_hist.png> <../Results/job_degre
-e_distribution_hist.png>] (../Results/transitions_table.tex) [29]
-<../Results/iota_size_distribution.png, id=707, 353.8821pt x 292.4526pt>
+[25] [26 <../Results/worker_degree_distribution_hist.png> <../Results/job_degre
+e_distribution_hist.png>] (../Results/transitions_table.tex) [27]
+<../Results/iota_size_distribution.png, id=678, 353.8821pt x 292.4526pt>
 File: ../Results/iota_size_distribution.png Graphic file (type png)
 
 <use ../Results/iota_size_distribution.png>
 Package pdftex.def Info: ../Results/iota_size_distribution.png used on input li
-ne 948.
+ne 884.
 (pdftex.def)             Requested size: 328.82707pt x 271.75052pt.
 
-<../Results/gamma_size_distribution.png, id=708, 353.8821pt x 292.4526pt>
+<../Results/gamma_size_distribution.png, id=679, 353.8821pt x 292.4526pt>
 File: ../Results/gamma_size_distribution.png Graphic file (type png)
 
 <use ../Results/gamma_size_distribution.png>
 Package pdftex.def Info: ../Results/gamma_size_distribution.png used on input l
-ine 954.
+ine 890.
 (pdftex.def)             Requested size: 328.82707pt x 271.75052pt.
 
 
-LaTeX Warning: Float too large for page by 6.71544pt on input line 959.
+LaTeX Warning: Float too large for page by 6.71544pt on input line 895.
 
-[30] [31 <../Results/iota_size_distribution.png> <../Results/gamma_size_distrib
-ution.png>] [32] (../ImportedResults/occ_counts_iota360.tex
+[28] [29 <../Results/iota_size_distribution.png> <../Results/gamma_size_distrib
+ution.png>] [30] (../ImportedResults/occ_counts_iota360.tex
 Underfull \hbox (badness 10000) in alignment at lines 22--22
 [][][] 
  []
@@ -1572,134 +1575,134 @@ Underfull \hbox (badness 10000) in alignment at lines 22--22
 [][][] 
  []
 
-) [33] [34] [35]
-<../Results/correlograms_iota_gamma_sorted.png, id=756, 339.669pt x 291.489pt>
+) [31] [32]
+<../Results/correlograms_iota_gamma_sorted.png, id=721, 339.669pt x 291.489pt>
 File: ../Results/correlograms_iota_gamma_sorted.png Graphic file (type png)
 
 <use ../Results/correlograms_iota_gamma_sorted.png>
 Package pdftex.def Info: ../Results/correlograms_iota_gamma_sorted.png used on 
-input line 1101.
+input line 1039.
 (pdftex.def)             Requested size: 189.48254pt x 162.6075pt.
 
-<../Results/correlograms_hist_iota_gamma_sorted.png, id=757, 393.3897pt x 298.4
+<../Results/correlograms_hist_iota_gamma_sorted.png, id=722, 393.3897pt x 298.4
 751pt>
 File: ../Results/correlograms_hist_iota_gamma_sorted.png Graphic file (type png
 )
  <use ../Results/correlograms_hist_iota_gamma_sorted.png>
 Package pdftex.def Info: ../Results/correlograms_hist_iota_gamma_sorted.png use
-d on input line 1107.
+d on input line 1045.
 (pdftex.def)             Requested size: 214.3181pt x 162.6075pt.
 
-Overfull \hbox (2.92978pt too wide) in paragraph at lines 1107--1109
+Overfull \hbox (2.92978pt too wide) in paragraph at lines 1045--1047
  [][] 
  []
 
 
-<../Results/correlograms_occ4_first_recode_sector_IBGE_sorted.png, id=758, 339.
+<../Results/correlograms_occ4_first_recode_sector_IBGE_sorted.png, id=723, 339.
 669pt x 291.489pt>
 File: ../Results/correlograms_occ4_first_recode_sector_IBGE_sorted.png Graphic 
 file (type png)
 
 <use ../Results/correlograms_occ4_first_recode_sector_IBGE_sorted.png>
 Package pdftex.def Info: ../Results/correlograms_occ4_first_recode_sector_IBGE_
-sorted.png used on input line 1113.
+sorted.png used on input line 1051.
 (pdftex.def)             Requested size: 189.48254pt x 162.6075pt.
 
-<../Results/correlograms_hist_occ4_first_recode_sector_IBGE_sorted.png, id=759,
+<../Results/correlograms_hist_occ4_first_recode_sector_IBGE_sorted.png, id=724,
  380.622pt x 298.4751pt>
 File: ../Results/correlograms_hist_occ4_first_recode_sector_IBGE_sorted.png Gra
 phic file (type png)
 
 <use ../Results/correlograms_hist_occ4_first_recode_sector_IBGE_sorted.png>
 Package pdftex.def Info: ../Results/correlograms_hist_occ4_first_recode_sector_
-IBGE_sorted.png used on input line 1119.
+IBGE_sorted.png used on input line 1057.
 (pdftex.def)             Requested size: 207.36226pt x 162.6075pt.
 
-<../Results/correlograms_occ4_first_recode_gamma_sorted.png, id=760, 339.669pt 
+<../Results/correlograms_occ4_first_recode_gamma_sorted.png, id=725, 339.669pt 
 x 291.489pt>
 File: ../Results/correlograms_occ4_first_recode_gamma_sorted.png Graphic file (
 type png)
  <use ../Results/correlograms_occ4_first_recode_gamma_sorted.png>
 Package pdftex.def Info: ../Results/correlograms_occ4_first_recode_gamma_sorted
-.png used on input line 1125.
+.png used on input line 1063.
 (pdftex.def)             Requested size: 189.48254pt x 162.6075pt.
 
-<../Results/correlograms_hist_occ4_first_recode_gamma_sorted.png, id=761, 387.1
+<../Results/correlograms_hist_occ4_first_recode_gamma_sorted.png, id=726, 387.1
 263pt x 298.4751pt>
 File: ../Results/correlograms_hist_occ4_first_recode_gamma_sorted.png Graphic f
 ile (type png)
 
 <use ../Results/correlograms_hist_occ4_first_recode_gamma_sorted.png>
 Package pdftex.def Info: ../Results/correlograms_hist_occ4_first_recode_gamma_s
-orted.png used on input line 1131.
+orted.png used on input line 1069.
 (pdftex.def)             Requested size: 210.9058pt x 162.6075pt.
 
 
-LaTeX Warning: Float too large for page by 60.19244pt on input line 1136.
+LaTeX Warning: Float too large for page by 60.19244pt on input line 1074.
 
-[36] [37 <../Results/correlograms_iota_gamma_sorted.png> <../Results/correlogra
+[33] [34 <../Results/correlograms_iota_gamma_sorted.png> <../Results/correlogra
 ms_hist_iota_gamma_sorted.png> <../Results/correlograms_occ4_first_recode_secto
 r_IBGE_sorted.png> <../Results/correlograms_hist_occ4_first_recode_sector_IBGE_
 sorted.png> <../Results/correlograms_occ4_first_recode_gamma_sorted.png> <../Re
 sults/correlograms_hist_occ4_first_recode_gamma_sorted.png>]
 <../Results/concentration_figures_iota_gamma_sector_hhi_worker_weighted.png, id
-=782, 383.7537pt x 253.1859pt>
+=746, 383.7537pt x 253.1859pt>
 File: ../Results/concentration_figures_iota_gamma_sector_hhi_worker_weighted.pn
 g Graphic file (type png)
 
 <use ../Results/concentration_figures_iota_gamma_sector_hhi_worker_weighted.png
 >
 Package pdftex.def Info: ../Results/concentration_figures_iota_gamma_sector_hhi
-_worker_weighted.png used on input line 1207.
+_worker_weighted.png used on input line 1145.
 (pdftex.def)             Requested size: 375.80544pt x 247.94276pt.
 
 <../Results/concentration_figures_iota_gamma_sector5_hhi_worker_weighted.png, i
-d=783, 383.7537pt x 253.1859pt>
+d=747, 383.7537pt x 253.1859pt>
 File: ../Results/concentration_figures_iota_gamma_sector5_hhi_worker_weighted.p
 ng Graphic file (type png)
 
 <use ../Results/concentration_figures_iota_gamma_sector5_hhi_worker_weighted.pn
 g>
 Package pdftex.def Info: ../Results/concentration_figures_iota_gamma_sector5_hh
-i_worker_weighted.png used on input line 1213.
+i_worker_weighted.png used on input line 1151.
 (pdftex.def)             Requested size: 375.80544pt x 247.94276pt.
- [38] [39 <../Results/concentration_figures_iota_gamma_sector_hhi_worker_weight
+ [35] [36 <../Results/concentration_figures_iota_gamma_sector_hhi_worker_weight
 ed.png> <../Results/concentration_figures_iota_gamma_sector5_hhi_worker_weighte
 d.png>]
-Overfull \hbox (12.61076pt too wide) in paragraph at lines 1248--1248
+Overfull \hbox (12.61076pt too wide) in paragraph at lines 1186--1186
 |[]\OT1/cmr/bx/n/17.28 General equi-lib-rium ef-fects of Rio de Janeiro Olympic
 s| 
  []
 
-(../Results/model_fit_se.tex)
+[37] (../Results/model_fit_se.tex)
 
 LaTeX Warning: `!h' float specifier changed to `!ht'.
 
-[40] [41] [42] [43] (../Results/real_data_iota_occ4_exposure_regs_ln_wage_N.tex
-) [44] [45] (../Results/fake_data_rio_iota_occ4_exposure_regs_ln_wage_N.tex)
-[46] [47] (../Results/fake_data_all_sector_shocks_means.tex)
-<../Results/fake_data_all_sector_shocks_coef.png, id=893, 401.8212pt x 261.6174
+[38] [39] [40] [41] (../Results/real_data_iota_occ4_exposure_regs_ln_wage_N.tex
+) [42] [43] (../Results/fake_data_rio_iota_occ4_exposure_regs_ln_wage_N.tex)
+[44] (../Results/fake_data_all_sector_shocks_means.tex)
+<../Results/fake_data_all_sector_shocks_coef.png, id=859, 401.8212pt x 261.6174
 pt>
 File: ../Results/fake_data_all_sector_shocks_coef.png Graphic file (type png)
  <use ../Results/fake_data_all_sector_shocks_coef.png>
 Package pdftex.def Info: ../Results/fake_data_all_sector_shocks_coef.png used o
-n input line 1418.
+n input line 1356.
 (pdftex.def)             Requested size: 328.82707pt x 214.09651pt.
 
-<../Results/fake_data_all_sector_shocks_r2.png, id=894, 393.1488pt x 261.6174pt
+<../Results/fake_data_all_sector_shocks_r2.png, id=860, 393.1488pt x 261.6174pt
 >
 File: ../Results/fake_data_all_sector_shocks_r2.png Graphic file (type png)
  <use ../Results/fake_data_all_sector_shocks_r2.png>
 Package pdftex.def Info: ../Results/fake_data_all_sector_shocks_r2.png used on 
-input line 1426.
+input line 1364.
 (pdftex.def)             Requested size: 328.82707pt x 218.82698pt.
- [48] [49 <../Results/fake_data_all_sector_shocks_coef.png> <../Results/fake_da
+ [45] [46 <../Results/fake_data_all_sector_shocks_coef.png> <../Results/fake_da
 ta_all_sector_shocks_r2.png>] (../Results/fake_data_AccomFood_iota_occ4_exposur
 e_regs_ln_wage_N.tex)
-[50
+[47
 
-] (../Results/shock_case_study_AccomFood_most_shocked_iota_occ_counts_3.tex) [5
-1] (../Results/shock_case_study_AccomFood_sector_share_table_3.tex)
+] (../Results/shock_case_study_AccomFood_most_shocked_iota_occ_counts_3.tex) [4
+8] (../Results/shock_case_study_AccomFood_sector_share_table_3.tex)
 
 LaTeX Warning: `!h' float specifier changed to `!ht'.
 
@@ -1707,221 +1710,221 @@ LaTeX Warning: `!h' float specifier changed to `!ht'.
 
 LaTeX Warning: `!h' float specifier changed to `!ht'.
 
-(./tikz_ADH.tex) (./tikz_our_model.tex) [52] [53] [54
+(./tikz_ADH.tex) (./tikz_our_model.tex) [49] [50] [51
 
-] [55]
+] [52]
 (./FogelModenesi2021_vGitHub.bbl
 Underfull \hbox (badness 1077) in paragraph at lines 11--14
 []\OT1/cmr/bx/n/12 Arnold, David\OT1/cmr/m/n/12 , ``Merg-ers and ac-qui-si-tion
 s, lo-cal la-bor mar-ket con-cen-tra-tion, and
  []
 
-[56
+[53
 
-] [57] [58]) [59] [60
+] [54] [55]) [56] [57
 
 ]
-<../Results/simple_bipartite_network.png, id=990, 911.405pt x 867.24pt>
+<../Results/simple_bipartite_network.png, id=956, 911.405pt x 867.24pt>
 File: ../Results/simple_bipartite_network.png Graphic file (type png)
 
 <use ../Results/simple_bipartite_network.png>
 Package pdftex.def Info: ../Results/simple_bipartite_network.png used on input 
-line 1730.
+line 1668.
 (pdftex.def)             Requested size: 324.13211pt x 308.42152pt.
- [61 <../Results/simple_bipartite_network.png>]
-Overfull \hbox (1.86668pt too wide) in paragraph at lines 1763--1763
+ [58 <../Results/simple_bipartite_network.png>]
+Overfull \hbox (1.86668pt too wide) in paragraph at lines 1701--1701
 []|$[]$|  
  []
 
 
-Overfull \hbox (1.86668pt too wide) in paragraph at lines 1763--1763
+Overfull \hbox (1.86668pt too wide) in paragraph at lines 1701--1701
 []|$[]$|  
  []
 
 
-Overfull \hbox (1.86668pt too wide) in paragraph at lines 1763--1763
+Overfull \hbox (1.86668pt too wide) in paragraph at lines 1701--1701
 []|$[]$|  
  []
 
 
-Overfull \hbox (1.86668pt too wide) in paragraph at lines 1763--1763
+Overfull \hbox (1.86668pt too wide) in paragraph at lines 1701--1701
 []|$[]$|  
  []
 
-[62] [63]
-Overfull \hbox (2.36612pt too wide) in paragraph at lines 1835--1837
+[59] [60]
+Overfull \hbox (2.36612pt too wide) in paragraph at lines 1773--1775
 \OT1/cmr/m/it/12 corrected \OT1/cmr/m/n/12 stochas-tic block model (DCSBM). The
  dif-fer-ence be-tween the SBM and the DCSBM
  []
 
-[64]
-Overfull \hbox (1.86668pt too wide) in paragraph at lines 1874--1874
+[61]
+Overfull \hbox (1.86668pt too wide) in paragraph at lines 1812--1812
 []|$[]$|  
  []
 
 
-Overfull \hbox (1.86668pt too wide) in paragraph at lines 1874--1874
+Overfull \hbox (1.86668pt too wide) in paragraph at lines 1812--1812
 []|$[]$|  
  []
 
 
-Overfull \hbox (1.86668pt too wide) in paragraph at lines 1874--1874
+Overfull \hbox (1.86668pt too wide) in paragraph at lines 1812--1812
 []|$[]$|  
  []
 
 
-Overfull \hbox (1.86668pt too wide) in paragraph at lines 1874--1874
+Overfull \hbox (1.86668pt too wide) in paragraph at lines 1812--1812
 []|$[]$|  
  []
 
 
-Overfull \hbox (31.61179pt too wide) in paragraph at lines 1874--1874
+Overfull \hbox (31.61179pt too wide) in paragraph at lines 1812--1812
 [] 
  []
 
-[65] [66] [67] <../Results/intro_fig_v2_21.png, id=1050, 175.6161pt x 240.9pt>
+[62] [63] [64] <../Results/intro_fig_v2_21.png, id=1014, 175.6161pt x 240.9pt>
 File: ../Results/intro_fig_v2_21.png Graphic file (type png)
 
 <use ../Results/intro_fig_v2_21.png>
-Package pdftex.def Info: ../Results/intro_fig_v2_21.png used on input line 1966
+Package pdftex.def Info: ../Results/intro_fig_v2_21.png used on input line 1904
 .
 (pdftex.def)             Requested size: 234.8775pt x 322.20146pt.
 
-Overfull \hbox (2.61107pt too wide) in paragraph at lines 1935--1969
+Overfull \hbox (2.61107pt too wide) in paragraph at lines 1873--1907
 []$[]$ $[]$[] 
  []
 
 LaTeX Font Info:    Font shape `OMS/cmr/bx/n' in size <12> not available
-(Font)              Font shape `OMS/cmsy/b/n' tried instead on input line 1976.
+(Font)              Font shape `OMS/cmsy/b/n' tried instead on input line 1914.
 
 
 LaTeX Warning: `!h' float specifier changed to `!ht'.
 
-[68
+[65
 
-] [69 <../Results/intro_fig_v2_21.png>] [70] [71
+] [66 <../Results/intro_fig_v2_21.png>] [67] [68
 
-] [72] [73] [74] [75]
-
-Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
-(hyperref)                removing `math shift' on input line 2192.
-
+] [69] [70] [71] [72]
 
 Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
-(hyperref)                removing `\nu' on input line 2192.
+(hyperref)                removing `math shift' on input line 2130.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
-(hyperref)                removing `math shift' on input line 2192.
-
-[76]
-
-Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
-(hyperref)                removing `math shift' on input line 2203.
+(hyperref)                removing `\nu' on input line 2130.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
-(hyperref)                removing `\xi' on input line 2203.
+(hyperref)                removing `math shift' on input line 2130.
+
+[73]
+
+Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
+(hyperref)                removing `math shift' on input line 2141.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
-(hyperref)                removing `subscript' on input line 2203.
+(hyperref)                removing `\xi' on input line 2141.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
-(hyperref)                removing `\gamma' on input line 2203.
+(hyperref)                removing `subscript' on input line 2141.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
-(hyperref)                removing `math shift' on input line 2203.
+(hyperref)                removing `\gamma' on input line 2141.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
-(hyperref)                removing `math shift' on input line 2214.
+(hyperref)                removing `math shift' on input line 2141.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
-(hyperref)                removing `\phi' on input line 2214.
+(hyperref)                removing `math shift' on input line 2152.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
-(hyperref)                removing `subscript' on input line 2214.
+(hyperref)                removing `\phi' on input line 2152.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
-(hyperref)                removing `\iota' on input line 2214.
+(hyperref)                removing `subscript' on input line 2152.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
-(hyperref)                removing `\gamma' on input line 2214.
+(hyperref)                removing `\iota' on input line 2152.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
-(hyperref)                removing `math shift' on input line 2214.
-
-[77]
-
-Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
-(hyperref)                removing `math shift' on input line 2230.
+(hyperref)                removing `\gamma' on input line 2152.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
-(hyperref)                removing `\lambda' on input line 2230.
+(hyperref)                removing `math shift' on input line 2152.
+
+[74]
+
+Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
+(hyperref)                removing `math shift' on input line 2168.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
-(hyperref)                removing `math shift' on input line 2230.
+(hyperref)                removing `\lambda' on input line 2168.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
-(hyperref)                removing `math shift' on input line 2242.
+(hyperref)                removing `math shift' on input line 2168.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
-(hyperref)                removing `\sigma' on input line 2242.
+(hyperref)                removing `math shift' on input line 2180.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
-(hyperref)                removing `math shift' on input line 2242.
+(hyperref)                removing `\sigma' on input line 2180.
 
-[78] [79] [80]
-<../Results/misclassification_demo_coef.png, id=1163, 265.9536pt x 248.6088pt>
+
+Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
+(hyperref)                removing `math shift' on input line 2180.
+
+[75] [76] [77]
+<../Results/misclassification_demo_coef.png, id=1127, 265.9536pt x 248.6088pt>
 File: ../Results/misclassification_demo_coef.png Graphic file (type png)
 
 <use ../Results/misclassification_demo_coef.png>
 Package pdftex.def Info: ../Results/misclassification_demo_coef.png used on inp
-ut line 2336.
+ut line 2274.
 (pdftex.def)             Requested size: 469.75502pt x 439.14226pt.
 
-<../Results/misclassification_demo_r2.png, id=1164, 278.2395pt x 250.7769pt>
+<../Results/misclassification_demo_r2.png, id=1128, 278.2395pt x 250.7769pt>
 File: ../Results/misclassification_demo_r2.png Graphic file (type png)
 
 <use ../Results/misclassification_demo_r2.png>
 Package pdftex.def Info: ../Results/misclassification_demo_r2.png used on input
- line 2344.
+ line 2282.
 (pdftex.def)             Requested size: 469.75502pt x 423.41838pt.
- [81] [82 <../Results/misclassification_demo_coef.png>] [83 <../Results/misclas
+ [78] [79 <../Results/misclassification_demo_coef.png>] [80 <../Results/misclas
 sification_demo_r2.png>]
 
 Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
-(hyperref)                removing `math shift' on input line 2351.
+(hyperref)                removing `math shift' on input line 2289.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
-(hyperref)                removing `subscript' on input line 2351.
+(hyperref)                removing `subscript' on input line 2289.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
-(hyperref)                removing `math shift' on input line 2351.
+(hyperref)                removing `math shift' on input line 2289.
 
-[84
+[81
 
 ]
-Underfull \hbox (badness 10000) in paragraph at lines 2385--2387
+Underfull \hbox (badness 10000) in paragraph at lines 2323--2325
 
  []
 
-[85]
+[82]
 
 Package glossaries Warning: No \printglossary or \printglossaries found.
 (Remove \makeglossaries if you don't want any glossaries.)
@@ -1937,43 +1940,31 @@ FiXme Summary: Number of notes: 0,
 (FiXme)        Number of fatal errors: 0,
 (FiXme)        Total: 0.
 
-[86]
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 2420.
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 2420.
+[83]
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 2358.
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 2358.
  (./FogelModenesi2021_vGitHub.aux)
-Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 2420.
-Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 2420.
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 2358.
+Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 2358.
 
 Package rerunfilecheck Info: File `FogelModenesi2021_vGitHub.out' has not chang
 ed.
-(rerunfilecheck)             Checksum: 5D420F11725519DF00187B3310C6A112;3616.
+(rerunfilecheck)             Checksum: C29D629F2434FDA20CB7EBAD6F3FBA76;3561.
 
 
 LaTeX Warning: There were multiply-defined labels.
 
  ) 
 Here is how much of TeX's memory you used:
- 30593 strings out of 493014
- 569510 string characters out of 6133351
- 753990 words of memory out of 5000000
+ 30585 strings out of 493014
+ 569433 string characters out of 6133351
+ 754054 words of memory out of 5000000
  33106 multiletter control sequences out of 15000+600000
  25703 words of font info for 105 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 59i,37n,94p,2385b,1112s stack positions out of 5000i,500n,10000p,200000b,80000s
-pdfTeX warning (dest): name{Hfootnote.30} has been referenced but does not ex
+ 59i,37n,94p,2312b,1112s stack positions out of 5000i,500n,10000p,200000b,80000s
+pdfTeX warning (dest): name{Hfootnote.26} has been referenced but does not ex
 ist, replaced by a fixed one
-
-pdfTeX warning (dest): name{Hfootnote.29} has been referenced but does not exis
-t, replaced by a fixed one
-
-pdfTeX warning (dest): name{Hfootnote.28} has been referenced but does not exis
-t, replaced by a fixed one
-
-pdfTeX warning (dest): name{Hfootnote.27} has been referenced but does not exis
-t, replaced by a fixed one
-
-pdfTeX warning (dest): name{Hfootnote.26} has been referenced but does not exis
-t, replaced by a fixed one
 
 pdfTeX warning (dest): name{Hfootnote.25} has been referenced but does not exis
 t, replaced by a fixed one
@@ -2080,10 +2071,10 @@ onts/type1/public/amsfonts/cm/cmtt12.pfb></usr/local/texlive/2016/texmf-dist/fo
 nts/type1/public/amsfonts/symbols/msam10.pfb></usr/local/texlive/2016/texmf-dis
 t/fonts/type1/public/amsfonts/symbols/msbm10.pfb></usr/local/texlive/2016/texmf
 -dist/fonts/type1/public/amsfonts/symbols/msbm7.pfb>
-Output written on FogelModenesi2021_vGitHub.pdf (86 pages, 7074066 bytes).
+Output written on FogelModenesi2021_vGitHub.pdf (83 pages, 7066493 bytes).
 PDF statistics:
- 1370 PDF objects out of 1440 (max. 8388607)
- 1200 compressed objects within 12 object streams
- 318 named destinations out of 1000 (max. 500000)
- 521 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 1334 PDF objects out of 1440 (max. 8388607)
+ 1167 compressed objects within 12 object streams
+ 310 named destinations out of 1000 (max. 500000)
+ 513 words of extra memory for PDF output out of 10000 (max. 10000000)
 
