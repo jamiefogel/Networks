@@ -8,8 +8,9 @@ from datetime import datetime
 from scipy.sparse import csr_matrix
 
 
-homedir = os.path.expanduser('~')
-data_dir = homedir + '/labormkt/labormkt_rafaelpereira/NetworksGit/Data/derived'
+#homedir = os.path.expanduser('~')
+#data_dir = homedir + '/labormkt/labormkt_rafaelpereira/NetworksGit/Data/derived'
+data_dir = '/home/bm/Dropbox (University of Michigan)/_papers/_git/Networks/Code/MarketPower/'
 
 def torch_mle(data_dir):
     '''
@@ -25,9 +26,16 @@ def torch_mle(data_dir):
     # LOAD AND PREP DATA
     ################################
     # Load data
-    x, g = pickle.load(open('nested_logit.p', "rb" ))
-    x = torch.tensor(x.toarray(), requires_grad=False)
-    g = torch.tensor(g.values, dtype=torch.int32, requires_grad=False)
+    ##x, g = pickle.load(open('nested_logit.p', "rb" ))
+    ##x = torch.tensor(x.toarray(), requires_grad=False)
+    ##g = torch.tensor(g.values, dtype=torch.int32, requires_grad=False)
+    data = pd.read_csv('nested_logit_example_zeros.csv')
+    data
+    x = data[['i1','i2','i3']]
+    g = data['g'].astype(int)
+    # Load your data
+    x = torch.tensor(x.values, dtype=torch.float64)
+    g = torch.tensor(g.values, dtype=torch.int32)  # Convert g to a torch tensor
     def collapse_rows(z, g, G, G_min):
         for i in range(G_min, G+1):
             z_sum = torch.sum(z[g == i], dim=0)

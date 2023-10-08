@@ -8,10 +8,15 @@ from datetime import datetime
 from scipy.sparse import csr_matrix
 
 
-homedir = os.path.expanduser('~')
-data_dir = homedir + '/labormkt/labormkt_rafaelpereira/NetworksGit/Data/derived'
+#homedir = os.path.expanduser('~')
+#data_dir = homedir + '/labormkt/labormkt_rafaelpereira/NetworksGit/Data/derived'
 
-def torch_mle(data_dir):
+##data_dir = '/home/bm/Dropbox (University of Michigan)/_papers/_git/Networks/Code/MarketPower/'
+data_dir = '/home/bm/Dropbox (University of Michigan)/_papers/Networks/RAIS_exports/mkt_power/'
+
+n = 1000
+
+def torch_mle(data_dir,n):
     '''
     - move run_query_sums/mle_load_fulldata_vs outside torch_mle
     - Make torch_mle a function
@@ -25,15 +30,27 @@ def torch_mle(data_dir):
     # LOAD AND PREP DATA
     ################################
     # Load data
-    x, g = pickle.load(open('nested_logit.p', "rb" ))
-    x = torch.tensor(x.toarray(), requires_grad=False)
-    g = torch.tensor(g.values, dtype=torch.int32, requires_grad=False)
+    ##x, g = pickle.load(open('nested_logit.p', "rb" ))
+    ##x = torch.tensor(x.toarray(), requires_grad=False)
+    ##g = torch.tensor(g.values, dtype=torch.int32, requires_grad=False)
+    
+    x, g = pd.read_pickle("nested_logit.p")
+    g = torch.tensor(g[:n].values, dtype=torch.int32, requires_grad=False)
+    x = torch.tensor(x[:n,:].toarray(), requires_grad=False)    
+    
+    ##data = pd.read_csv('nested_logit_example_zeros.csv')
+    ##data
+    ##x = data[['i1','i2','i3']]
+    ##g = data['g'].astype(int)
+    # Load your data
+    ##x = torch.tensor(x.values, dtype=torch.float64)
+    ##g = torch.tensor(g.values, dtype=torch.int32)  # Convert g to a torch tensor
     def collapse_rows(z, g, G, G_min):
         for i in range(G_min, G+1):
             z_sum = torch.sum(z[g == i], dim=0)
             if i == G_min:
                 zgi = z_sum
-            elif i == G_min+1:
+            elif i == 2:
                 zgi = torch.cat((zgi.unsqueeze(0), z_sum.unsqueeze(0)), dim=0)        
             else:
                 zgi = torch.cat((zgi, z_sum.unsqueeze(0)), dim=0)
@@ -47,6 +64,7 @@ def torch_mle(data_dir):
     G_min = torch.min(g)
     unique_g, g_counts = torch.unique(g, return_counts=True)
     g_card = g_counts.view(1,G).to(torch.float64)
+    #g_card = torch.tensor(g_counts, dtype=torch.float32).view(1,G)
     ################################
     # LOG-LIKELIHOOD FUNCTION
     ################################
@@ -79,7 +97,7 @@ def torch_mle(data_dir):
     eta    = torch.tensor(1/inv_eta_mayara,    requires_grad=True)
     optimizer = torch.optim.Adam([theta, eta], lr=2e-3)
     tol = .01
-    maxiter = 10000
+    maxiter = 100
     iter = 1
     converged = 0
     theta_prev = theta.detach().clone() + 1
@@ -114,4 +132,4 @@ def torch_mle(data_dir):
     pickle.dump(estimates, open('nested_logit_estimates.p', "wb"))
     
 
-torch_mle(data_dir)
+torch_mle(data_dir,n)
