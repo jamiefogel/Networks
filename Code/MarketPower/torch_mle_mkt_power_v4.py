@@ -2,7 +2,6 @@ import pandas as pd
 import numpy as np
 import pickle
 import os
-import sys
 import torch
 from datetime import datetime
 from scipy.sparse import csr_matrix
@@ -49,10 +48,10 @@ def torch_mle(data_dir):
             probs[j, :] = nested_logit_likelihood_perj(
                 G, G_min, g, j, z, zgi, theta, eta, baseline_mkt_choice_nolog)
         return torch.where(probs > 0, probs, torch.zeros_like(probs))
-    def reindex_g(g):    
-        unique_values = torch.unique(g) # Get unique values from the original tensor
+    def reindex_g(g_index):    
+        unique_values = torch.unique(g_index) # Get unique values from the original tensor
         value_to_label = {value.item(): label for label, value in enumerate(unique_values)} # Create a mapping from unique values to labels
-        return torch.tensor([value_to_label[value.item()] for value in g])
+        return torch.tensor([value_to_label[value.item()] for value in g_index])
     ################################
     # LOAD AND PREP DATA
     ################################
@@ -60,7 +59,7 @@ def torch_mle(data_dir):
     probs, x, g_index = pickle.load(open('nested_logit.p', "rb" ))
     x = torch.tensor(x.toarray(), requires_grad=False)
     probs = torch.tensor(probs.toarray(), requires_grad=False)
-    g_index = torch.tensor(g_index.values, dtype=torch.int32, requires_grad=False)
+    g_index = torch.tensor(g_index['gamma'].values, dtype=torch.int32, requires_grad=False)
     # creating important objectives for the mle
     I = x.shape[1]
     J = x.shape[0]
@@ -102,12 +101,12 @@ def torch_mle(data_dir):
         theta_prev = theta.detach().clone()
         eta_prev    = eta.detach().clone()
         iter = iter + 1
-    if converged!=1:
-        raise RuntimeError('Failed to converge after ' + str(maxiter) + ' iterations')
+        if converged!=1:
+            raise RuntimeError('Failed to converge after ' + str(maxiter) + ' iterations')
     estimates = {}
     estimates['theta']       = theta
     estimates['eta'] = eta 
     pickle.dump(estimates, open('nested_logit_estimates.p', "wb"))
-    
+
 
 torch_mle(data_dir)
