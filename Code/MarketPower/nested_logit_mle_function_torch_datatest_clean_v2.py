@@ -2,16 +2,36 @@ import pandas as pd
 import numpy as np
 import torch
 from datetime import datetime
+import os
 
-###############################################################################
-# SIMULATION
-torch.manual_seed(734)
+####################################
+## IMPORTING OUR OWN DATA TO CHECK IF LIKELIHOOD FUNCTIONS ARE CORRECT / IN AGREEMENT WITH THE SPREADSHEET COMPUTATIONS
+os.chdir('/home/bm/Dropbox (University of Michigan)/_papers/_git/Networks/Code/MarketPower/')
 
-theta = torch.tensor(.5, requires_grad=True)
-eta = torch.tensor(1.5, requires_grad=True)
+# LOADING ONE EXAMPLE
+data = pd.read_csv('nested_logit_example.csv')
+data = pd.read_csv('nested_logit_example_zeros.csv')
+data
+theta = 1
+eta = 0
+x = data[['i1','i2','i3']]
+g = data['g'].astype(int)
+
+# Load your data
+x = torch.tensor(x.values)
+g = torch.tensor(g.values, dtype=torch.int32)  # Convert g to a torch tensor
+
+# DATA PREP FOR EFFICIENCY
+I = x.shape[1]
+J = x.shape[0]
+G = torch.max(g)
+G_min = torch.min(g)
+unique_g, g_counts = torch.unique(g, return_counts=True)
+g_card = torch.tensor(g_counts.clone().detach(), dtype=torch.float32, requires_grad=False).view(1,G)
 
 def collapse_rows(z, g, G, G_min):
-    for i in range(G_min, G):
+    #for i in range(G_min, G):
+    for i in g.unique().tolist():
         z_sum = torch.sum(z[g == i], dim=0)
         if i == G_min:
             zgi = z_sum
@@ -20,6 +40,15 @@ def collapse_rows(z, g, G, G_min):
         else:
             zgi = torch.cat((zgi, z_sum.unsqueeze(0)), dim=0)
     return zgi
+
+
+#########################################################################
+#########################################################################
+# SIMULATION
+torch.manual_seed(734)
+
+theta = torch.tensor(.5, requires_grad=True)
+eta = torch.tensor(1.5, requires_grad=True)
 
 # Define the dimensions of the matrix
 J = 10 # number of jobs, identified from 0 to J-1
@@ -34,6 +63,8 @@ g[:G] = torch.arange(G)
 G_min = torch.min(g)
 unique_g, g_counts = torch.unique(g, return_counts=True)
 g_card = torch.tensor(g_counts.clone().detach(), dtype=torch.float32, requires_grad=False).view(1,G)
+
+##########################################################################
 
 def nested_logit_likelihood_perj_ratios(G, G_min, g_card, g, j, z, zgi, theta, eta, baseline_mkt_choice_nolog):
     num2 = z[j,:]
@@ -60,6 +91,7 @@ def nested_logit_likelihood_probs2(G, I, J, G_min, g_card, g, x, theta, eta):
         temp = nested_logit_likelihood_perj_ratios(G, G_min, g_card, g, j, z, zgi, theta, eta, baseline_mkt_choice_nolog)
         ratio1[j,:] = temp[0]
         ratio2[j,:] = temp[1]
+    # this correction is important because some job js aren't going to employ workers from all iotas, so for these jobs without certain iotas, we just want to disregard these j x iota cells in the MLE
     ratio2 = torch.where(ratio2 >0, ratio2, torch.zeros_like(ratio2))
     ratio1
     ratio2
@@ -80,12 +112,15 @@ def nested_logit_likelihood_probs(G, I, J, G_min, g_card, g, x, theta, eta):
     probs = torch.empty(J, I)
     for j in range(J):
         probs[j,:] = nested_logit_likelihood_perj(G, G_min, g_card, g, j, z, zgi, theta, eta, baseline_mkt_choice_nolog)
-    return probs    
+    return torch.where(probs >0, probs, torch.zeros_like(probs))    
 
 probs = nested_logit_likelihood_probs(G, I, J, G_min, g_card, g, x, theta, eta)
 probs
 torch.sum(probs, axis=0)
 
+probs2 = nested_logit_likelihood_probs2(G, I, J, G_min, g_card, g, x, theta, eta)
+probs2
+torch.sum(probs2, axis=0)
 
 # true values for the parameters
 eta0 = eta.detach().clone()
