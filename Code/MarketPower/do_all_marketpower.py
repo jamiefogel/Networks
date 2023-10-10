@@ -99,7 +99,7 @@ def compute_payroll_weighted_share(df, firm_col, market_col, pay_col):
 
 s_ij = compute_payroll_weighted_share(data_full, 'iota', 'jid_masked', 'real_hrly_wage_dec')
 s_jg = compute_payroll_weighted_share(data_full, 'jid_masked', 'gamma', 'real_hrly_wage_dec')
-s_gi = compute_payroll_weighted_share(data_full, 'gamma', 'iota' 'real_hrly_wage_dec')
+s_gi = compute_payroll_weighted_share(data_full, 'gamma', 'iota', 'real_hrly_wage_dec')
 
 # Calculate the squared payroll-weighted share for each firm
 s_jg['squared_share'] = s_jg['payroll_weighted_share'] ** 2
@@ -146,9 +146,9 @@ def compute_shares_and_mean_wages(df, job_id, worker_type, job_type, wage_var):
     mean_wage_matrix = wage_matrix.multiply(employment_matrix_inv_csr)
     # Create a crosswalk between the job IDs and their job types, ensuring consistent order
     sorted_df = df.sort_values(by=job_id, key=lambda col: col.cat.codes)
-    job_id_to_type_crosswalk = sorted_df.drop_duplicates(subset=[job_id])[job_id,job_type]
+    job_id_to_type_crosswalk = sorted_df.drop_duplicates(subset=[job_id])[[job_id,job_type]]
     return employment_share_matrix, mean_wage_matrix, job_id_to_type_crosswalk
 
 employment_share_matrix, mean_wage_matrix, jid_gamma_cw = compute_shares_and_mean_wages(data_full, 'jid_masked', 'iota', 'gamma', 'real_hrly_wage_dec')
 
-pickle.dump([employment_share_matrix, mean_wage_matrix, jid_gamma_cw], open('nested_logit.p', 'wb'))
+pickle.dump([employment_share_matrix, mean_wage_matrix, jid_gamma_cw], open( root + 'Data/derived/MarketPower/nested_logit.p', 'wb'))
