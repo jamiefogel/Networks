@@ -683,87 +683,11 @@ When we say "skills" we mean skills in a very broad sense. For example, some of 
 Related to the point above, while we say that we are clustering on "skills" and "tasks," we are really clustering workers on propensity to be hired by the same job and jobs on propensity to hire the same worker. We \emph{assume} that these propensities are largely driven by latent skills and tasks. It is not a problem for us if some of what drives these propensities is something other than skills and tasks, for example tastes or something else, as long as these other factors are what matter for governing responses to local labor market shocks or other labor market phenomena.
 \end{comment}
 
+\section{Temp: stuff to keep from the old MLE section that I moved to appendix}
 
-\section{Estimating labor supply parameters}
-\label{sec:MLE}
+For details, see Appendix \ref{sec:MLE}
 
-This section describes the procedure we use to estimate the labor supply parameters of the model, conditional on the assignments of workers to worker types, $\i(i)$, and jobs to markets, $\g(j)$, described in the previous section.
-
-
-\subsection{Estimating $\Psi$ from observed matches}
-
-\label{sec:estimating_psi}
-
-
-Identification and estimation of the labor supply parameters builds upon  \citet{BonhommeLamadonManresa2019_distributional} and \citet{Grigsby2019}, with the key difference being that we assign both workers to worker types and jobs to markets prior to estimating labor supply parameters and do so in a way that more fully exploits the information revealed by worker--job matches, allowing us to identify a significantly greater degree of worker and job heterogeneity.\footnote{More precisely, \citet{BonhommeLamadonManresa2019_distributional} model workers matching with firms and therefore use k-means clustering to cluster firms on the basis of the firms' earnings distributions, while \citet{Grigsby2019} models workers matching with clusters of occupations identified by combining occupational education requirements with k-means clustering on the basis of occupations' O*NET skills scores. Additionally, neither \citet{BonhommeLamadonManresa2019_distributional} nor \citet{Grigsby2019} actually assign workers to types. Instead,  they employ random effects estimators, in which they identify the distribution of types, rather than assigning any individual worker to a type. As a result, both papers require that flows of worker types between firm/occupation groups form a strongly connected graph (they use the term ``connecting cycle''). This is a strong data requirement and requires them to define worker and firm/occupation groups at a relatively aggregated level, ignoring considerable heterogeneity. By using the network structure of the data to assign workers and jobs to types in a previous step before estimating labor supply parameters, we are able to identify an order of magnitude more worker types and markets, and therefore to allow for much greater heterogeneity.} 
-
-We estimate parameters using a maximum likelihood approach. We assume that individual workers' earnings in period $t$ are observed with multiplicative measurement error $e_{it}$, which has a worker type--market-specific parametric distribution $f_e(e_{it} | \i(i), \g_{it}, \theta_e)$ with unit mean, summarized by parameter vector $\theta_e$. Observed earnings $\omega_{it}$ are therefore
-\begin{align}
-	\omega_{it} = \psi_{\i(i)\g_{it}} w_{\g_{it}} e_{it}. \label{eq:observed_wages}
-\end{align}
-Finally, we assume that the earnings measurement errors are serially independent:
-\begin{assumption}[Serial independence of earnings measurement error]
-	\label{ass:serial_independence}
-	The realization of period $t$'s measurement error for worker $i$, $e_{it}$ is independent of the history of errors $\{e_{it'}\}_{t'=1}^{t-1}$, market choices $\{\g_{it'}\}_{t'=1}^{t-1}$, and separations $\{c_{it'}\}_{t'=1}^{t-1}$, conditional on the worker's type, $\i_i$, and current market choice $\g_{it}$.
-\end{assumption}
-
-Our model is identified by combining assumption \ref{ass:serial_independence} with assumptions \ref{ass:taste_shocks} and \ref{ass:mobility}, which stated that the market preference parameters $\ve_{i\g t}$ and exogenous separation shocks $c_{it}$ are each serially uncorrelated and independent of all other variables in the model.
-
-
-Conditional on clustering workers and jobs into types, our data consist of three elements per worker per period: the worker's market choice, $\gamma_{it}$, the worker's earnings, $\omega_{it}$, and the indicator for whether or not the worker changed jobs, $c_{it}$. Observed data are denoted by $\mathbb{X} := \left\{ \gamma_{it},\omega_{it},c_{i t} | t = 1, \ldots, T; i = 1, \ldots, N \right\}$. The parameters are denoted by $\Theta := \left\{ \psi_{\ig}w_\g, \xi_{\g}, \nu, \theta_e | \i = 1,\ldots, I; \g = 1, \ldots, \Gamma  \right\}$. Recall that $\P[\g_{it}|\Theta]$ is the probability of worker $i$ choosing a job in market $\g$ and comes from the Roy model (equation \ref{eq:emp_probs}). Meanwhile, let $f_{\omega}(\omega| \i(i), \g_{it}, \Theta)$ denote the density of observed earnings in period $t$. We construct our likelihood as follows. 
-
-In periods in which workers experience a separation, three pieces of data are generated: a separation indicator $c_{it}$, the worker's new market choice $\g_{it}$, and the worker's earnings $\omega_{it}$. We assume that all workers separate and rematch in the first period for which we have data: $c_{i1}=1$ for all $i$. In periods in which the worker does not separate from their job, we observe only $c_{it}$ and  $\omega_{it}$.\footnote{By only including the worker's market choice in the likelihood in periods in which a separation has occurred, but assuming that all workers separated in period $t=1$, we are ensuring that each match enters the likelihood exactly once. This gives all matches equal weight in the likelihood, regardless of match duration. Alternatively, we could have omitted exogenous separations from the model and assumed that workers make a new choice every period. Under this assumption, persistent matches would indicate that the worker has made the same choice repeatedly and we would put greater weight on persistent matches in estimation.}  Assumptions \ref{ass:mobility} and \ref{ass:meas_error} tell us that realizations of $\omega_{it}$ and $c_{it}$ are independent, and $\g_{it}$ is independent of $\omega_{it}$ conditional on $c_{it}$. Therefore, we write the likelihood of observing $\{\g_{it},\omega_{it}, c_{it}\}$ for an individual worker in period $t$ as
-\begin{align*}
-l(\g_{it},\omega_{it}, c_{it}|\mathbb{X}) &= \underset{\text{Separation}}{\underbrace{\left[ f_{\omega}(\omega_{it}|\Theta) \P(\g_{it}|\Theta) \right] }}^{c_{it}}\underset{\text{No separation}}{\underbrace{\left[ f_{\omega}(\omega_{it}|\i(i), \g_{it},\Theta)\right]}}^{1-c_{it}}
-\end{align*}
-
-
-Our assumptions that $\{\g_{it},\omega_{it}, c_{it}\}$ are serially uncorrelated and independent across workers, conditional on the parameters of the data, allow us to write the full likelihood of the data as the product of the individual worker-time likelihoods:
-
-\begin{align}
-\mathcal{L}(\Theta | \mathbb{X}) 	&=  \prod_{i = 1}^N  \prod_{t=1}^{T} l(\g_{it},\omega_{it}, c_{it}|\mathbb{X}) \nonumber \\
-&= \prod_{i = 1}^N  \prod_{t=1}^{T} \underset{\text{Separation}}{\underbrace{\left[ \P(\g_{it}|\Theta)f_{\omega}(\omega_{it}|\i(i), \g_{it},\Theta) \right] }}^{c_{it}}\underset{\text{No separation}}{\underbrace{\left[ f_{\omega}(\omega_{it}|\i(i), \g_{it},\Theta)\right]}}^{1-c_{it}}  
-\end{align}
-Finally, the log-likelihood is
-\begin{align}
-\ell(\Theta | \mathbb{X}) 	&=  \sum_{i=1}^{N}\sum_{t = 1}^T c_{it} \log \P(\g_{it}|\Theta) + \sum_{i=1}^{N}\sum_{t = 1}^T \log f_{\omega}(\omega_{it}|\i(i), \g_{it}, \Theta) \label{eq:log_likelihood}
-\end{align}
-
-In order to maximize this likelihood function, we impose a distributional assumption and a normalization:
-
-\begin{assumption}[Distribution of measurement error in wages]
-	\label{ass:meas_error}
-	$e_{it}$ has a log-normal distribution: $\ln e_{it} \sim \N(0,\sigma_{\ig})$.
-\end{assumption}
-
-
-\begin{assumption}[$\Psi$ normalization] 
-	\label{ass:grigsby_normalization}
-	The mean productivity level in each market $\g$ is normalized to a constant, $k$:
-	\[\sum_{\i} m_{\i} \psi_{\ig} = k \quad \forall \g\]
-	where $m_{\i}$ is the mass of type $\i$ workers.
-\end{assumption}
-
-
-Assumption \ref{ass:meas_error} assumes that wages follow a log-normal distribution which is worker type-market specific, following \citet{BonhommeLamadonManresa2019_distributional} and \citet{Grigsby2019}. Assumption \ref{ass:grigsby_normalization} normalizes the $\psi_{\ig}$ to have a mean equal to some constant $k$ within market. 
-
-Identification of $\Psi$ comes from two sources: earnings for all employed workers, and market choices for all workers in period $t=1$ and workers who receive exogenous separation shocks in periods $t>1$. Intuitively, ($\i,\g$) matches that pay more and occur more frequently are revealed to be more productive. The relative weight of earnings and market choices is determined by the inverse of the variances of measurement error in wages and idiosyncratic shocks --- if the earnings measurement error $\sigma_{\ig}$ for a worker type--market pair has a relatively high variance, then estimation puts more weight on choices; if the idiosyncratic preference shocks have a relatively high variance (large $\nu$), estimation puts more weight on earnings. The normalization that the mean skill level in each market equals $k$ (Assumption \ref{ass:grigsby_normalization}) converts the distribution of relative skills into a distribution of skill levels. We choose $k$ to maximize the model's ability to match the observed employment rate.\footnote{This normalization is mostly without loss of generality. If one were to double the number of efficiency units of labor each worker supplied to a market, the equilibrium price of labor would halve. However, increasing the number of efficiency units of labor in the economy will impact the fraction of the labor force in employment versus non-employment. This is why we choose $k$ to maximize the model's ability to match the observed employment rate.}
-
-The parameter governing the variance of non-pecuniary benefits, $\nu$, is identified by workers' choices of markets, $\g$. Workers will choose a market that offers their worker type low expected utility (low $\psi_{\ig} w_{\g} + \xi_{\g}$) when they receive a large preference shock draw for that market. Therefore, if workers frequently choose low expected utility markets, it must be because they frequently draw large preference shocks, indicating that the preference shock distribution has a large dispersion parameter, $\nu$. The market amenities parameter $\xi_{\g}$ is a market fixed effect and is identified by the component of the frequency with which workers choose market $\g$ that is common across all worker types $\i$. The relative value of $\xi_{\g}$ to $\xi_{\g'}$ allows the model to match the fact that some high-earning markets, such as doctors, account for a small share of total employment. This is because  $\xi_{\g}$ reflects not just the immediate utility benefits of working in a job in market $\g$, but also reflects broader compensating differentials. In this way, $\xi_{doctor}$ may be low, not because doctor jobs are unpleasant, but because the annualized cost of becoming a doctor --- including medical school --- and maintaining the requisite skills is high. We provide greater detail on identification in appendix \ref{sec:identification_details}.
-
-
-
-\subsection{Additional parameters to be estimated or calibrated}
-
-\label{sec:calibration}
-
-We also have the following parameters to estimate or calibrate:
-\begin{itemize}
-	\item $\beta_{\g s}$ (output elasticity of labor in market $\g$) ---  We calibrate these parameters as the share of the sector $S$ wage bill paid to workers employed in market $\g$ jobs. %\footnote{If we wanted to compare ourselves to Grigsby, we would have $\beta_{\g s} = x_s \alpha_{\g s}$ where $x_s$ is sector $s$'s share of the overall wage bill and $\alpha_{\g s}$ is market $\g$'s share of the sector $s$ wage bill. }
-	\item $\eta$ (CES consumption substitution elasticity)--- We calibrate this parameter to 2.\footnote{\citet{BrodaWeinstein2006} estimate this parameter to be 4, however their estimate comes from significantly more disaggregated product categories, so we choose a smaller value. This parameter affects our structural results in Section \ref{sec:model_fit}, but does not affect the reduced form estimates in Section \ref{sec:reduced_form}.}
-		% XX Better explanation needed. Matthew said this is the sort of thing where the solution is usually just doing a sensitivity analysis.
-	\item $a_s$ (demand shifters) --- We calibrate demand shifters to match actual sector output shares, given sector-level prices, for the state of Rio de Janeiro as measured by the Brazilian Institute of Geography and Statistics (IBGE).
-\end{itemize}
+Identification of $\Psi$ comes from two sources: earnings for all employed workers, and market choices for all workers in period $t=1$ and workers who receive exogenous separation shocks in periods $t>1$. Intuitively, ($\i,\g$) matches that pay more and occur more frequently are revealed to be more productive. The parameter governing the variance of non-pecuniary benefits, $\nu$, is identified by workers' choices of markets, $\g$. Workers will choose a market that offers their worker type low expected utility (low $\psi_{\ig} w_{\g} + \xi_{\g}$) when they receive a large preference shock draw for that market. Therefore, if workers frequently choose low expected utility markets, it must be because they frequently draw large preference shocks, indicating that the preference shock distribution has a large dispersion parameter, $\nu$. The market amenities parameter $\xi_{\g}$ is a market fixed effect and is identified by the component of the frequency with which workers choose market $\g$ that is common across all worker types $\i$.
 
 
 \section{Data} 
@@ -867,7 +791,7 @@ XX: we will eventually move this out of its own subsection once it's ready for p
 
 An ideal labor market definition is one that maximizes the similarity of workers and jobs within the same groups, respectively, and minimizes the similarity of workers and jobs in different groups. More formally, the ideal definition maximizes the within-market substitution elasticity and minimizes the cross-market substitution elasticity.\footnote{This is most easily understood if we extended our model in Section \ref{sec:model} to have a nested logit structure. Then, in addition to the parameter $\nu$ which governs the variance of idiosyncratic preference shocks \emph{across} markets, we would have an additional parameter $\eta$ that governs the correlation of idiosyncratic preference shocks \emph{within} markets. To the extent that we incorrectly classify jobs incorrectly, $\nu$ and $\eta$ will be biased towards each other. To understand this, consider the extreme case in which jobs are classified at random. Then the market classifications carry no economic information and, in expectation, two jobs in the same market will be equally substitutable from the worker's perspective as two jobs in different markets, meaning that $\nu=\eta$. Alternatively, if we have perfectly classified the most similar jobs into the same markets, then jobs in the same market will be viewed as close substitutes (small $\eta$) and jobs in different markets will be more distant substitutes (large $\nu$). } Directly estimating these elasticities is conceptually and computationally difficult and is beyond the scope of this paper. Therefore, in this section we provide indirect evidence that our network-based classifications outperform standard classifications in identifying similar workers and similar jobs. 
 
-We do so in five ways. First, we provide descriptive examples of the occupation and geographic distributions of jobs within our markets and demonstrate that they capture reasonable but potentially difficult to observe forms of structure in the labor market that traditional market definitions miss. Second, we show that workers' labor supply is more concentrated  within our markets than traditional definitions and jobs' hiring is more concentrated within our worker types. Third, we perform an out-of-sample prediction exercise in which our worker types and markets outperform traditional definitions in predicting workers' job-to-job. Fourth, we show that our worker types do a better job of identifying groups of workers with distinct skills as measured by the worker productivity parameter, $\psi$. Finally, we use the full general equilibrium extension of our model and show that our classifications more accurately predict the wage effects of the labor demand shock created by the 2016 Rio de Janeiro Olympics. 
+We do so in five ways. First, we provide descriptive examples of the occupation and geographic distributions of jobs within our markets and demonstrate that they capture reasonable but potentially difficult to observe, forms of structure in the labor market that traditional market definitions miss. Second, we show that workers' labor supply is more concentrated  within our markets than traditional definitions and jobs' hiring is more concentrated within our worker types. Third, we perform an out-of-sample prediction exercise in which our worker types and markets outperform traditional definitions in predicting workers' job-to-job flows. Fourth, we show that our worker types do a better job of identifying groups of workers with distinct skills as measured by the worker productivity parameter, $\psi$. Finally, we use the full general equilibrium extension of our model and show that our classifications more accurately predict the wage effects of the labor demand shock created by the 2016 Rio de Janeiro Olympics. 
 
 
 %XX we should consider changing the parameter names to be consistent with the market power paper. I also want to run this section by Ben for a sanity check. 
@@ -1929,6 +1853,93 @@ Our raw data looks like what is presented in Table \ref{table:sample_leed}, with
 \end{table}
 
 \clearpage
+
+
+
+\section{Estimating labor supply parameters}
+\label{sec:MLE}
+
+This section describes the procedure we use to estimate the labor supply parameters of the model, conditional on the assignments of workers to worker types, $\i(i)$, and jobs to markets, $\g(j)$, described in Section \ref{sec:bisbm}.
+
+
+\subsection{Estimating $\Psi$ from observed matches}
+
+\label{sec:estimating_psi}
+
+
+Identification and estimation of the labor supply parameters builds upon  \citet{BonhommeLamadonManresa2019_distributional} and \citet{Grigsby2019}, with the key difference being that we assign both workers to worker types and jobs to markets prior to estimating labor supply parameters and do so in a way that more fully exploits the information revealed by worker--job matches, allowing us to identify a significantly greater degree of worker and job heterogeneity.\footnote{More precisely, \citet{BonhommeLamadonManresa2019_distributional} model workers matching with firms and therefore use k-means clustering to cluster firms on the basis of the firms' earnings distributions, while \citet{Grigsby2019} models workers matching with clusters of occupations identified by combining occupational education requirements with k-means clustering on the basis of occupations' O*NET skills scores. Additionally, neither \citet{BonhommeLamadonManresa2019_distributional} nor \citet{Grigsby2019} actually assign workers to types. Instead,  they employ random effects estimators, in which they identify the distribution of types, rather than assigning any individual worker to a type. As a result, both papers require that flows of worker types between firm/occupation groups form a strongly connected graph (they use the term ``connecting cycle''). This is a strong data requirement and requires them to define worker and firm/occupation groups at a relatively aggregated level, ignoring considerable heterogeneity. By using the network structure of the data to assign workers and jobs to types in a previous step before estimating labor supply parameters, we are able to identify an order of magnitude more worker types and markets, and therefore to allow for much greater heterogeneity.} 
+
+We estimate parameters using a maximum likelihood approach. We assume that individual workers' earnings in period $t$ are observed with multiplicative measurement error $e_{it}$, which has a worker type--market-specific parametric distribution $f_e(e_{it} | \i(i), \g_{it}, \theta_e)$ with unit mean, summarized by parameter vector $\theta_e$. Observed earnings $\omega_{it}$ are therefore
+\begin{align}
+	\omega_{it} = \psi_{\i(i)\g_{it}} w_{\g_{it}} e_{it}. \label{eq:observed_wages}
+\end{align}
+Finally, we assume that the earnings measurement errors are serially independent:
+\begin{assumption}[Serial independence of earnings measurement error]
+	\label{ass:serial_independence}
+	The realization of period $t$'s measurement error for worker $i$, $e_{it}$ is independent of the history of errors $\{e_{it'}\}_{t'=1}^{t-1}$, market choices $\{\g_{it'}\}_{t'=1}^{t-1}$, and separations $\{c_{it'}\}_{t'=1}^{t-1}$, conditional on the worker's type, $\i_i$, and current market choice $\g_{it}$.
+\end{assumption}
+
+Our model is identified by combining assumption \ref{ass:serial_independence} with assumptions \ref{ass:taste_shocks} and \ref{ass:mobility}, which stated that the market preference parameters $\ve_{i\g t}$ and exogenous separation shocks $c_{it}$ are each serially uncorrelated and independent of all other variables in the model.
+
+
+Conditional on clustering workers and jobs into types, our data consist of three elements per worker per period: the worker's market choice, $\gamma_{it}$, the worker's earnings, $\omega_{it}$, and the indicator for whether or not the worker changed jobs, $c_{it}$. Observed data are denoted by $\mathbb{X} := \left\{ \gamma_{it},\omega_{it},c_{i t} | t = 1, \ldots, T; i = 1, \ldots, N \right\}$. The parameters are denoted by $\Theta := \left\{ \psi_{\ig}w_\g, \xi_{\g}, \nu, \theta_e | \i = 1,\ldots, I; \g = 1, \ldots, \Gamma  \right\}$. Recall that $\P[\g_{it}|\Theta]$ is the probability of worker $i$ choosing a job in market $\g$ and comes from the Roy model (equation \ref{eq:emp_probs}). Meanwhile, let $f_{\omega}(\omega| \i(i), \g_{it}, \Theta)$ denote the density of observed earnings in period $t$. We construct our likelihood as follows. 
+
+In periods in which workers experience a separation, three pieces of data are generated: a separation indicator $c_{it}$, the worker's new market choice $\g_{it}$, and the worker's earnings $\omega_{it}$. We assume that all workers separate and rematch in the first period for which we have data: $c_{i1}=1$ for all $i$. In periods in which the worker does not separate from their job, we observe only $c_{it}$ and  $\omega_{it}$.\footnote{By only including the worker's market choice in the likelihood in periods in which a separation has occurred, but assuming that all workers separated in period $t=1$, we are ensuring that each match enters the likelihood exactly once. This gives all matches equal weight in the likelihood, regardless of match duration. Alternatively, we could have omitted exogenous separations from the model and assumed that workers make a new choice every period. Under this assumption, persistent matches would indicate that the worker has made the same choice repeatedly and we would put greater weight on persistent matches in estimation.}  Assumptions \ref{ass:mobility} and \ref{ass:meas_error} tell us that realizations of $\omega_{it}$ and $c_{it}$ are independent, and $\g_{it}$ is independent of $\omega_{it}$ conditional on $c_{it}$. Therefore, we write the likelihood of observing $\{\g_{it},\omega_{it}, c_{it}\}$ for an individual worker in period $t$ as
+\begin{align*}
+	l(\g_{it},\omega_{it}, c_{it}|\mathbb{X}) &= \underset{\text{Separation}}{\underbrace{\left[ f_{\omega}(\omega_{it}|\Theta) \P(\g_{it}|\Theta) \right] }}^{c_{it}}\underset{\text{No separation}}{\underbrace{\left[ f_{\omega}(\omega_{it}|\i(i), \g_{it},\Theta)\right]}}^{1-c_{it}}
+\end{align*}
+
+
+Our assumptions that $\{\g_{it},\omega_{it}, c_{it}\}$ are serially uncorrelated and independent across workers, conditional on the parameters of the data, allow us to write the full likelihood of the data as the product of the individual worker-time likelihoods:
+
+\begin{align}
+	\mathcal{L}(\Theta | \mathbb{X}) 	&=  \prod_{i = 1}^N  \prod_{t=1}^{T} l(\g_{it},\omega_{it}, c_{it}|\mathbb{X}) \nonumber \\
+	&= \prod_{i = 1}^N  \prod_{t=1}^{T} \underset{\text{Separation}}{\underbrace{\left[ \P(\g_{it}|\Theta)f_{\omega}(\omega_{it}|\i(i), \g_{it},\Theta) \right] }}^{c_{it}}\underset{\text{No separation}}{\underbrace{\left[ f_{\omega}(\omega_{it}|\i(i), \g_{it},\Theta)\right]}}^{1-c_{it}}  
+\end{align}
+Finally, the log-likelihood is
+\begin{align}
+	\ell(\Theta | \mathbb{X}) 	&=  \sum_{i=1}^{N}\sum_{t = 1}^T c_{it} \log \P(\g_{it}|\Theta) + \sum_{i=1}^{N}\sum_{t = 1}^T \log f_{\omega}(\omega_{it}|\i(i), \g_{it}, \Theta) \label{eq:log_likelihood}
+\end{align}
+
+In order to maximize this likelihood function, we impose a distributional assumption and a normalization:
+
+\begin{assumption}[Distribution of measurement error in wages]
+	\label{ass:meas_error}
+	$e_{it}$ has a log-normal distribution: $\ln e_{it} \sim \N(0,\sigma_{\ig})$.
+\end{assumption}
+
+
+\begin{assumption}[$\Psi$ normalization] 
+	\label{ass:grigsby_normalization}
+	The mean productivity level in each market $\g$ is normalized to a constant, $k$:
+	\[\sum_{\i} m_{\i} \psi_{\ig} = k \quad \forall \g\]
+	where $m_{\i}$ is the mass of type $\i$ workers.
+\end{assumption}
+
+
+Assumption \ref{ass:meas_error} assumes that wages follow a log-normal distribution which is worker type-market specific, following \citet{BonhommeLamadonManresa2019_distributional} and \citet{Grigsby2019}. Assumption \ref{ass:grigsby_normalization} normalizes the $\psi_{\ig}$ to have a mean equal to some constant $k$ within market. 
+
+
+Identification of $\Psi$ comes from two sources: earnings for all employed workers, and market choices for all workers in period $t=1$ and workers who receive exogenous separation shocks in periods $t>1$. Intuitively, ($\i,\g$) matches that pay more and occur more frequently are revealed to be more productive. The relative weight of earnings and market choices is determined by the inverse of the variances of measurement error in wages and idiosyncratic shocks --- if the earnings measurement error $\sigma_{\ig}$ for a worker type--market pair has a relatively high variance, then estimation puts more weight on choices; if the idiosyncratic preference shocks have a relatively high variance (large $\nu$), estimation puts more weight on earnings. The normalization that the mean skill level in each market equals $k$ (Assumption \ref{ass:grigsby_normalization}) converts the distribution of relative skills into a distribution of skill levels. We choose $k$ to maximize the model's ability to match the observed employment rate.\footnote{This normalization is mostly without loss of generality. If one were to double the number of efficiency units of labor each worker supplied to a market, the equilibrium price of labor would halve. However, increasing the number of efficiency units of labor in the economy will impact the fraction of the labor force in employment versus non-employment. This is why we choose $k$ to maximize the model's ability to match the observed employment rate.}
+
+The parameter governing the variance of non-pecuniary benefits, $\nu$, is identified by workers' choices of markets, $\g$. Workers will choose a market that offers their worker type low expected utility (low $\psi_{\ig} w_{\g} + \xi_{\g}$) when they receive a large preference shock draw for that market. Therefore, if workers frequently choose low expected utility markets, it must be because they frequently draw large preference shocks, indicating that the preference shock distribution has a large dispersion parameter, $\nu$. The market amenities parameter $\xi_{\g}$ is a market fixed effect and is identified by the component of the frequency with which workers choose market $\g$ that is common across all worker types $\i$. The relative value of $\xi_{\g}$ to $\xi_{\g'}$ allows the model to match the fact that some high-earning markets, such as doctors, account for a small share of total employment. This is because  $\xi_{\g}$ reflects not just the immediate utility benefits of working in a job in market $\g$, but also reflects broader compensating differentials. In this way, $\xi_{doctor}$ may be low, not because doctor jobs are unpleasant, but because the annualized cost of becoming a doctor --- including medical school --- and maintaining the requisite skills is high. We provide greater detail on identification in appendix \ref{sec:identification_details}.
+
+
+
+\subsection{Additional parameters to be estimated or calibrated}
+
+\label{sec:calibration}
+
+We also have the following parameters to estimate or calibrate:
+\begin{itemize}
+	\item $\beta_{\g s}$ (output elasticity of labor in market $\g$) ---  We calibrate these parameters as the share of the sector $S$ wage bill paid to workers employed in market $\g$ jobs. %\footnote{If we wanted to compare ourselves to Grigsby, we would have $\beta_{\g s} = x_s \alpha_{\g s}$ where $x_s$ is sector $s$'s share of the overall wage bill and $\alpha_{\g s}$ is market $\g$'s share of the sector $s$ wage bill. }
+	\item $\eta$ (CES consumption substitution elasticity)--- We calibrate this parameter to 2.\footnote{\citet{BrodaWeinstein2006} estimate this parameter to be 4, however their estimate comes from significantly more disaggregated product categories, so we choose a smaller value. This parameter affects our structural results in Section \ref{sec:model_fit}, but does not affect the reduced form estimates in Section \ref{sec:reduced_form}.}
+	% XX Better explanation needed. Matthew said this is the sort of thing where the solution is usually just doing a sensitivity analysis.
+	\item $a_s$ (demand shifters) --- We calibrate demand shifters to match actual sector output shares, given sector-level prices, for the state of Rio de Janeiro as measured by the Brazilian Institute of Geography and Statistics (IBGE).
+\end{itemize}
+
+\clearpage
+
 
 \section{Model Solution Appendix}
 
