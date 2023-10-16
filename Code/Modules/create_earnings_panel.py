@@ -14,9 +14,9 @@ import bisbm
 def create_earnings_panel(modelname, appended, firstyear_panel, lastyear_panel, sbm_modelname=None):
     if sbm_modelname==None:
         sbm_modelname=modelname
-    # Because dates aren't stored correctly in some years
-    appended['data_deslig'] = pd.to_datetime(appended['data_deslig'])
-    appended['data_adm'] = pd.to_datetime(appended['data_adm'])
+    # Because dates aren't stored correctly in some years. Also we had a very small number of invalid dates (5 out of hundreds of millions) and this sets them to missing rather than failing.
+    appended['data_deslig'] = pd.to_datetime(appended['data_deslig'], errors='coerce')
+    appended['data_adm'] = pd.to_datetime(appended['data_adm'], errors='coerce')
     
     # Load CPI data
     cpi = pd.read_csv('./Data/raw/BRACPIALLMINMEI.csv', parse_dates=['date'], names=['date','cpi'], header=0)
