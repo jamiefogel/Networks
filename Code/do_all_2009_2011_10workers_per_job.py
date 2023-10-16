@@ -56,9 +56,10 @@ from concentration_figures import concentration_figures
 #####################################
 # Options from IPEA/do_all_ipea.py
 
-run_sbm = True
-run_pull=True
-run_append = True
+run_sbm = False
+run_sbm_mcmc = False
+run_pull=False
+run_append = False
 maxrows=None
 modelname = '3states_2009to2011'
 #modelname = 'synthetic_data_3states_2009to2012'
@@ -188,6 +189,11 @@ if run_sbm==True:
     model.export_blocks(output='./Data/derived/sbm_output/model_'+modelname+'_blocks.csv', joutput='./Data/derived/sbm_output/model_'+modelname+'_jblocks.csv', woutput='./Data/derived/sbm_output/model_'+modelname+'_wblocks.csv')
     pickle.dump( model, open('./Data/derived/sbm_output/model_'+modelname+'.p', "wb" ), protocol=4 )
     print('SBM section complete at ', datetime.now())
+
+    
+if run_sbm_mcmc==True:
+    model.mcmc_sweeps('./Data/derived/sbm_output/model_'+modelname+'_mcmc.p', tempsavedir='./Data/derived/sbm_output/', numiter=1000, seed=734)
+    pickle.dump( model, open('./Data/derived/sbm_output/model_'+modelname+'.p', "wb" ), protocol=4 )
 
 
 ################################################################################################

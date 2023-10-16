@@ -1,5 +1,6 @@
 # conda activate gt
 
+
 import os
 import sys
 import pandas as pd
@@ -57,6 +58,7 @@ from concentration_figures import concentration_figures
 # Options from IPEA/do_all_ipea.py
 
 run_sbm = True
+run_sbm_mcmc = True
 run_pull=True
 run_append = True
 maxrows=None
@@ -189,7 +191,11 @@ if run_sbm==True:
     pickle.dump( model, open('./Data/derived/sbm_output/model_'+modelname+'.p', "wb" ), protocol=4 )
     print('SBM section complete at ', datetime.now())
 
+if run_sbm_mcmc==True:
+    model.mcmc_sweeps('./Data/derived/sbm_output/model_'+modelname+'_mcmc.p', tempsavedir='./Data/derived/sbm_output/', numiter=1000, seed=734)
+    pickle.dump( model, open('./Data/derived/sbm_output/model_'+modelname+'.p', "wb" ), protocol=4 )
 
+    
 ################################################################################################
 # Create earnings panel that we can use for the MLE
 
@@ -354,11 +360,16 @@ exec(open(root + 'Code/shock_case_study.py').read())
 #  Some summary stats about occ4s and kmeans
 #--------------------------
 
-data_full = pd.read_csv(root + 'Data/RAIS_exports/earnings_panel/" + filename_stub + "_w_kmeans.csv')
-n_kmeans = data_full.kmeans.value_counts().shape[0]
-print(n_kmeans, " kmeans groups remaining after dropping those with fewer than 5000 observations")
 
+data_full = pd.read_csv(mle_data_filename)
 
+n_iota      = data_full.loc[(data_full.iota!=-1)].iota.value_counts().shape[0]
+n_gamma     = data_full.loc[(data_full.gamma!=-1)].gamma.value_counts().shape[0]
+n_occ2Xmeso = data_full.loc[(data_full.occ2Xmeso!=-1)].occ2Xmeso.value_counts().shape[0]
+
+print(n_iota, "iotas")
+print(n_gamma, "gammas")
+print(n_occ2Xmeso, "occ2Xmesos")
 
 
 #--------------------------
