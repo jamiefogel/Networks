@@ -22,7 +22,12 @@ def pull_one_year(year, occvar, savefile=None, municipality_codes=None, state_co
         vars = vars + othervars
     if filename is None:
         filename = '~/rais/RAIS/csv/brasil' + str(year) + '.csv'
-    raw_data = pd.read_csv(filename, usecols=vars, sep=sep, dtype={'id_estab':str, 'pis':str, occvar:str}, nrows=nrows, parse_dates=parse_dates)
+    # 2009 csv is corrupted so use Stata instead
+    if year!=2009:
+        raw_data = pd.read_csv(filename, usecols=vars, sep=sep, dtype={'id_estab':str, 'pis':str, occvar:str}, nrows=nrows, parse_dates=parse_dates)
+    elif year==2009:
+        filename_stata = filename.replace('.csv','.dta').replace('/csv/','/Stata/')
+        raw_data = pd.read_stata(filename_stata, columns=vars)
     if municipality_codes is not None:
         raw_data = raw_data[raw_data['codemun'].isin(municipality_codes)]   
     if state_codes is not None:
