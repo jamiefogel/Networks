@@ -20,10 +20,10 @@ if simulation:
     eta = torch.tensor(1.5, requires_grad=True)
 
     # Define the dimensions of the matrix
-    J = 8  # number of jobs, identified from 0 to J-1
-    I = 3  # number of iotas, identified from 0 to I-1
+    J = 120  # number of jobs, identified from 0 to J-1
+    I = 4  # number of iotas, identified from 0 to I-1
     G = 3  # number of gammas, identified from 0 to G-1
-    N = J*10
+    N = J*1000
 
     # Generate a random matrix with values between 0 and 1
     x = torch.rand(J, I, requires_grad=False)
@@ -214,3 +214,11 @@ if converged != 1:
 estimates = {}
 estimates['theta'] = theta
 estimates['eta'] = eta
+
+
+
+final = datetime.now()
+print(' ')
+print(' ---  ')
+print('total time =', final - start)
+ 
