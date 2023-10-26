@@ -16,7 +16,7 @@ def pull_one_year(year, occvar, savefile=None, municipality_codes=None, state_co
     if ((year < 1998) | (year==2016) | (year==2018) | (year==2019)):
         sep = ';'
     else:
-        sep=','
+        sep = ','
     vars = ['pis','id_estab',occvar,'codemun','tipo_vinculo','idade'] 
     if othervars is not None:
         vars = vars + othervars
@@ -47,21 +47,21 @@ def pull_one_year(year, occvar, savefile=None, municipality_codes=None, state_co
     if 'clas_cnae20' in othervars:
         raw_data['ind2'] = np.floor(raw_data['clas_cnae20']/1000).astype(int)
         raw_data['sector_IBGE'] = np.nan
-        raw_data['sector_IBGE'].loc[( 1<=raw_data['ind2']) & (raw_data['ind2'] <= 3)] = 1  
-        raw_data['sector_IBGE'].loc[( 5<=raw_data['ind2']) & (raw_data['ind2'] <= 9)] = 2 
-        raw_data['sector_IBGE'].loc[(10<=raw_data['ind2']) & (raw_data['ind2'] <=33)] = 3 
-        raw_data['sector_IBGE'].loc[(35<=raw_data['ind2']) & (raw_data['ind2'] <=39)] = 4 
-        raw_data['sector_IBGE'].loc[(41<=raw_data['ind2']) & (raw_data['ind2'] <=43)] = 5 
-        raw_data['sector_IBGE'].loc[(45<=raw_data['ind2']) & (raw_data['ind2'] <=47)] = 6 
-        raw_data['sector_IBGE'].loc[(49<=raw_data['ind2']) & (raw_data['ind2'] <=53)] = 7 
-        raw_data['sector_IBGE'].loc[(55<=raw_data['ind2']) & (raw_data['ind2'] <=56)] = 8 
-        raw_data['sector_IBGE'].loc[(58<=raw_data['ind2']) & (raw_data['ind2'] <=63)] = 9 
-        raw_data['sector_IBGE'].loc[(64<=raw_data['ind2']) & (raw_data['ind2'] <=66)] = 10
-        raw_data['sector_IBGE'].loc[(68<=raw_data['ind2']) & (raw_data['ind2'] <=68)] = 11
-        raw_data['sector_IBGE'].loc[(69<=raw_data['ind2']) & (raw_data['ind2'] <=82)] = 12
-        raw_data['sector_IBGE'].loc[(84<=raw_data['ind2']) & (raw_data['ind2'] <=84)] = 13
-        raw_data['sector_IBGE'].loc[(85<=raw_data['ind2']) & (raw_data['ind2'] <=88)] = 14
-        raw_data['sector_IBGE'].loc[(90<=raw_data['ind2']) & (raw_data['ind2'] <=97)] = 15
+        raw_data.loc[( 1<=raw_data['ind2']) & (raw_data['ind2'] <= 3), 'sector_IBGE'] = 1  
+        raw_data.loc[( 5<=raw_data['ind2']) & (raw_data['ind2'] <= 9), 'sector_IBGE'] = 2 
+        raw_data.loc[(10<=raw_data['ind2']) & (raw_data['ind2'] <=33), 'sector_IBGE'] = 3 
+        raw_data.loc[(35<=raw_data['ind2']) & (raw_data['ind2'] <=39), 'sector_IBGE'] = 4 
+        raw_data.loc[(41<=raw_data['ind2']) & (raw_data['ind2'] <=43), 'sector_IBGE'] = 5 
+        raw_data.loc[(45<=raw_data['ind2']) & (raw_data['ind2'] <=47), 'sector_IBGE'] = 6 
+        raw_data.loc[(49<=raw_data['ind2']) & (raw_data['ind2'] <=53), 'sector_IBGE'] = 7 
+        raw_data.loc[(55<=raw_data['ind2']) & (raw_data['ind2'] <=56), 'sector_IBGE'] = 8 
+        raw_data.loc[(58<=raw_data['ind2']) & (raw_data['ind2'] <=63), 'sector_IBGE'] = 9 
+        raw_data.loc[(64<=raw_data['ind2']) & (raw_data['ind2'] <=66), 'sector_IBGE'] = 10
+        raw_data.loc[(68<=raw_data['ind2']) & (raw_data['ind2'] <=68), 'sector_IBGE'] = 11
+        raw_data.loc[(69<=raw_data['ind2']) & (raw_data['ind2'] <=82), 'sector_IBGE'] = 12
+        raw_data.loc[(84<=raw_data['ind2']) & (raw_data['ind2'] <=84), 'sector_IBGE'] = 13
+        raw_data.loc[(85<=raw_data['ind2']) & (raw_data['ind2'] <=88), 'sector_IBGE'] = 14
+        raw_data.loc[(90<=raw_data['ind2']) & (raw_data['ind2'] <=97), 'sector_IBGE'] = 15
     if savefile is not None:
         pickle.dump( raw_data, open(savefile, "wb" ) )
     else:
