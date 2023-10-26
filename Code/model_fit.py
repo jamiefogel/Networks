@@ -55,7 +55,7 @@ for idx in classification_list: #
         fit_b_gs = fit_alphags * x_s
 
 
-    rvals =  model_fit(fit_mle_data_filename, fit_mle_data_sums, fit_mle_estimates, fit_psi_hat, S, eta, level, fit_b_gs, wtype_var, jtype_var, a_ts, p_ts, 2013, 2016, figuredir)
+    rvals =  model_fit(fit_mle_data_filename, fit_mle_data_sums, fit_mle_estimates, fit_psi_hat, S, eta, level, fit_b_gs, wtype_var, jtype_var, a_ts, p_ts, 2009, 2014, figuredir)
     fit_returnvals.append(rvals)
 
 

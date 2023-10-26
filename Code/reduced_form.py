@@ -35,8 +35,8 @@ np.random.seed(20210316)
 #mle_dir = root + "MLE_estimates/"
 #sums_dir= root + "Data/mle_data_sums/"
 
-firstyear=2013
-lastyear=2016
+firstyear=2009
+lastyear=2012
 
 
 

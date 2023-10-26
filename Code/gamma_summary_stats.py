@@ -38,7 +38,7 @@ region_codes = region_codes.loc[region_codes.code_uf.isin(state_codes)]
 state_cw = region_codes[['code_meso','uf']].drop_duplicates()
 muni_meso_cw = pd.DataFrame({'code_meso':region_codes.code_meso,'codemun':region_codes.code_munic//10})
 
-modelname = '3states_2013to2016_mcmc'
+
 # 2004 appears to be the first year in which we have job start end dates (data_adm and data_deslig)
 
 
@@ -62,45 +62,45 @@ iotas['wid'] = iotas['wid'].astype('str')
 
                            
 ################################################
-# Pull other variables like education for 2016
+# Pull other variables like education for a specific year
 # - These are variables that we want to merge on by wid-jid but then collapse by gamma to better characterize the different gammas
 
-raw2016 = pull_one_year(2016, 'cbo2002', othervars=['grau_instr','rem_med_r','clas_cnae20','codemun'], state_codes=state_codes, age_lower=25, age_upper=55, nrows=None, filename=rais_filename_stub + str(year) + '.csv')
+raw = pull_one_year(gamma_summary_stats_year, 'cbo2002', othervars=['grau_instr','rem_med_r','clas_cnae20','codemun'], state_codes=state_codes, age_lower=25, age_upper=55, nrows=None, filename=rais_filename_stub + str(year) + '.csv')
 
-raw2016 = raw2016.merge(gammas, how='left', validate='m:1', on='jid',indicator=False)
-raw2016 = raw2016.merge(iotas, how='left', validate='m:1', on='wid',indicator=False)
+raw = raw.merge(gammas, how='left', validate='m:1', on='jid',indicator=False)
+raw = raw.merge(iotas, how='left', validate='m:1', on='wid',indicator=False)
 
-raw2016 = raw2016.merge(muni_meso_cw, on='codemun')
+raw = raw.merge(muni_meso_cw, on='codemun')
 
-raw2016['occ2'] = raw2016['cbo2002'].str[0:2]
-raw2016['occ4'] = raw2016['cbo2002'].str[0:4]
-raw2016['ind2'] = raw2016['clas_cnae20'].astype('str').str[0:2].astype('int')
-raw2016['sector_IBGE'] = np.nan
-raw2016['sector_IBGE'].loc[( 1<=raw2016['ind2']) & (raw2016['ind2'] <= 3)] = 1  
-raw2016['sector_IBGE'].loc[( 5<=raw2016['ind2']) & (raw2016['ind2'] <= 9)] = 2 
-raw2016['sector_IBGE'].loc[(10<=raw2016['ind2']) & (raw2016['ind2'] <=33)] = 3 
-raw2016['sector_IBGE'].loc[(35<=raw2016['ind2']) & (raw2016['ind2'] <=39)] = 4 
-raw2016['sector_IBGE'].loc[(41<=raw2016['ind2']) & (raw2016['ind2'] <=43)] = 5 
-raw2016['sector_IBGE'].loc[(45<=raw2016['ind2']) & (raw2016['ind2'] <=47)] = 6 
-raw2016['sector_IBGE'].loc[(49<=raw2016['ind2']) & (raw2016['ind2'] <=53)] = 7 
-raw2016['sector_IBGE'].loc[(55<=raw2016['ind2']) & (raw2016['ind2'] <=56)] = 8 
-raw2016['sector_IBGE'].loc[(58<=raw2016['ind2']) & (raw2016['ind2'] <=63)] = 9 
-raw2016['sector_IBGE'].loc[(64<=raw2016['ind2']) & (raw2016['ind2'] <=66)] = 10
-raw2016['sector_IBGE'].loc[(68<=raw2016['ind2']) & (raw2016['ind2'] <=68)] = 11
-raw2016['sector_IBGE'].loc[(69<=raw2016['ind2']) & (raw2016['ind2'] <=82)] = 12
-raw2016['sector_IBGE'].loc[(84<=raw2016['ind2']) & (raw2016['ind2'] <=84)] = 13
-raw2016['sector_IBGE'].loc[(85<=raw2016['ind2']) & (raw2016['ind2'] <=88)] = 14
-raw2016['sector_IBGE'].loc[(90<=raw2016['ind2']) & (raw2016['ind2'] <=97)] = 15
+raw['occ2'] = raw['cbo2002'].str[0:2]
+raw['occ4'] = raw['cbo2002'].str[0:4]
+raw['ind2'] = raw['clas_cnae20'].astype('str').str[0:2].astype('int')
+raw['sector_IBGE'] = np.nan
+raw['sector_IBGE'].loc[( 1<=raw['ind2']) & (raw['ind2'] <= 3)] = 1  
+raw['sector_IBGE'].loc[( 5<=raw['ind2']) & (raw['ind2'] <= 9)] = 2 
+raw['sector_IBGE'].loc[(10<=raw['ind2']) & (raw['ind2'] <=33)] = 3 
+raw['sector_IBGE'].loc[(35<=raw['ind2']) & (raw['ind2'] <=39)] = 4 
+raw['sector_IBGE'].loc[(41<=raw['ind2']) & (raw['ind2'] <=43)] = 5 
+raw['sector_IBGE'].loc[(45<=raw['ind2']) & (raw['ind2'] <=47)] = 6 
+raw['sector_IBGE'].loc[(49<=raw['ind2']) & (raw['ind2'] <=53)] = 7 
+raw['sector_IBGE'].loc[(55<=raw['ind2']) & (raw['ind2'] <=56)] = 8 
+raw['sector_IBGE'].loc[(58<=raw['ind2']) & (raw['ind2'] <=63)] = 9 
+raw['sector_IBGE'].loc[(64<=raw['ind2']) & (raw['ind2'] <=66)] = 10
+raw['sector_IBGE'].loc[(68<=raw['ind2']) & (raw['ind2'] <=68)] = 11
+raw['sector_IBGE'].loc[(69<=raw['ind2']) & (raw['ind2'] <=82)] = 12
+raw['sector_IBGE'].loc[(84<=raw['ind2']) & (raw['ind2'] <=84)] = 13
+raw['sector_IBGE'].loc[(85<=raw['ind2']) & (raw['ind2'] <=88)] = 14
+raw['sector_IBGE'].loc[(90<=raw['ind2']) & (raw['ind2'] <=97)] = 15
 
 
 # Recode education variable to approximately reflect years of schooling
-raw2016['grau_instr'] = raw2016['grau_instr'].replace({1:1, 2:3, 3:5, 4:7, 5:9, 6:10, 7:12, 8:14, 9:16, 10:18, 11:21})
+raw['grau_instr'] = raw['grau_instr'].replace({1:1, 2:3, 3:5, 4:7, 5:9, 6:10, 7:12, 8:14, 9:16, 10:18, 11:21})
 
-raw2016.to_pickle(root + '/Data/derived/explore_gammas_raw2016.p')
-#raw2016 = pd.read_pickle(root + '/Data/derived/explore_gammas_raw2016.p')
+raw.to_pickle(root + '/Data/derived/explore_gammas_raw.p')
+#raw = pd.read_pickle(root + '/Data/derived/explore_gammas_raw.p')
 
-# Collapse a bunch of the variables in raw2016 by gamma
-gammas_w_attributes = raw2016.groupby(['gamma']).agg(educ_median=('grau_instr','median'), educ_mean=('grau_instr','mean'), educ_mode=('grau_instr',lambda x: stats.mode(x)[0][0]), mean_monthly_earnings=('rem_med_r','mean'),modal_ind2=('ind2', lambda x: stats.mode(x)[0][0]), modal_sector=('sector_IBGE', lambda x: stats.mode(x)[0][0]), modal_occ2=('occ2', lambda x: stats.mode(x)[0][0]), modal_occ4=('occ4', lambda x: stats.mode(x)[0][0]))
+# Collapse a bunch of the variables in raw by gamma
+gammas_w_attributes = raw.groupby(['gamma']).agg(educ_median=('grau_instr','median'), educ_mean=('grau_instr','mean'), educ_mode=('grau_instr',lambda x: stats.mode(x)[0][0]), mean_monthly_earnings=('rem_med_r','mean'),modal_ind2=('ind2', lambda x: stats.mode(x)[0][0]), modal_sector=('sector_IBGE', lambda x: stats.mode(x)[0][0]), modal_occ2=('occ2', lambda x: stats.mode(x)[0][0]), modal_occ4=('occ4', lambda x: stats.mode(x)[0][0]))
 
 # Create some rank variables 
 gammas_w_attributes['educ_mean_rank'] = gammas_w_attributes['educ_mean'].rank(method='dense', pct=True)
@@ -108,20 +108,20 @@ gammas_w_attributes['mean_monthly_earnings_rank'] = gammas_w_attributes['mean_mo
 gammas_w_attributes['log_mean_monthly_earnings'] = np.log(gammas_w_attributes['mean_monthly_earnings'])
 
 # Compute the number of unique workers and jobs and worker--job pairs 
-num_unique_jids = raw2016.groupby('gamma')['jid'].nunique().reset_index().rename(columns={'jid':'num_unique_jids'})
-num_unique_wids = raw2016.groupby('gamma')['wid'].nunique().reset_index().rename(columns={'wid':'num_unique_wids'})
-num_unique_wid_jids = raw2016.groupby('gamma').apply(lambda x: x[['jid', 'wid']].drop_duplicates().shape[0]).astype(int).reset_index().rename(columns={0:'num_unique_wid_jids'})
+num_unique_jids = raw.groupby('gamma')['jid'].nunique().reset_index().rename(columns={'jid':'num_unique_jids'})
+num_unique_wids = raw.groupby('gamma')['wid'].nunique().reset_index().rename(columns={'wid':'num_unique_wids'})
+num_unique_wid_jids = raw.groupby('gamma').apply(lambda x: x[['jid', 'wid']].drop_duplicates().shape[0]).astype(int).reset_index().rename(columns={0:'num_unique_wid_jids'})
 
 
 ######################################
 # Compute HHIs
 
-hhi_iota = gamma_hhi(raw2016,'gamma','iota')
-hhi_occ4 = gamma_hhi(raw2016,'gamma','occ4')
-hhi_occ2 = gamma_hhi(raw2016,'gamma','occ2')
-hhi_code_meso = gamma_hhi(raw2016,'gamma','code_meso')
-hhi_codemun = gamma_hhi(raw2016,'gamma','codemun')
-hhi_jid = gamma_hhi(raw2016,'gamma','jid')
+hhi_iota = gamma_hhi(raw,'gamma','iota')
+hhi_occ4 = gamma_hhi(raw,'gamma','occ4')
+hhi_occ2 = gamma_hhi(raw,'gamma','occ2')
+hhi_code_meso = gamma_hhi(raw,'gamma','code_meso')
+hhi_codemun = gamma_hhi(raw,'gamma','codemun')
+hhi_jid = gamma_hhi(raw,'gamma','jid')
 
 
 # Merge on gamma characteristics 
@@ -132,10 +132,10 @@ for var in [hhi_iota, hhi_occ4, hhi_occ2, hhi_code_meso, hhi_codemun, hhi_jid, n
 #############################################################################################
 # Job-to-job Move distances from the predicting flows transitions data
 
-# Pull meso codes for our states of interest
-muni_sp = geobr.read_municipality(code_muni="SP", year=2016)
-muni_rj = geobr.read_municipality(code_muni='RJ', year=2016)
-muni_mg = geobr.read_municipality(code_muni='MG', year=2016)
+# Pull meso codes for our states of interest. Choosing 2010 b/c this isn't available for all years and 2010 is in the middle of our sample
+muni_sp = geobr.read_municipality(code_muni="SP", year=2010)
+muni_rj = geobr.read_municipality(code_muni='RJ', year=2010)
+muni_mg = geobr.read_municipality(code_muni='MG', year=2010)
 munis = pd.concat([muni_sp, muni_rj, muni_mg], ignore_index=True)
 munis['lon'] = munis.geometry.centroid.x
 munis['lat'] = munis.geometry.centroid.y
@@ -144,9 +144,6 @@ munis['codemun'] = munis.code_muni//10
 df_trans = pd.read_pickle(root + '/Data/derived/predicting_flows/pred_flows_df_trans_ins.p')
 
 # Assign each jid its modal municipality code based on 2016 data
-raw = pd.read_csv('~/rais/RAIS/csv/brasil2016.csv', usecols=['id_estab','cbo2002','codemun'], sep=';', dtype={'id_estab':str, 'cbo2002':str})
-raw['occ4'] = raw['cbo2002'].str[0:4]
-raw['jid']  = raw['id_estab'] + '_' + raw['occ4']
 jid_muni = raw[['jid','codemun']].groupby('jid').agg(lambda x: x.mode()[0]).reset_index()
 jid_muni = jid_muni.merge(munis[['codemun','lat','lon']], on='codemun', how='inner', validate='m:1', indicator=True)
 
@@ -182,7 +179,7 @@ gammas_w_attributes = gammas_w_attributes.merge(distance_stats, left_on='gamma',
 
 # Spatial variance
 
-jid_spatial_dist = raw2016[['jid','gamma']].merge(jid_muni, left_on='jid', right_on='jid', validate='m:1')
+jid_spatial_dist = raw[['jid','gamma']].merge(jid_muni, left_on='jid', right_on='jid', validate='m:1')
 jid_spatial_dist['mean_lat'] = jid_spatial_dist.groupby('gamma')['lat'].transform('mean')
 jid_spatial_dist['mean_lon'] = jid_spatial_dist.groupby('gamma')['lon'].transform('mean')
 
@@ -214,7 +211,7 @@ mesos = pd.concat([meso_sp, meso_rj, meso_mg], ignore_index=True)
 
 
 # Calculate share of jid observations for each gamma in each code_meso
-pivot_df = pd.pivot_table(raw2016.loc[raw2016.gamma!=-1], index='code_meso', columns='gamma', aggfunc='size', fill_value=0)
+pivot_df = pd.pivot_table(raw.loc[raw.gamma!=-1], index='code_meso', columns='gamma', aggfunc='size', fill_value=0)
 meso_share_df = pivot_df.apply(lambda x: x/x.sum(), axis=0).reset_index()
 
 # Issue: the meso codes from geobr only have 4 digits but in state_cw they sometimes have 5. Basically in state_cw there is always a 0 between the 2 state digits and the 2 meso code digits; in geo_br there is only a 0 if the meso code has 1 digit. Check with Bernardo about this
@@ -248,7 +245,7 @@ pickle.dump( meso_share_norm_df, open(root + '/Data/derived/dump/' + modelname +
 # Compute occupation distributions for each iota and gamma in 2016
 
 from occ_counts_by_type import occ_counts_by_type
-[iota_dict, gamma_dict] = occ_counts_by_type(raw2016, root + 'Data/raw/translated_occ_codes_english_only.csv', 0)
+[iota_dict, gamma_dict] = occ_counts_by_type(raw, root + 'Data/raw/translated_occ_codes_english_only.csv', 0)
                           
 
 pickle.dump( iota_dict,          open(root + '/Data/derived/dump/' + modelname + '_iota_dict.p', "wb" ) )
