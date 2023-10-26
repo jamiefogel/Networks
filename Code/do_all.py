@@ -73,7 +73,7 @@ lastyear_sbm  = 2012
 firstyear_panel = 2009
 lastyear_panel  = 2014
 state_codes = [31, 33, 35]
-
+gamma_summary_stats_year = 2010   # Define a year to compute summary stats
 
 #####################################
 # Options from do_all.py
@@ -258,7 +258,7 @@ if run_all==True:
         est_psi_and_k_file         = root + "Data/derived/MLE_estimates/" + filename_stub + "_psi_normalized_" + suffix + "_eta_" + str(eta) + ".p"
         est_alphas_file            = root + "Data/derived/MLE_estimates/" + filename_stub + "_alphas_" + suffix + "_eta_" + str(eta) + ".p"
         if run_query_sums == 1:
-            mle_load_fulldata(est_mle_data_filename, est_mle_data_sums_filename, wtype_var, jtype_var, 'real_hrly_wage_dec', est_alphas_file, mle_firstyear=2013, mle_lastyear=2016)
+            mle_load_fulldata(est_mle_data_filename, est_mle_data_sums_filename, wtype_var, jtype_var, 'real_hrly_wage_dec', est_alphas_file, mle_firstyear=firstyear_sbm, mle_lastyear=lastyear_sbm)
         if run_mle == True:
             if wtype_var != jtype_var:
                 torch_mle(est_mle_data_sums_filename, est_mle_estimates_filename, wtype_var, jtype_var, level)
