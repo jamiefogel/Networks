@@ -8,7 +8,7 @@ import numpy as np
 import pickle
 from datetime import datetime
 import getpass
-
+import subprocess
 
 now = datetime.now()
 dt_string = now.strftime("%Y_%m_%d__%H_%M_%S")
@@ -60,6 +60,7 @@ run_sbm = False
 run_sbm_mcmc = False
 run_pull=False
 run_append = False
+run_create_earnings_panel = False
 maxrows=None
 modelname = '3states_2009to2011'
 #modelname = 'synthetic_data_3states_2009to2012'
@@ -72,7 +73,7 @@ lastyear_sbm  = 2011
 firstyear_panel = 2009
 lastyear_panel  = 2014
 state_codes = [31, 33, 35]
-
+gamma_summary_stats_year = 2010   # Define a year to compute summary stats
 
 #####################################
 # Options from do_all.py
@@ -101,12 +102,12 @@ np.set_printoptions(linewidth=200)
 np.set_printoptions(suppress=True)
 
 
-run_all = True
-run_mle = True
-run_query_sums = True
-run_normalization = True
-run_occ_counts = True
-run_correlogram = True
+run_all = False
+run_mle = False
+run_query_sums = False
+run_normalization = False
+run_occ_counts = False
+run_correlogram = False
 solve_GE_silently = True
 a_s_variation = True
 run_predictions = True
@@ -199,9 +200,10 @@ if run_sbm_mcmc==True:
 ################################################################################################
 # Create earnings panel that we can use for the MLE
 
-print('Starting create_earnings_panel() section at ', datetime.now())
-create_earnings_panel(modelname, appended, 2009, 2014)
-print('create_earnings_panel() section finished  at ', datetime.now())
+if run_create_earnings_panel==True:
+    print('Starting create_earnings_panel() section at ', datetime.now())
+    create_earnings_panel(modelname, appended, 2009, 2014)
+    print('create_earnings_panel() section finished  at ', datetime.now())
 
 
 
@@ -258,7 +260,7 @@ if run_all==True:
         est_psi_and_k_file         = root + "Data/derived/MLE_estimates/" + filename_stub + "_psi_normalized_" + suffix + "_eta_" + str(eta) + ".p"
         est_alphas_file            = root + "Data/derived/MLE_estimates/" + filename_stub + "_alphas_" + suffix + "_eta_" + str(eta) + ".p"
         if run_query_sums == 1:
-            mle_load_fulldata(est_mle_data_filename, est_mle_data_sums_filename, wtype_var, jtype_var, 'real_hrly_wage_dec', est_alphas_file, mle_firstyear=2013, mle_lastyear=2016)
+            mle_load_fulldata(est_mle_data_filename, est_mle_data_sums_filename, wtype_var, jtype_var, 'real_hrly_wage_dec', est_alphas_file, mle_firstyear=firstyear_sbm, mle_lastyear=lastyear_sbm)
         if run_mle == True:
             if wtype_var != jtype_var:
                 torch_mle(est_mle_data_sums_filename, est_mle_estimates_filename, wtype_var, jtype_var, level)
@@ -327,7 +329,7 @@ concentration_figures(data_full_concfigs, 'gamma', 'Markets (sorted by hiring HH
 concentration_figures(data_full_concfigs, 'gamma', 'Markets (sorted by hiring HHI)',    ['occ4_first','iota'],      {'occ4_first':'4-Digit Occupation','iota':'Worker Type'},      figuredir+'concentration_figures__gamma__occ4_first__iota.png',weighted=True)
 
 # Gamma summary stats including binscatters and meso_plots
-exec(open(root + 'Code/gamma_summary_stats.py').read())
+#exec(open(root + 'Code/gamma_summary_stats.py').read())
 
     
 #--------------------------
@@ -338,10 +340,11 @@ if run_predictions==True:
     exec(open(root + 'Code/predicting_flows_data_pull.py').read())
     # WE have been running the actual predictions (coded in the script below) in parallel using the following script: NetworksGit\Code\bash_parallel_jobtransitions_market_based_mutiple_mkts.sh
     # XX Code ran successfully through here on 8/11/2023. Failed somewhere in in the next script
-    exec(open(root + 'Code/parallel_jobtransitions_market_based_multiple_mkts.py').read())
-    exec(open(root + 'Code/parallel_jobtransitions_stack_results.py').read())
+    #exec(open(root + 'Code/parallel_jobtransitions_market_based_multiple_mkts.py').read())
+    #exec(open(root + 'Code/parallel_jobtransitions_stack_results.py').read())
+    subprocess.Popen([root + 'Code/bash_parallel_jobtransitions_market_based_mutiple_mkts.sh'], shell=True)
 
-
+    
 #--------------------------
 #  ANALYSIS
 #--------------------------
@@ -349,6 +352,39 @@ if run_predictions==True:
 
 
 exec(open(root + 'Code/model_fit.py').read())
+
+''' 
+
+model_fit.py failed on occ4_first_recode sector_IBGE
+
+OUTPUT BELOW:
+
+---------------------------------------------
+occ4_first_recode sector_IBGE
+---------------------------------------------
+ 
+CONVERGED!
+ 
+CONVERGED!
+/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/Code/Modules/model_fit_func.py:54: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  MSE = (torch.sum( wgt * (torch.tensor(x-y)**2))/torch.sum(wgt)).item()
+MSE 0.0169806987330254
+/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/Code/Modules/model_fit_func.py:54: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  MSE = (torch.sum( wgt * (torch.tensor(x-y)**2))/torch.sum(wgt)).item()
+MSE 0.0169806987330254
+/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/Code/Modules/model_fit_func.py:54: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  MSE = (torch.sum( wgt * (torch.tensor(x-y)**2))/torch.sum(wgt)).item()
+MSE 0.0169806987330254
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+  File "<string>", line 58, in <module>
+  File "/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/Code/Modules/model_fit_func.py", line 290, in model_fit
+    make_scatter(E_phi_no_N_pre, ln_wage_no_N_iota_pre, 'E_phi_no_N_pre', 'ln_wage_no_N_iota_pre', xlabel='Model', ylabel='Actual', xlim=(1.5,4.5), ylim=(1.5,4.5), title=r'$\Phi$ versus actual log wages; 2009, level ' + str(level), filename=figuredir + '/' + 'model_fit_cross_section_pre_level_' + worker_type_var + "_" + job_type_var + "_" + "level_" + str(level) + '_eta_' + str(eta) + '.png', printvars=False)
+  File "/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/Code/Modules/model_fit_func.py", line 54, in make_scatter
+    MSE = (torch.sum( wgt * (torch.tensor(x-y)**2))/torch.sum(wgt)).item()
+RuntimeError: The size of tensor a (573) must match the size of tensor b (570) at non-singleton dimension 0
+'''
+
 exec(open(root + 'Code/reduced_form.py').read())
 
 exec(open(root + 'Code/shock_case_study.py').read())

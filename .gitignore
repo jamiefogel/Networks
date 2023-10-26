@@ -24,3 +24,6 @@ Results/concentration_figures_iota_gamma_sector_hhi_worker_weighted.png
 Results/concentration_figures_iota_gamma_sector5_hhi_worker_weighted.png
 Results/concentration_figures_iota_gamma_occ4_hhi_worker_weighted.png
 Results/concentration_figures_gamma_iota_occ4_hhi_market_weighted.png
+*.log~
+*.log#
+*.txt#
