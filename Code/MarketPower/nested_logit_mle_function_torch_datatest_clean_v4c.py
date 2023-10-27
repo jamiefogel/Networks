@@ -292,6 +292,10 @@ while converged == 0 and iter < maxiter:
     end = datetime.now()
     print('Obj func = ', round(obj_function_to_minimize.item(), 5),', step = ', iter, ' t =', end - start)
     print('theta = ', round(theta.item(), 5), ', eta = ', round(eta.item(), 5))
+    if theta < 0:
+        theta = torch.tensor(1/1.257,    requires_grad=True)
+    if eta < 0:
+        eta = torch.tensor(1/0.985,    requires_grad=True)
     if iter % 10:
         obj_function_to_minimize_vec.append(obj_function_to_minimize)
     if torch.max(torch.abs(theta-theta_prev)) < tol and torch.max(torch.abs(eta-eta_prev)) < tol:
