@@ -97,32 +97,19 @@ J = ajid_oos.shape[0]
 mkts = ['gamma', 'iotagamma', 'occ2Xmeso']
 
 for mkt in mkts:
-
     m = mkt[0]
-
     # Storing gamma to same gamma flows (i.e. internal flows)
     cmkts[m]['within_flow_' + m] = amkts[m].diagonal().reshape(-1, 1)
-
     # probability of choosing an edge connecting to j within its market: degree divided by cardinality of the market    
     cjid['djd' + m] = cjid['jid_degreecount'] / cjid[mkt + '_degreecount']
-
     # get the number of matches between the current gamma to all other gammas (assuming cg is sorted according to ag)
     # this quantity is necessary for the probability correction on overleaf (i.e. to DISTRIBUTE SELF EDGE PROBS TO OTHER EDGES)
     cjid = cjid.reset_index().merge(cmkts[m][['within_flow_'+m,mkt]], left_on=mkt, right_on=mkt).set_index('idx')
-
     # APPROACH 1 TO DISTRIBUTE SELF EDGE PROBS TO OTHER EDGES
     # getting the prediction for the diagonal (i.e. for a job to itself), which has to be distributed accros jobs
     cjid['pred_prob_diag_' + m] = (cjid['within_flow_'+m] / D_insample) * np.square(cjid['djd'+m])
-
     # accumulating the diagonal prob per gamma
     cjid['pred_prob_diag_acc_'+m] = cjid.loc[:,[mkt,'pred_prob_diag_'+m]].groupby(mkt).transform('sum')
-
-
-####### TEMP!!!!! just to test the function
-mkt = 'gamma'
-m = mkt[0]
-a_mkt = amkts[m]
-c_mkt = cmkts[m]
 
 
 
@@ -135,6 +122,8 @@ c_mkt = cmkts[m]
 #J = 108
 #core = 3
 #total_cores = 11
+
+
 core = int(sys.argv[1])
 total_cores = int(sys.argv[2])
 

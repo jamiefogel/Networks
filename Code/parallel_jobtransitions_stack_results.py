@@ -76,3 +76,6 @@ for i in [1,2]:
     np.round(pd.DataFrame(mean_diffs).describe(),2)
     pct_neg = (np.array(mean_diffs)<0).mean() *100
     print(str(pct_neg)+'% of the 100 draws yield a negative mean of l'+str(i)+'_g - l'+str(i)+'_o)')
+
+
+#ax.figure.savefig(histsavefile, dpi=300, bbox_inches="tight")
