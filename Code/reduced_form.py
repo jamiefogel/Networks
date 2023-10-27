@@ -65,7 +65,7 @@ psi_hat = pickle.load(open(psi_and_k_file, "rb"), encoding='bytes')['psi_hat']
 alphags = load_alphas(alphas_file)
 b_gs = alphags * x_s
 
-a_s_pre = torch.tensor(a_ts[p_ts.index == 2013,])
+a_s_pre = torch.tensor(a_ts[p_ts.index == firstyear,])
 
 
 phi_outopt = torch.reshape(torch.tensor([phi_outopt_scalar]*mle_data_sums['I'], requires_grad=False), (mle_data_sums['I'],1))
