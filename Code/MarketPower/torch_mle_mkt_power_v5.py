@@ -121,7 +121,7 @@ while converged == 0 and i<maxiter :
     if torch.isnan(obj_function_to_minimize) or torch.isnan(eta) or torch.isnan(theta):
         converged = -1
         print('Obj func = ', round(obj_function_to_minimize.item(), 5),', step = ', i, 'theta = ', round(theta.item(), 5), ', eta = ', round(eta.item(), 5), ", t = ", datetime.now())
-        raise ValueError('Likelihood or parameters having NaN on iteration ' + str(i), ', t= ', datetime.now())
+        raise ValueError('Likelihood or parameters having NaN on iteration ' + str(i) + ', t= ' + str(datetime.now()))
     theta_prev = theta.detach().clone()
     eta_prev    = eta.detach().clone()
     i += 1
