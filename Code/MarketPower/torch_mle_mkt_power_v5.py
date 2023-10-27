@@ -17,7 +17,7 @@ start = datetime.now()
 print(start)
 os.chdir(data_dir)
 read_fewer_rows = True  
-fewer_rows = 100000  
+fewer_rows = 50000  
 ################################
 # FUNCTIONS FOR THE MLE
 ################################
