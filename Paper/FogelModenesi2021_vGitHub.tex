@@ -258,7 +258,7 @@ To understand why this matters, consider a simplified version of \citet{AutorDor
 
 % This paragraph still feels under-developed
 % We propose a revealed preference approach that relies on workers' and jobs' choices during a pre-shock period to classify workers and jobs. For ease of exposition, we assume that worker types and markets reflect only skills and tasks, respectively, however they may also reflect factors like geography and preferences.
-We start with the intuition that workers employed in the same job have similar skills, and jobs employing the same worker require similar tasks. We formalize this intuition using a \citet{Roy1951} model in which workers belong to a discrete set of latent \emph{worker types} and jobs belong to a discrete set of latent \emph{markets}. For ease of exposition, we assume that worker types and markets reflect only skills and tasks, respectively, however they may also reflect factors like geography or preferences.  Workers match with jobs according to comparative advantage, which is determined by complementarities between skills and tasks at the worker type--market level. The model implies that all workers in the same worker type have the same vector of match probabilities over jobs, and all jobs in the same market have the same vector of hiring probabilities over workers. We invert this logic and derive a maximum likelihood estimator that assigns workers to worker types and jobs to markets based on the observed network of worker--job matches. The MLE estimator uses realized job matches for each worker and their peers --- coworkers, former coworkers, coworkers' former coworkers, former coworkers' coworkers, etc. --- to approximate each worker's match probability distribution over jobs, and clusters together workers with the most similar distributions into worker types. It simultaneously clusters jobs into markets following a symmetric argument. We show that our MLE is equivalent to a tool from the community detection branch of network theory called the bipartite stochastic block model (BiSBM), and use computational techniques from network theory to solve the model. 
+We start with the intuition that workers employed in the same job have similar skills, and jobs employing the same workers require similar tasks. We formalize this intuition using a \citet{Roy1951} model in which workers belong to a discrete set of latent \emph{worker types} and jobs belong to a discrete set of latent \emph{markets}. For ease of exposition, we assume that worker types and markets reflect only skills and tasks, respectively, however they may also reflect factors like geography, credentials, or preferences.  Workers match with jobs according to comparative advantage, which is determined by complementarities between skills and tasks at the worker type--market level. The model implies that all workers in the same worker type have the same vector of match probabilities over jobs, and all jobs in the same market have the same vector of hiring probabilities over workers. We invert this logic and derive a maximum likelihood estimator that assigns workers to worker types and jobs to markets based on the observed network of worker--job matches. The MLE estimator uses realized job matches for each worker and their peers --- coworkers, former coworkers, coworkers' former coworkers, former coworkers' coworkers, etc. --- to approximate each worker's match probability distribution over jobs, and clusters together workers with the most similar distributions into worker types. It simultaneously clusters jobs into markets following a symmetric argument. We show that our MLE is equivalent to a tool from the community detection branch of network theory called the bipartite stochastic block model (BiSBM), and use computational techniques from network theory to solve the model. 
 
 
 By inferring worker and job similarity directly from empirical matching patterns, we bypass the need to (i) directly observe all relevant dimensions of worker and job heterogeneity, and (ii) understand how those dimensions interact in potentially non-linear ways. Moreover, by deriving our clustering algorithm from a Roy model of workers matching with jobs according to comparative advantage, we give our worker types and markets precise economic interpretability. Finally, we embed our Roy model of the labor market within a general equilibrium model with workers, firms, households and exogenous product demand shocks based on \citet{Grigsby2019} in order to microfound the determinants of comparative advantage and allow for counterfactuals representing labor supply or demand shocks. 
@@ -278,17 +278,17 @@ We estimate our model and conduct empirical analyses using Brazilian administrat
 %We restrict our analysis to the Rio de Janeiro metropolitan area, both for computational reasons and because restricting to a single metropolitan area enables us to focus on skills and tasks dimensions of worker and job heterogeneity rather than geographic heterogeneity. However, extending our model to incorporate geographic dimensions of worker and job heterogeneity is straightforward. While many others have used linked employer-employee data (LEED), we are the first to fully utilize the rich information embedded in the network of worker--job matches to characterize worker and job heterogeneity.\footnote{\citet{Nimczik2018} and \citet{JaroschNimczikSorkin2019} use a related method using a unipartite network of firms linked by worker transitions, however they classify only firms, not individual workers or jobs.}
 
 
-We identify 852 worker types and 1,154 markets. This level of granularity is similar to defining markets by the intersection of two-digit occupations and meso regions\footnote{Meso regions are administrative divisions that are larger than cities but smaller than states. There are 137 meso regions in Brazil.}, henceforth ``occ2Xmesos'', of which there are 1,480. Therefore, we treat occ2Xmesos as our primary ``status quo'' comparison. We present descriptive facts about our worker types and markets that (i) validate the quality of our worker types and markets, and (ii) identify patterns of worker and job similarity that standard classifications based on occupation, industry or geography would have missed.
+We identify 446 worker types and 1,371 markets. This level of granularity is similar to defining markets by the intersection of two-digit occupations and meso regions\footnote{Meso regions are administrative divisions that are larger than cities but smaller than states. There are 137 meso regions in Brazil.}, henceforth ``occ2Xmesos'', of which there are 1,480. Therefore, we treat occ2Xmesos as our primary ``status quo'' comparison. We present descriptive facts about our worker types and markets that (i) validate the quality of our worker types and markets, and (ii) identify patterns of worker and job similarity that standard classifications based on occupation, industry or geography would have missed.
 
 
-Our validation exercises begin with the premise that the ideal worker and job classifications will maximize within-group similarity and minimize across-group similarity. First, we show that workers' labor supply is significantly more concentrated within our markets than within either occ2Xmesos or industries, and symmetrically jobs' hiring is more concentrated within our worker types. Second, we perform an out-of-sample prediction exercise in which our worker types and markets outperform occ2Xmesos in predicting workers' job-to-job flows. Third, we estimate the worker type--market productivity matrix that governs comparative advantage in our Roy model, which can be interpreted as a representation of worker skills and show that our worker types do a better job of identifying groups of workers with distinct skills. Finally, we use our general equilibrium model to show that our classifications more accurately predict the wage effects of the labor demand shock created by the 2016 Rio de Janeiro Olympics. 
+Our validation exercises begin with the premise that the ideal worker and job classifications will maximize within-group similarity and minimize across-group similarity. First, we show that workers' labor supply is significantly more concentrated within our markets than within either occ2Xmesos or industries, and symmetrically jobs' hiring is more concentrated within our worker types. Second, we perform an out-of-sample prediction exercise in which our worker types and markets outperform occ2Xmesos in predicting workers' future job-to-job flows. Third, we estimate the worker type--market productivity matrix that governs comparative advantage in our Roy model, which can be interpreted as a representation of worker skills, and show that our worker types do a better job of identifying groups of workers with distinct skills. Finally, we use our general equilibrium model to show that our classifications more accurately predict the wage effects of the labor demand shock created by the 2016 Rio de Janeiro Olympics. 
 
-We find that some markets are defined more by skills and tasks, while others are defined more by geography. Additionally, the distribution of occupations within some markets is highly concentrated, while within others it is dispersed. Traditional market definitions based on occupation and/or geography alone would have missed important details. Moreover, the clusters we identify are intuitive. For example, we identify one worker type composed primarily of physical education teachers and youth sports coaches and another composed of math and English teachers,despite the fact that these occupations differ at the two-digit level. At the same time, we disaggregate dissimilar workers who are employed in the same occupation. For example, among workers employed in the occupation “Course Instructor,” we infer that some workers are more like coaches and physical education teachers, while others belong with math and English teachers.
+The clusters we identify are intuitive. For example, we identify one worker type composed primarily of physical education teachers and youth sports coaches and another composed of math and English teachers, despite the fact that these occupations differ at the two-digit level. At the same time, we disaggregate dissimilar workers who are employed in the same occupation. For example, among workers employed in the occupation “Course Instructor,” we infer that some workers are more like coaches and physical education teachers, while others belong with math and English teachers. We find that some markets are defined more by skills and tasks, while others are defined more by geography. Additionally, the distribution of occupations within some markets is highly concentrated, while within others it is dispersed. Traditional market definitions based on occupation and/or geography alone would have missed important details. 
 
 
 Our main empirical application applies our worker types and markets to reduced form Bartik-style regressions and finds that using our classifications significantly increases the magnitude of estimates of the effects of workers' exposure to labor market shocks on their earnings. We estimate the effect of the 2016 Olympics on workers and show that both coefficient estimates and $R^2$ values are significantly larger when workers and jobs are classified using our worker types and markets as opposed to occupations and sectors. We then perform a series of simulations in which we feed shocks through our model to generate data in which we know the true data generating process and estimate the effects of the shocks on workers in the simulated data, first using our network-based classifications, and again using conventional classifications. Across these simulations, the estimated effects of the shocks on workers' earnings are on average 3.7 times larger using our classifications as opposed to conventional classifications. Finally, we perform a detailed case study of a simulated shock to understand why our classifications outperform traditional ones. We show that our worker types more precisely identify groups of workers who experienced similar exposure to labor market shocks than do occupations and our markets more precisely identify groups of jobs that hire similar workers than do sectors. 
 
-While this paper applies our classifications to estimating the effects of local labor market shocks, they are useful for a variety of applications. For example, our classifications may be used to improve labor market definitions when measuring labor market power.\footnote{\citet{BergerHerkenhoffMongey2022,Felix2021,AzarMarinescuSteinbaumTaska2018,BenmelechBergmanKim2018,Rinz2018,AzarMarinescuSteinbaum2019,SchubertStansburyTaska2020,Arnold2020,Lipsius2018,JaroschNimczikSorkin2019}} Similarly,  to characterize two-sided (worker--job) multidimensional heterogeneity, researchers identify groups of workers with similar skills and study how they match with groups of jobs requiring similar tasks. Our classifications may be used in place of conventional classifications based on occupations, educational attainment, or low-dimensional measures of skills and tasks as a foundation in this class of models.\footnote{\citet{AutorLevyMurnane2003,AcemogluAutor2011,Autor2013,Tan2018,Lindenlaub2017,Kantenga2018}} 
+While this paper applies our classifications to estimating the effects of local labor market shocks, they are useful for a variety of applications. For example, our classifications may be used to improve labor market definitions when measuring labor market power.\footnote{\citet{BergerHerkenhoffMongey2022,Felix2021,AzarMarinescuSteinbaumTaska2018,BenmelechBergmanKim2018,Rinz2018,AzarMarinescuSteinbaum2019,SchubertStansburyTaska2020,Arnold2020,Lipsius2018,JaroschNimczikSorkin2019}} Similarly,  to characterize two-sided (worker--job) multidimensional heterogeneity, researchers identify groups of workers with similar skills and study how they match with groups of jobs requiring similar tasks. Our classifications may be used in place of conventional classifications --- based on occupations, educational attainment, or low-dimensional measures of skills and tasks --- in this class of models.\footnote{\citet{AutorLevyMurnane2003,AcemogluAutor2011,Autor2013,Tan2018,Lindenlaub2017,Kantenga2018}} 
 
 %More generally, we view the fact that our worker types imperfectly align with occupation codes as suggestive evidence of our success in identifying groups of workers with similar skills. Workers with similar skills are likely to be employed in similar occupations, so it would be concerning if our worker types did not overlap with occupations. However, the fact that they only partially overlap with occupations suggests that they capture important dimensions of worker heterogeneity that occupations miss. We develop this argument further in the rest of the paper. 
 
@@ -302,7 +302,7 @@ Like \citet{Sorkin2018}, \citet{Nimczik2018}, and \citet{JaroschNimczikSorkin201
 
 Our approach to modeling multidimensional worker--job heterogeneity is related to the literature on worker--job matching in a skills-tasks framework \citep{AutorLevyMurnane2003,AcemogluAutor2011,Autor2013,Lindenlaub2017,Tan2018,Kantenga2018}. Relative to this literature, we provide a theoretically principled and data-driven way of identifying groups of workers with similar skills and groups of jobs with similar tasks. \citet{Mansfield2019} also studies two-sided matching and integrates skill--task dimensions with geographic dimensions.  Our contribution is to improve identification of clusters of workers and jobs who are similar in terms of high-dimensional latent skills and tasks, respectively.
 
-\textbf{Roadmap:} The paper proceeds as follows.  Section \ref{sec:model} lays out our economic model. Section \ref{sec:bisbm} builds upon the model to derive a maximum likelihood procedure for clustering workers into worker types and jobs into markets.  Section \ref{sec:data} discusses our data and sample restrictions. Section \ref{sec:descriptive_results} presents summary statistics from our worker and job classification method. Section \ref{sec:model_fit} shows that a version of our equilibrium model based on our network-based worker and job classifications is better at predicting the effects of a real world shock than one based on standard classifications. Section \ref{sec:reduced_form} applies our classifications to Bartik-style regressions and shows that standard methods may be understating the effects of shocks on workers. Section \ref{sec:conclusion} concludes.
+\textbf{Roadmap:} The paper proceeds as follows.  Section \ref{sec:model} lays out our economic model. Section \ref{sec:bisbm} builds upon the model to derive a maximum likelihood procedure for clustering workers into worker types and jobs into markets.  Section \ref{sec:data} discusses our data and sample restrictions and presents basic summary statistics Section \ref{sec:descriptive_results} demonstrates that our worker types and markets outperform traditional worker and job classifications in a variety of contexts. Section \ref{sec:reduced_form} applies our classifications to Bartik-style regressions and shows that standard methods may be understating the effects of shocks on workers. Section \ref{sec:conclusion} concludes.
 
 
 
@@ -314,7 +314,7 @@ Our approach to modeling multidimensional worker--job heterogeneity is related t
 In this section we develop a model based on \citet{Grigsby2019} of workers supplying labor to jobs according to comparative advantage, where comparative advantage is determined by the interaction of potentially high-dimensional worker skills and job tasks. From this model of labor supply we derive our maximum likelihood estimator that clusters workers into worker types and jobs into markets. We embed the labor market model in a general equilibrium model with workers, jobs, firms, and a representative household comprised of workers that consumes firms' output. The general equilibrium model facilitates interpretation of the worker and job types and allows for counterfactuals in which we simulate labor demand shocks.
 
 
-\subsection{Labor Supply}
+\subsection{Labor supply}
 
 The labor market consists of workers, $i$, who supply labor to jobs, $j$. There is a unit mass of workers, each of whom belongs to one of $I$ distinct worker types indexed by $i$. All workers in the same worker type are identical form the perspective of jobs. The exogenously determined mass of type $\i$ workers is denoted $m_{\i}$. Jobs are nested within firms and each job represents a set of tasks. A single job may employ multiple workers simultaneously. Each job belongs to one of $\Gamma$ distinct markets indexed by $\g$ and all jobs in the same market are identical from the perspective of workers.
 
@@ -323,7 +323,7 @@ For simplicity of exposition, we assume that worker types and markets are define
 Units of human capital are perfectly substitutable, meaning that if type 1 workers are twice as productive as type 2 workers in a particular market $\g$ (i.e. $\psi_{1\g} = 2\psi_{2\g}$), firms are indifferent between hiring one type 1 worker and two type 2 workers at a given wage per efficiency unit of labor, $w_{\g}$. Therefore, the law of one price holds for each market, and a type $\i$ worker employed in a job in market $\g$ is paid $\psi_{\ig}w_{\g}$. Because workers' time is indivisible, each worker may supply labor to only one market in each period and we do not consider the hours margin.
 
 
-Workers' only decisions are their market choices. Workers are indifferent between individual jobs in the same market, meaning that individual jobs face perfectly elastic labor supply at the wage for their market, $w_{\g}$, whichis determined in general equilibrium.\footnote{If workers do not view all jobs of the same type as identical, then individual jobs would face an upward-sloping labor supply curve, and would thus have some degree of market power. We explore this in concurrent work \citep{ModenesiFogel2021}.} In addition to earnings, each market $\g$ has a fixed amenity value to workers, $\xi_{\g}$; $\Xi = \begin{bmatrix}	\xi_1 & \xi_2 & \cdots &  \xi_{\Gamma}	\end{bmatrix}$.   Workers may also choose to be non-employed, denoted by $\g=0$, in which case they receive no wages but receive a non-employment benefit, which is normalized to 0 without loss of generality. Finally, each worker $i$ has an idiosyncratic preference for market $\g$ jobs at time $t$, $\ve_{i\g t}$. Therefore, worker $i$ chooses a market by solving
+Workers' only decisions are their market choices. Workers are indifferent between individual jobs in the same market, meaning that individual jobs face perfectly elastic labor supply at the wage for their market, $w_{\g}$, which is determined in general equilibrium.\footnote{If workers do not view all jobs of the same type as identical, then individual jobs would face an upward-sloping labor supply curve, and would thus have some degree of market power. We explore this in concurrent work \citep{ModenesiFogel2021}.} In addition to earnings, each market $\g$ has a fixed amenity value to workers, $\xi_{\g}$; $\Xi = \begin{bmatrix}	\xi_1 & \xi_2 & \cdots &  \xi_{\Gamma}	\end{bmatrix}$.   Workers may also choose to be non-employed, denoted by $\g=0$, in which case they receive no wages but receive a non-employment benefit, which is normalized to 0 without loss of generality. Finally, each worker $i$ has an idiosyncratic preference for market $\g$ jobs at time $t$, $\ve_{i\g t}$. Therefore, worker $i$ chooses a market by solving
 \begin{align}
 \g_{it} = \argmax_{\g \in \{0,1,\dots,\Gamma\}} \psi_{\ig} w_{\g t} + \xi_{\g} + \ve_{i\g t} \label{eq:worker_max}
 \end{align}
@@ -608,17 +608,11 @@ When we say "skills" we mean skills in a very broad sense. For example, some of 
 Related to the point above, while we say that we are clustering on "skills" and "tasks," we are really clustering workers on propensity to be hired by the same job and jobs on propensity to hire the same worker. We \emph{assume} that these propensities are largely driven by latent skills and tasks. It is not a problem for us if some of what drives these propensities is something other than skills and tasks, for example tastes or something else, as long as these other factors are what matter for governing responses to local labor market shocks or other labor market phenomena.
 \end{comment}
 
-\section{Temp: stuff to keep from the old MLE section that I moved to appendix}
-
-For details, see Appendix \ref{sec:MLE}
-
-Identification of $\Psi$ comes from two sources: earnings for all employed workers, and market choices for all workers in period $t=1$ and workers who receive exogenous separation shocks in periods $t>1$. Intuitively, ($\i,\g$) matches that pay more and occur more frequently are revealed to be more productive. The parameter governing the variance of non-pecuniary benefits, $\nu$, is identified by workers' choices of markets, $\g$. Workers will choose a market that offers their worker type low expected utility (low $\psi_{\ig} w_{\g} + \xi_{\g}$) when they receive a large preference shock draw for that market. Therefore, if workers frequently choose low expected utility markets, it must be because they frequently draw large preference shocks, indicating that the preference shock distribution has a large dispersion parameter, $\nu$. The market amenities parameter $\xi_{\g}$ is a market fixed effect and is identified by the component of the frequency with which workers choose market $\g$ that is common across all worker types $\i$.
-
 
 \section{Data} 
 \label{sec:data}
 
-We use the Brazilian linked employer-employee data set RAIS, which contains detailed data on all employment contracts in the Brazilian formal sector. Each observation in the data set represents a unique employment contract and includes a unique worker ID variable, an establishment ID, an occupation code, and earnings. Our sample includes all workers between the ages of 25 and 55 employed in the formal sector in the states of Sao Paulo, Minas Gerais, or Rio de Janeiro metro area at least once between 2009 and 2012. These states are the 3 most populous and highest-GDP states in Brazil, are contiguous, and have a combined population of approximately 80 million; restricting to this set makes estimation computationally tractable.  We exclude public sector and military employment because institutional barriers make flows between the Brazilian public and private sectors rare. We also exclude the small number of jobs that do not pay workers on a monthly basis.
+We use the Brazilian linked employer-employee data set RAIS, which contains detailed data on all employment contracts in the Brazilian formal sector. Each observation in the data set represents a unique employment contract and includes a unique worker ID variable, an establishment ID, an occupation code, and earnings. Our sample includes all workers between the ages of 25 and 55 employed in the formal sector in the states of Sao Paulo, Minas Gerais, or Rio de Janeiro at least once between 2009 and 2012. These states are the 3 most populous and highest-GDP states in Brazil, are contiguous, and have a combined population of approximately 80 million; restricting to this set makes estimation computationally tractable.  We exclude public sector and military employment because institutional barriers make flows between the Brazilian public and private sectors rare. We also exclude the small number of jobs that do not pay workers on a monthly basis.
 
 We define a job as an occupation--establishment pair and generate a unique ``Job ID'' for each job by concatenating the establishment ID code and the 4-digit occupation code.  Although we use occupation to define jobs, we do not use occupation as an input to our algorithm for classifying workers and jobs. This gives us a set of worker--job pairs that we use to cluster workers into worker types and jobs into markets. We restrict to jobs employing at least 5 unique workers during our estimation window, though the 5 workers need not be employed by the job simultaneously. This restriction eliminates jobs that are not sufficiently connected to the rest of the network of worker--job matches to infer their match probabilities and assign them to markets. 
 
@@ -626,7 +620,7 @@ We define a job as an occupation--establishment pair and generate a unique ``Job
 Once we have assigned workers to worker types and jobs to markets, we create a balanced panel of workers with one observation per worker per year. Our earnings variable is the real hourly log wage in December, defined as total December earnings divided by hours worked. We deflate earnings using the CPI. We exclude workers who were not employed for the entire month of December because we do not have accurate hours worked information for such workers. If a worker is employed in more than one job in December, we keep the job with greater hours. If the worker worked the same number of hours in both jobs, we pick the job with the greatest earnings. If tied on both, we choose randomly. Workers who are not matched with a job are defined as matching with the outside option, denoted $\g=0$, which includes non-employment and employment in the informal sector. 
 
 
-The RAIS data  cover only the formal sector of the Brazilian economy. We cannot distinguish between non-employment and informal employment. Therefore, our outside option, denoted $\g=0$,  includes both non-employment and informal sector employment.  In 2019, 32.1\% of employment in the Rio de Janeiro metropolitan area was in the informal sector.\footnote{IBGE - INSTITUTO BRASILEIRO DE GEOGRAFIA E ESTATÍSTICA. Indicadores de subutilização da força de trabalho e de informalidade no mercado de trabalho brasileiro. Rio de Janeiro: IBGE, 2019.} However, transitions between the formal and informal sectors are relatively rare: during our sample period, in a given year, fewer than 2\% of formal sector workers moved to the informal sector, and approximately 10\% of informal sector workers moved to the formal sector.\footnote{See \citet[ Figure 21]{EngbomGonzagaMoserOlivieri2021}.}
+The RAIS data  cover only the formal sector of the Brazilian economy. We cannot distinguish between non-employment and informal employment. Therefore, our outside option includes both non-employment and informal sector employment.  In 2019, 32.1\% of employment in the Rio de Janeiro metropolitan area was in the informal sector.\footnote{IBGE - INSTITUTO BRASILEIRO DE GEOGRAFIA E ESTATÍSTICA. Indicadores de subutilização da força de trabalho e de informalidade no mercado de trabalho brasileiro. Rio de Janeiro: IBGE, 2019.} However, transitions between the formal and informal sectors are relatively rare: during our sample period, in a given year, fewer than 2\% of formal sector workers moved to the informal sector, and approximately 10\% of informal sector workers moved to the formal sector.\footnote{See \citet[ Figure 21]{EngbomGonzagaMoserOlivieri2021}.}
 % XX Say more about informality. What is the rate of informality? How much movement is there between formality and informality? |]
 
 We calibrate demand shocks using annual data on real output per sector for the state of Rio de Janeiro from the Brazilian Institute of Geography and Statistics  (IBGE). These data are available for 15 sectors, the most disaggregated sector definitions for which annual state-level data are available. The 15 sectors are listed in Table \ref{table:IBGE_sectors}. 
@@ -666,7 +660,7 @@ We calibrate demand shocks using annual data on real output per sector for the s
 
 
 
-Our data contain 4,578,210 unique workers, 289,836 unique jobs, and 7,940,483 unique worker--job matches. The average worker matches with 1.73 jobs and the average job matches with 27.4 workers. 42\% of workers match with more than one job during our sample. Figure \ref{fig:degree_distribution_hist} presents histograms of the number of matches for workers and jobs, respectively. In network theory parlance, these are known as degree distributions. 
+Our data contain 13,694,535 unique workers, 552,109 unique jobs, and 20,815,674 unique worker--job matches. The average worker matches with 1.73 jobs and the average job matches with 27.4 workers. 42\% of workers match with more than one job during our sample. Figure \ref{fig:degree_distribution_hist} presents histograms of the number of matches for workers and jobs, respectively. In network theory parlance, these are known as degree distributions. 
 
 
 \begin{figure}
@@ -689,11 +683,11 @@ Our data contain 4,578,210 unique workers, 289,836 unique jobs, and 7,940,483 un
 \end{figure}
 
 
-Our network-based classification algorithm identifies 290 worker types ($\i$) and 427 markets ($\g$). Figure \ref{fig:iota_gamma_size_distribution} presents histograms of the number of workers per worker type and jobs per market. The average worker belongs to a worker type with 40,978 workers and the median worker belongs to a worker type with 20,413 workers. The average job belongs to a market with 1,273 jobs and the median job belongs to a market with 1,188 jobs. 
+Our network-based classification algorithm identifies 446 worker types ($\i$) and 1,371 markets ($\g$). Figure \ref{fig:iota_gamma_size_distribution} presents histograms of the number of workers per worker type and jobs per market. The average worker belongs to a worker type with 40,978 unique workers and the median worker belongs to a worker type with 20,413 unique workers. The average job belongs to a market with 1,273 unique jobs and the median job belongs to a market with 1,188 unique jobs. 
 
 Table \ref{table:transitions_table} presents the fraction of job changes that also involve a change in occupation, sector, market, firm, or establishment. The column ``All Job Changes'' computes the probability that a worker changes occupation, industry, sector, market, firm, or establishment conditional on changing jobs. The column ``Firm Change Only'' presents the same quantities restricting to the set of job changes that also involve a change in firm. The column ``No Firm Change'' restricts to job changes that do \emph{not} involve a change in firm. Recall that we define a job as a 4-digit occupation--establishment pair. Table \ref{table:transitions_table} shows that 65\% of job changes also involve a change in establishment and 54\% change firm. This tells us that job changes are not dominated by workers ``climbing the job ladder'' by changing occupations within a firm. 
 
-Table \ref{table:transitions_table} also shows that job changes are frequently associated with occupation, industry, and sector changes. 41\% of job changes involve a change in 1-digit occupation (most aggregated) and 73\% involve a change in 6-digit occupation (most disaggregated). Since occupation, industry, and sector changes are so frequent, it is unlikely that any of these variables precisely measure workers' skills, since workers' skills are unlikely to evolve so quickly. Similarly, the fact that job transitions frequently (59\% of the time) involve moving to a job in a different market ($\g$) as the old job demonstrates the value of allowing workers to costlessly change the market to which they supply labor, a feature that our model incorporates. 
+Table \ref{table:transitions_table} also shows that job changes are frequently associated with occupation, industry, and sector changes. 41\% of job changes involve a change in 1-digit occupation (most aggregated) and 73\% involve a change in 6-digit occupation (most disaggregated). Since occupation, industry, and sector changes are so frequent, it is unlikely that any of these variables precisely measure workers' skills, since workers' skills are unlikely to evolve so quickly. Similarly, the fact that job transitions frequently (59\% of the time) involve moving to a job in a different market ($\g$) demonstrates the value of allowing workers to costlessly change the market to which they supply labor, a feature that our model incorporates. 
 
 
 
@@ -706,17 +700,13 @@ Table \ref{table:transitions_table} also shows that job changes are frequently a
 
 
 
-\section{Descriptive results}
+\section{Validation of our worker types and markets}
 \label{sec:descriptive_results}
 
 
-\subsection{What does success look like?}
+An ideal labor market definition is one that maximizes the similarity of workers and jobs within the same groups, respectively, and minimizes the similarity of workers and jobs in different groups. More formally, the ideal definition maximizes the within-market substitution elasticity and minimizes the cross-market substitution elasticity.\footnote{This is most easily understood if we extended our model in Section \ref{sec:model} to have a nested logit structure. Then, in addition to the parameter $\nu$ which governs the variance of idiosyncratic preference shocks \emph{across} markets, we would have an additional parameter $\eta$ that governs the correlation of idiosyncratic preference shocks \emph{within} markets. To the extent that we incorrectly classify jobs incorrectly, $\nu$ and $\eta$ will be biased towards each other. To understand this, consider the extreme case in which jobs are classified at random. Then the market classifications carry no economic information and, in expectation, two jobs in the same market will be equally substitutable from the worker's perspective as two jobs in different markets, meaning that $\nu=\eta$. Alternatively, if we have perfectly classified the most similar jobs into the same markets, then jobs in the same market will be viewed as close substitutes (small $\eta$) and jobs in different markets will be more distant substitutes (large $\nu$). We expand this argument and apply our market definitions to the question of measuring labor market power in ongoing work.} Directly estimating these elasticities is conceptually and computationally difficult, and is beyond the scope of this paper. Therefore, in this section we provide indirect evidence that our network-based classifications outperform standard classifications in identifying similar workers and similar jobs. 
 
-XX: we will eventually move this out of its own subsection once it's ready for prime time.
-
-An ideal labor market definition is one that maximizes the similarity of workers and jobs within the same groups, respectively, and minimizes the similarity of workers and jobs in different groups. More formally, the ideal definition maximizes the within-market substitution elasticity and minimizes the cross-market substitution elasticity.\footnote{This is most easily understood if we extended our model in Section \ref{sec:model} to have a nested logit structure. Then, in addition to the parameter $\nu$ which governs the variance of idiosyncratic preference shocks \emph{across} markets, we would have an additional parameter $\eta$ that governs the correlation of idiosyncratic preference shocks \emph{within} markets. To the extent that we incorrectly classify jobs incorrectly, $\nu$ and $\eta$ will be biased towards each other. To understand this, consider the extreme case in which jobs are classified at random. Then the market classifications carry no economic information and, in expectation, two jobs in the same market will be equally substitutable from the worker's perspective as two jobs in different markets, meaning that $\nu=\eta$. Alternatively, if we have perfectly classified the most similar jobs into the same markets, then jobs in the same market will be viewed as close substitutes (small $\eta$) and jobs in different markets will be more distant substitutes (large $\nu$). } Directly estimating these elasticities is conceptually and computationally difficult and is beyond the scope of this paper. Therefore, in this section we provide indirect evidence that our network-based classifications outperform standard classifications in identifying similar workers and similar jobs. 
-
-We do so in five ways. First, we provide descriptive examples of the occupation and geographic distributions of jobs within our markets and demonstrate that they capture reasonable but potentially difficult to observe, forms of structure in the labor market that traditional market definitions miss. Second, we show that workers' labor supply is more concentrated  within our markets than traditional definitions and jobs' hiring is more concentrated within our worker types. Third, we perform an out-of-sample prediction exercise in which our worker types and markets outperform traditional definitions in predicting workers' job-to-job flows. Fourth, we show that our worker types do a better job of identifying groups of workers with distinct skills as measured by the worker productivity parameter, $\psi$. Finally, we use the full general equilibrium extension of our model and show that our classifications more accurately predict the wage effects of the labor demand shock created by the 2016 Rio de Janeiro Olympics. 
+We provide five such pieces of evidence. First, we provide descriptive examples of the occupation and geographic distributions of jobs within our markets and demonstrate that they capture reasonable but potentially difficult to observe, forms of structure in the labor market that traditional market definitions miss. Second, we show that workers' labor supply is more concentrated  within our markets than traditional definitions and jobs' hiring is more concentrated within our worker types. Third, we perform an out-of-sample prediction exercise in which our worker types and markets outperform traditional definitions in predicting workers' job-to-job flows. Fourth, we show that our worker types do a better job of identifying groups of workers with distinct skills as measured by the worker productivity parameter, $\psi$. Finally, we use the full general equilibrium extension of our model and show that our classifications more accurately predict the wage effects of the labor demand shock created by the 2016 Rio de Janeiro Olympics. 
 
 
 %XX we should consider changing the parameter names to be consistent with the market power paper. I also want to run this section by Ben for a sanity check. 
@@ -745,7 +735,7 @@ We do so in five ways. First, we provide descriptive examples of the occupation 
 
 
 
-\textbf{XX: Should add a figure for the number of jobs per market to alleviate concerns that markets are just one large job. Should do number of jobs and HHI.}
+%\textbf{XX: Should add a figure for the number of jobs per market to alleviate concerns that markets are just one large job. Should do number of jobs and HHI.}
 
 \subsection{Occupation count tables}
 \label{sec:occ_count_tables}
@@ -755,7 +745,7 @@ Our method simultaneously clusters together workers in different occupations who
 	\textbf{Summary description}\\
 	The professionals in this occupational family must be able to create and plan courses, develop programs for companies and clients, define teaching materials, teach classes, evaluate students and suggest structural changes in courses.
 \end{quote}
-Despite this being the most disaggregated level of the occupation classification system (6-digit), there may be considerable heterogeneity within this occupation. This occupation may include, for example, both math tutors and personal fitness trainers --- two sets of workers with very different skills. At the same time, it is not obvious what distinguishes a  course instructor from a personal trainer (occupation code 2241-20) or an elementary school teacher (occupation code 2312-10). However, if we can identify a cluster of course instructors who at other times in their career work as personal trainers and another cluster who have also worked as elementary school teachers, then we can simultaneously \emph{disaggregate} course instructors with distinct skills, and  \emph{aggregate} them by combining them with other workers in different occupations who have similar skills.  We pursue these examples in Tables \ref{occ_counts_iota360} and \ref{occ_counts_iota557}. 
+Despite this being the most disaggregated level of the occupation classification system (6-digit), there may be considerable heterogeneity within this occupation. This occupation may include, for example, both math tutors and personal fitness trainers --- two sets of workers with very different skills. At the same time, it is not obvious what distinguishes a  course instructor from a personal trainer (occupation code 2241-20) or an elementary school teacher (occupation code 2312-10). However, if we can identify a cluster of course instructors who at other times in their career work as personal trainers and another cluster who have also worked as elementary school teachers, then we can simultaneously \emph{disaggregate} course instructors with distinct skills, and  \emph{aggregate} different subsets of course instructors with other workers in different occupations who have similar skills.  We pursue these examples in Tables \ref{occ_counts_iota360} and \ref{occ_counts_iota557}. 
 
 \begin{comment}
 Actual Portuguese:
@@ -775,9 +765,9 @@ Exercem suas funções em instituições de ensino, basicamente em escolas que o
 
 
 
-Table \ref{occ_counts_iota360} presents the 10 occupations in which workers belonging to worker type $\i=17$ are most frequently employed. To interpret this table, recall that we have assigned each individual worker to a worker type, $\i$. Each worker may be employed by one or more jobs in our sample, and each job is assigned an occupation code by the Brazilian statistical agency. A worker who has multiple jobs during the sample may have a different occupation associated with each job. This table tabulates how frequently a type $\i=17$ worker is employed in each occupation. Most of these occupations are related to physical fitness, education, or both. The most frequently occurring occupation is course instructor.  It is not obvious based on the occupation description alone what skills course instructors possess, however because the network structure of the data informs us that these workers have similar skills to personal trainers, physical education teachers, and sports coaches, it is likely that these workers have skills more closely related to physical education than math. 
+To illustrate this point more clearly, We focus on a specific worker type, $\i=17$, in which many workers are employed as course instructors. Table \ref{occ_counts_iota360} presents the 10 occupations in which workers belonging to worker type $\i=17$ are most frequently employed.\footnote{To interpret this table, recall that we have assigned each individual worker to a worker type, $\i$. Each worker may be employed by one or more jobs in our sample, and each job is assigned an occupation code by the Brazilian statistical agency. A worker who has multiple jobs during the sample may have a different occupation associated with each job.}  The most frequently occurring- occupation is course instructr, however most of these occupations are related to physical fitness, education, or both. The fact that these course instructors tend to match with similar jobs as other workers whom we observe employed as personal trainers, physical education teachers, and sports coaches allows us to infer that these course instructors have skills more closely related to physical education than math. 
 
-Now consider Table \ref{occ_counts_iota557}. Course instructor is the second most frequently-occurring occupation among type $\i=52$ workers, however the other frequently-occurring occupations are teachers of more traditional academic subjects. If we had relied upon occupation codes alone, we would have assumed that all course instructors have the same skills, whereas our clustering approach tells us that there are at least two different types of course instructors: physical education and academic education.
+Table \ref{occ_counts_iota557} presents the distribution of occupations with a different worker type that contains many course instructors, $\i=52$. Unlike the previous example, where the workers appear to have physical education skills, the other frequently-occurring occupations in this worker type are teachers of more traditional academic subjects. If we had relied upon occupation codes alone, we would have assumed that all course instructors have the same skills, whereas our clustering approach tells us that there are at least two different types of course instructors: physical education and academic education.
 
 In addition to disaggregating workers in the same occupation with different skills, these tables display our  in aggregating workers in different occupations with similar skills. For most of the occupations in these tables, it makes intuitive sense that they should be clustered together. For example, it is not surprising that physical education teachers, sports coaches, and personal trainers would have similar skills.  Relying on occupation codes --- even the highly-aggregated two-digit occupation codes --- would not have grouped these workers together. More generally, we view the fact that our worker types imperfectly align with occupation codes as suggestive evidence of our success in identifying groups of workers with similar skills. Workers with similar skills are likely to be employed in similar occupations, so it would be concerning if our worker types did not overlap with occupations. However, the fact that they only partially overlap with occupations suggests that they capture important dimensions of worker heterogeneity that occupations miss. We develop this argument further in the rest of the paper. 
 
@@ -790,19 +780,86 @@ In addition to disaggregating workers in the same occupation with different skil
 
 
 
+\subsection{Worker types' labor market concentration}
+
+
+\label{sec:hhi}
+
+If our worker types and markets are successful in identifying groups of workers and jobs that are viewed as similar from the perspective of the labor market, then each worker type's labor supply will be concentrated within specific markets and each job’s hiring will be concentrated among specific worker types. While there will be considerable variation across worker types --- worker types with more specific skills will be more concentrated in a small set of markets than those with more general skills --- if we compare two classification schemes applied to the same underlying set of worker--job matches, the one that does a better job of identifying workers with similar skills and jobs requiring similar tasks will yield more concentrated labor supply and hiring distributions.
+
+
+We compute each worker type's employment concentration across markets and occ2Xmesos using the Herfindahl-Hirschman index (HHI): 
+\[ HHI_{\i}^{Occ2Xmeso} = \sum_s \pi_{\i s}^2 \quad \text{and} \quad  HHI_{\i}^{Market} = \sum_\g \pi_{\i \g}^2 \]
+where $s$ indexes Occ2Xmesos, $\g$ indexes markets, and $\pi_{\i s}$ and $\pi_{\i \g}$ are the share of type $\i$ workers employed in occ2Xmeso $s$ and market $\g$, respectively. An HHI close to 0 indicates that type $\i$ employment is spread approximately evenly across sectors/markets, while an HHI close to 1 indicates that type $\i$ employment is very concentrated in a single occ2Xmeso/market. Suppose we classified jobs randomly. Then worker types would not have a comparative advantage in specific markets and therefore would not be concentrated in specific markets. In this case, the HHI for each worker type would converge to $1/\Gamma$, where $\Gamma$ is the total number of markets, indicating a uniform distribution of employment across job classifications. At the other extreme, if each worker type had perfectly specific skills and supplied all of its labor to exactly one market, the HHI would be 1. While we would not expect perfectly specific skills,  larger HHIs are evidence that we have done a better job of classifying similar jobs, whereas smaller HHIs imply that we are closer to simply classifying jobs randomly. 
+
+
+Figure \ref{fig:concentration_figures__iota__occ2Xmeso__gamma} presents $ HHI_{\i}^{Occ2Xmeso}$ and $ HHI_{\i}^{Market}$ for each worker type, sorted from least concentrated to most concentrated. Most worker types' labor supply is more concentrated among markets than among Occ2Xmeso, which according to the argument above, indicates that markets identify groups of jobs that have more homogenous tasks than do sectors. Figure \ref{fig:concentration_figures__gamma__occ2Xmeso_first__iota} repeats this analysis, instead focusing the hiring distribution of markets, classifying workers alternately by their worker type and by the first Occ2Xmeso in which they are ever ever observed. The story is analogous, with markets' hiring significantly more concentrated within worker types than within workers' first Occ2Xmeso. %XX add a note about the number of iotas/gammas vs Occ2Xmesos and whether or not this is mechanical. Possibly also do this for sectors and occ4s. 
+
+
+
+
+\begin{figure}
+	\centering
+	\caption{Employment/Hiring Concentration According to Different Worker and Job Classifications}
+	\begin{subfigure}{\textwidth}
+		\centering
+		\caption{Concentration of Worker Types' ($\i$) Employment Within Markets/Occ2Xmesos}
+		\includegraphics[width=0.7\linewidth]{../Results/concentration_figures__iota__occ2Xmeso__gamma.png}
+		\label{fig:concentration_figures__iota__occ2Xmeso__gamma}
+	\end{subfigure}
+	\begin{subfigure}{\textwidth}
+		\centering
+		\caption{Concentration of Markets' ($\g$) Hiring Within Worker Types' ($\i$)/Occ2Xmesos}
+		\includegraphics[width=0.7\linewidth]{../Results/concentration_figures__gamma__occ2Xmeso_first__iota}
+		\label{fig:concentration_figures__gamma__occ2Xmeso_first__iota}
+	\end{subfigure}
+	\label{fig:concentration_figures_iota_gamma_hhi}
+	\footnotesize\flushleft \emph{Notes:} Figure presents concentration, defined as a Herfindahl-Hirschman Index (HHI), of worker types' employment within individual markets (orange lines) and sectors (blue line). The figure is weighted by the number of workers in each worker type. Workers are sorted from lowest to highest HHI along the horizontal axis. HHIs computed from the 2009-2012 RAIS worker earnings panel described in Section \ref{sec:data}.
+\end{figure}
+
+
+
+\subsection{Predicting out-of-sample job-to-job flows}
+
+Another test of a market definition's success at identifying similar jobs is its ability to successfully predict job-to-job flows. As noted in Section \ref{sec:model}, we assume that every time a worker changes jobs, they draw a new job from the same distribution. This implies that workers are more likely to transition to new jobs that have similar task distributions to their old jobs.  Therefore, a market definition that does a better job of predicting job-to-job flows will be one that better captures latent job similarity. In this subsection we predict out-of-sample job-to-job flows using both our network-based market definitions and traditional definitions and show that our definitions outperform traditional ones.
+
+
+Consider a market definition $\mathbf{M}$ and the matrix of out-of-sample job-to-job empirical transition probabilities $\mathbb{P}_{oos}[j'|j]$. The ability to predict future job-to-job transitions from the structure of $\mathbf{M}$ can be assessed as follows:
+
+\begin{enumerate}
+	\item Compute a matrix of empirical market-to-market transition probabilities denoted by $\mathbb{P}_{\mathbf{M}}[m'|m]$
+	\item For each job $j$ in market $m$, compute the probability of transitioning to $j'$ in market $m'$, $Prob(j' \in m'|j \in m)$, as follows:
+	\[Prob(j' \in m'|j \in m) := \mathbb{P}_{\mathbf{M}}[m'|m] \frac{d_{j'}}{\sum_{k\in m'} d_{k}} \]
+	Intuitively, the probability that a worker in job $j$ transitions to job $j'$ is the product of the market-level transition probabilities $Prob(j' \in m'|j \in m)$ and the probability that job $j'$ is chosen conditional on market $m'$ being chosen. The latter probability is simply job $j'$'s share of employment in market $m'$, $ \frac{d_{j'}}{\sum_{k\in m'} d_{k}}$.
+	\item Stack the probabilities computed in the previous step for each job, resulting in a predicted transitions matrix $\mathbb{\hat P}_{\mathbf{M}}[j'|j]$ with identical dimensions to the matrix $\mathbb{P}_{oos}[j'|j]$.
+	\item Compute a measure of fit, using a matrix norm of preference:
+	\[ \Omega_{\mathbf{M}} := \begin{Vmatrix}
+		\mathbb{\hat P}_{\mathbf{M}}[j'|j] - \mathbb{P}_{oos}[j'|j]
+	\end{Vmatrix} \]
+\end{enumerate}
+
+We perform this exercise using empirical transitions from our estimation period of 2009--2011 and compute out-of-sample transitions using 2012 and 2013. We compare our network-based market definitions to a traditional alternative defined as the intersection of two-digit occupations and meso regions. We obtain lower prediction error using our network-based market definitions according to both the $L_1$ and $L_2$ norms. Specifically, the average $L_1$ prediction errors using markets and occ2Xmesos are 15.5 and 15.6, respectively. For the  $L_2$ norm the corresponding values are 237.9 and 317.7. The greater discrepancy for the  $L_2$ norm reflects the fact that predictions based on occ2Xmesos are much more likely to generate very large errors. 
+
+
+
 
 \subsection{Worker type skill correlations}
 
 \label{sec:correlograms}
 
+
+
 While Section \ref{sec:occ_count_tables} provided a qualitative example of our method's success in identifying clusters of workers with similar skills, we now provide quantitative evidence of our success in this regard. An ideal worker skills classification scheme will maximize the variance in skills across different worker classifications and minimize the variance of skills within a worker classification. While we do not directly observe individual-level skills and therefore cannot measure within-classification skills variance, we do have a measure of across-classification skills variation. Each element of $\Psi$ represents the productivity of a type $\i$ worker employed in market $\g$. Therefore, $\psi_{\ig}$ is a summary measure of a type $\i$ worker's skill at jobs in market $\g$, and a full row vector of $\Psi$, $\psi_{\i\cdot}$, summarizes a type $\i$ worker's skills in \emph{all} markets. This yields a natural metric for skill similarity across worker types: two worker types, $\i$ and $\i'$, have similar skills if their associated productivity vectors $\psi_{\i\cdot}$ and $\psi_{\i'\cdot}$ are highly correlated.
 
 
-If we have done a good job of clustering workers with similar skills into the same type, then the correlations of skills across different worker types will be low. To understand this, consider an extreme example in which workers were clustered randomly. In this case, all clusters would have exactly the same skills --- because the skills of each cluster would just be the average skills of the entire population --- and all pairs of productivity vectors would be perfectly correlated. That is, $corr(\psi_{\i\cdot},\psi_{\i'\cdot}) \approx 1$ for all $\i,\i'$.  Alternatively, we might have two clusters of worker types --- for example those intensive in manual skills and those intensive in cognitive skills --- such that worker types in the same cluster have highly-correlated skills and those in different clusters have  negatively correlated skills. At the other extreme, if skills were perfectly specific (meaning that $\Psi$ was close to a diagonal matrix), skill correlations would be close to zero. 
+We estimate $\Psi$ using maximum likelihood. Identification comes from two sources: earnings for all employed workers, and market choices for all workers in period $t=1$ and workers who receive exogenous separation shocks in periods $t>1$. Intuitively, ($\i,\g$) matches that pay more and occur more frequently are revealed to be more productive. For details, see Appendix \ref{sec:MLE}.
+
+
+If we have done a good job of clustering workers with similar skills into the same type, then the correlations of skills across different worker types will be low. To understand this, consider an extreme example in which workers were clustered randomly. In this case, all clusters would, in expectation, have exactly the same skills --- because the skills of each cluster would just be the average skills of the entire population --- and all pairs of productivity vectors would be approximately perfectly correlated. That is, $corr(\psi_{\i\cdot},\psi_{\i'\cdot}) \approx 1$ for all $\i,\i'$.  Alternatively, we might have two clusters of worker types --- for example those intensive in manual skills and those intensive in cognitive skills --- such that worker types in the same cluster have highly-correlated skills and those in different clusters have  negatively correlated skills. At the other extreme, if skills were perfectly specific (meaning that $\Psi$ was close to a diagonal matrix), skill correlations would be close to zero. For this reason, we argue that if the pairwise correlations between different worker types’ skills vectors tend to be close to zero, this is an indication that we have successfully identified groups of workers with distinct skills. 
 
 % (Figure \ref{fig:correlograms_benchmark_1_cluster}) (Figure \ref{fig:correlograms_benchmark_2_clusters})  (Figure \ref{fig:correlograms_benchmark_specific_skills})
 
-We summarize the correlations between different worker types' productivity vectors in Figure \ref{fig:correlograms_sorted}. We do this in two ways. In the left column we present correlation coefficients between all pairs of the $I=290$ worker types in a lower triangular $290\times 290$ matrix (the upper triangular portion is redundant and therefore omitted). Dark red points represent large positive correlations, dark blue points represent large negative correlations, and lighter colors represent smaller correlations. Worker types are sorted by mean earnings, from smallest to largest. In the right column, we present histograms of the correlation coefficients in the left column, along with the standard deviation of the correlation coefficients. The first row presents correlations in which workers are classified by worker type and jobs by market. We provide context for these figures by repeating this exercise using versions of $\hat \Psi$ in which workers and jobs are classified using the standard labels in the data: occupation and sector. To do this, we estimate a different version of $\Psi$ using the same maximum likelihood estimation described in Section \ref{sec:MLE}, except we classify workers and jobs by occupation and sector, rather than worker type and market. Row 2 of Figure \ref{fig:correlograms_sorted} shows workers classified by 4-digit occupation and jobs by sector. Row 3 shows workers classified by four-digit occupation and jobs by market ($\g$). We choose 4-digit occupations as our primary ``status quo'' benchmark to compare our method to because occupations are a frequently-used measure of granular worker heterogeneity and because the number of 4-digit occupations in our data (306) is similar to the number of worker types (290), allowing for comparisons at a similar level of granularity.
+We summarize the correlations between different worker types' productivity vectors in Figure \ref{fig:correlograms_sorted}. We do this in two ways. In the left column we present correlation coefficients between all pairs of the $I=446$ worker types in a lower triangular $446\times 446$ matrix (the upper triangular portion is redundant and therefore omitted). Dark red points represent large positive correlations, dark blue points represent large negative correlations, and lighter colors represent smaller correlations. Worker types are sorted by mean earnings, from smallest to largest. In the right column, we present histograms of the correlation coefficients in the left column, along with the standard deviation of the correlation coefficients. The first row presents correlations in which workers are classified by worker type and jobs by market. We provide context for these figures by repeating this exercise using versions of $\hat \Psi$ in which workers and jobs are classified using the standard labels in the data: occupation and sector. To do this, we estimate a different version of $\Psi$ using the same maximum likelihood estimation described above and detailed in Appendix \ref{sec:MLE}, except we classify workers and jobs by occupation and sector, rather than worker type and market. Row 2 of Figure \ref{fig:correlograms_sorted} shows workers classified by 4-digit occupation and jobs by sector. Row 3 shows workers classified by four-digit occupation and jobs by market ($\g$). We choose 4-digit occupations as our primary ``status quo'' benchmark to compare our method to because occupations are a frequently-used measure of granular worker heterogeneity and because the number of 4-digit occupations in our data (306) is similar to the number of worker types (446), allowing for comparisons at a similar level of granularity.
 
 Figure \ref{fig:correlograms_sorted} shows that correlations between different worker types' productivity vectors are smaller in magnitude when we use our model's ($\i,\g$) classifications rather than classifications based on labels available in the data, occupation and sector.  This is because the network-based clusters of workers are more successful at segregating workers with distinct skills than are standard occupations. Connecting this to the example in the previous section, if high school and middle school math teachers have similar skills but are classified as distinct worker types, we would observe large correlations (dark red) between their productivity vectors. By contrast, our worker types disentangle teachers into physical education teachers --- including coaches and personal trainers --- and teachers in traditional academic subjects. Physical education and academic teachers have less correlated skills than do elementary and middle school teachers.  Because we have done a better job of segregating workers with disparate skills, and aggregating workers with similar skills, we observe fewer clusters of highly-correlated worker types. 
 
@@ -812,71 +869,71 @@ Figure \ref{fig:correlograms_sorted} shows that correlations between different w
 % XX Possibly useful robustness check: As an alternative to the correlograms based on Psi, we could do correlograms for all 16 dimensions of O*NET skills. Ideally, these would all show the same story as the Psi correlograms. 
 
 %\begin{sidewaysfigure}[h!]
-%	\caption{Skill correlation across worker types: extreme benchmarks}
-%	\centering 
-%	\begin{subfigure}[b]{.3\textwidth}
-%		\centering
-%		\caption{No skill specificity}
-%		\includegraphics[width=\textwidth]{../../Code/aug2021/results/correlograms_benchmark_1_cluster}
-%		\label{fig:correlograms_benchmark_1_cluster}
-%	\end{subfigure}
-%	\begin{subfigure}[b]{.3\textwidth}
-%		\centering
-%		\caption{Two clusters}
-%		\includegraphics[width=\textwidth]{../../Code/aug2021/results/correlograms_benchmark_2_clusters}
-%		\label{fig:correlograms_benchmark_2_clusters}
-%	\end{subfigure}
-%	\begin{subfigure}[b]{.3\textwidth}
-%		\centering
-%		\caption{High skill specificity}
-%		\includegraphics[width=\textwidth]{../../Code/aug2021/results/correlograms_benchmark_specific_skills}
-%		\label{fig:correlograms_benchmark_specific_skills}
-%	\end{subfigure}
-%\end{sidewaysfigure}
+	%	\caption{Skill correlation across worker types: extreme benchmarks}
+	%	\centering 
+	%	\begin{subfigure}[b]{.3\textwidth}
+		%		\centering
+		%		\caption{No skill specificity}
+		%		\includegraphics[width=\textwidth]{../../Code/aug2021/results/correlograms_benchmark_1_cluster}
+		%		\label{fig:correlograms_benchmark_1_cluster}
+		%	\end{subfigure}
+	%	\begin{subfigure}[b]{.3\textwidth}
+		%		\centering
+		%		\caption{Two clusters}
+		%		\includegraphics[width=\textwidth]{../../Code/aug2021/results/correlograms_benchmark_2_clusters}
+		%		\label{fig:correlograms_benchmark_2_clusters}
+		%	\end{subfigure}
+	%	\begin{subfigure}[b]{.3\textwidth}
+		%		\centering
+		%		\caption{High skill specificity}
+		%		\includegraphics[width=\textwidth]{../../Code/aug2021/results/correlograms_benchmark_specific_skills}
+		%		\label{fig:correlograms_benchmark_specific_skills}
+		%	\end{subfigure}
+	%\end{sidewaysfigure}
 %
 
 %\def\w{.45}
 %\begin{figure}[!htbp][h!]
-%	\centering
-%	\caption{Skill correlation across worker types and occupations}
-%	\begin{subfigure}[b]{\w\textwidth}
-%		\centering
-%		\caption{($\i,\g$) correlogram}
-%		\includegraphics[height=.25\textheight]{../../Code/aug2021/results/correlograms_iota_gamma}
-%		\label{fig:correlograms_iota_gamma}
-%	\end{subfigure}\hfill
-%	\begin{subfigure}[b]{\w\textwidth}
-%		\centering
-%		\caption{($\i,\g$) histogram}
-%		\includegraphics[height=.25\textheight]{../../Code/aug2021/results/correlograms_hist_iota_gamma}
-%		\label{fig:correlograms_hist_iota_gamma}
-%	\end{subfigure}\vfill
-%	\begin{subfigure}[b]{\w\textwidth}
-%		\centering
-%		\caption{Occ4-Sector correlogram}
-%		\includegraphics[height=.25\textheight]{../../Code/aug2021/results/correlograms_occ4_first_recode_sector_IBGE}
-%		\label{fig:correlograms_occ4_first_recode_sector_IBGE}
-%	\end{subfigure}\hfill
-%	\begin{subfigure}[b]{\w\textwidth}
-%		\centering
-%		\caption{Occ4-Sector histogram}
-%		\includegraphics[height=.25\textheight]{../../Code/aug2021/results/correlograms_hist_occ4_first_recode_sector_IBGE}
-%		\label{fig:correlograms_hist_occ4_first_recode_sector_IBGE}
-%	\end{subfigure}\vfill
-%	\begin{subfigure}[b]{\w\textwidth}
-%		\centering
-%		\caption{Occ4-$\g$ correlogram}
-%		\includegraphics[height=.25\textheight]{../../Code/aug2021/results/correlograms_occ4_first_recode_gamma}
-%		\label{fig:correlograms_occ4_first_recode_gamma}
-%	\end{subfigure}\hfill
-%	\begin{subfigure}[b]{\w\textwidth}
-%		\centering
-%		\caption{Occ4-$\g$ histogram}
-%		\includegraphics[height=.25\textheight]{../../Code/aug2021/results/correlograms_hist_occ4_first_recode_gamma}
-%		\label{fig:correlograms_hist_occ4_first_recode_gamma}
-%	\end{subfigure}
-%	\label{fig:correlograms}
-%\end{figure}
+	%	\centering
+	%	\caption{Skill correlation across worker types and occupations}
+	%	\begin{subfigure}[b]{\w\textwidth}
+		%		\centering
+		%		\caption{($\i,\g$) correlogram}
+		%		\includegraphics[height=.25\textheight]{../../Code/aug2021/results/correlograms_iota_gamma}
+		%		\label{fig:correlograms_iota_gamma}
+		%	\end{subfigure}\hfill
+	%	\begin{subfigure}[b]{\w\textwidth}
+		%		\centering
+		%		\caption{($\i,\g$) histogram}
+		%		\includegraphics[height=.25\textheight]{../../Code/aug2021/results/correlograms_hist_iota_gamma}
+		%		\label{fig:correlograms_hist_iota_gamma}
+		%	\end{subfigure}\vfill
+	%	\begin{subfigure}[b]{\w\textwidth}
+		%		\centering
+		%		\caption{Occ4-Sector correlogram}
+		%		\includegraphics[height=.25\textheight]{../../Code/aug2021/results/correlograms_occ4_first_recode_sector_IBGE}
+		%		\label{fig:correlograms_occ4_first_recode_sector_IBGE}
+		%	\end{subfigure}\hfill
+	%	\begin{subfigure}[b]{\w\textwidth}
+		%		\centering
+		%		\caption{Occ4-Sector histogram}
+		%		\includegraphics[height=.25\textheight]{../../Code/aug2021/results/correlograms_hist_occ4_first_recode_sector_IBGE}
+		%		\label{fig:correlograms_hist_occ4_first_recode_sector_IBGE}
+		%	\end{subfigure}\vfill
+	%	\begin{subfigure}[b]{\w\textwidth}
+		%		\centering
+		%		\caption{Occ4-$\g$ correlogram}
+		%		\includegraphics[height=.25\textheight]{../../Code/aug2021/results/correlograms_occ4_first_recode_gamma}
+		%		\label{fig:correlograms_occ4_first_recode_gamma}
+		%	\end{subfigure}\hfill
+	%	\begin{subfigure}[b]{\w\textwidth}
+		%		\centering
+		%		\caption{Occ4-$\g$ histogram}
+		%		\includegraphics[height=.25\textheight]{../../Code/aug2021/results/correlograms_hist_occ4_first_recode_gamma}
+		%		\label{fig:correlograms_hist_occ4_first_recode_gamma}
+		%	\end{subfigure}
+	%	\label{fig:correlograms}
+	%\end{figure}
 
 \def\w{.45}
 \begin{figure}[!htbp]
@@ -924,115 +981,51 @@ Figure \ref{fig:correlograms_sorted} shows that correlations between different w
 
 %\def\w{.45}
 %\begin{figure}
-%\centering
-%\caption{Skill correlation across worker types and occupations (sorted and weighted)}
-%\begin{subfigure}[b]{\w\textwidth}
-%	\centering
-%	\caption{($\i,\g$) correlogram}
-%	\includegraphics[height=.25\textheight]{../../Code/aug2021/results/correlograms_iota_gamma_sorted_weighted}
-%	\label{fig:correlograms_iota_gamma_sorted_weighted}
-%\end{subfigure}\hfill
-%\begin{subfigure}[b]{\w\textwidth}
-%	\centering
-%	\caption{($\i,\g$) histogram}
-%	\includegraphics[height=.25\textheight]{../../Code/aug2021/results/correlograms_hist_iota_gamma_sorted_weighted}
-%	\label{fig:correlograms_hist_iota_gamma_sorted_weighted}
-%\end{subfigure}\vfill
-%\begin{subfigure}[b]{\w\textwidth}
-%	\centering
-%	\caption{Occ4-Sector correlogram}
-%	\includegraphics[height=.25\textheight]{../../Code/aug2021/results/correlograms_occ4_first_recode_sector_IBGE_sorted_weighted}
-%	\label{fig:correlograms_occ4_first_recode_sector_IBGE_sorted_weighted}
-%\end{subfigure}\hfill
-%\begin{subfigure}[b]{\w\textwidth}
-%	\centering
-%	\caption{Occ4-Sector histogram}
-%	\includegraphics[height=.25\textheight]{../../Code/aug2021/results/correlograms_hist_occ4_first_recode_sector_IBGE_sorted_weighted}
-%	\label{fig:correlograms_hist_occ4_first_recode_sector_IBGE_sorted_weighted}
-%\end{subfigure}\vfill
-%\begin{subfigure}[b]{\w\textwidth}
-%	\centering
-%	\caption{Occ4-$\g$ correlogram}
-%	\includegraphics[height=.25\textheight]{../../Code/aug2021/results/correlograms_occ4_first_recode_gamma_sorted_weighted}
-%	\label{fig:correlograms_occ4_first_recode_gamma_sorted_weighted}
-%\end{subfigure}\hfill
-%\begin{subfigure}[b]{\w\textwidth}
-%	\centering
-%	\caption{Occ4-$\g$ histogram}
-%	\includegraphics[height=.25\textheight]{../../Code/aug2021/results/correlograms_hist_occ4_first_recode_gamma_sorted_weighted}
-%	\label{fig:correlograms_hist_occ4_first_recode_gamma_sorted_weighted}
-%\end{subfigure}
-%\flushleft\footnotesize Correlograms are sorted by worker type mean earnings (smallest to largest). Skill vectors are weighted by match probability before computing correlations.
-%\label{fig:correlograms_sorted_weighted}
-%\end{figure}
-
-
-\subsection{Worker types' labor market concentration}
-
-
-\label{sec:hhi}
-
-If our model is correct that worker--job matching is largely determined by skill--task match productivity, and we have done a good job of clustering together workers with similar skills and jobs with similar tasks, then each worker type's labor supply will be concentrated within specific markets. While there will be considerable variation across worker types --- worker types with more specific skills will be more concentrated in a small set of markets than those with more general skills --- if we compare two classification schemes, the one that does a better job of identifying workers with similar skills and jobs requiring similar tasks will yield higher worker concentrations in markets.
-
-
-We compute each worker type's employment concentration across sectors and markets using the Herfindahl-Hirschman index (HHI): 
-\[ HHI_{\i}^{Sector} = \sum_s \pi_{\i s}^2 \quad \text{and} \quad  HHI_{\i}^{Market} = \sum_\g \pi_{\i \g}^2 \]
-where $s$ indexes sectors, $\g$ indexes markets, and $\pi_{\i s}$ and $\pi_{\i \g}$ are the share of type $\i$ workers employed in sector $s$ and market $\g$, respectively. An HHI close to 0 indicates that type $\i$ employment is spread approximately evenly across sectors/markets, while an HHI close to 1 indicates that type $\i$ employment is very concentrated in a single sector/market. Suppose we classified jobs randomly. Then worker types would not have a comparative advantage in specific markets and therefore would not be concentrated in specific markets. In this case, the HHI for each worker type would converge to $1/NumJobClassifications$, indicating a uniform distribution of employment across job classifications. At the other extreme, if each worker type had perfectly specific skills and supplied all of its labor to exactly 1 job classification, the HHI would be 1. While we would not expect perfectly specific skills,  larger HHIs are evidence that we have done a better job of classifying similar jobs, whereas smaller HHIs imply that we are closer to simply classifying jobs randomly. 
-
-
-Figure \ref{fig:concentration_figures_iota_gamma_sector_hhi_worker_weighted} presents $ HHI_{\i}^{Sector}$ and $ HHI_{\i}^{Market}$ for each worker type, sorted from least concentrated to most concentrated. Most worker types' labor supply is more concentrated among markets than among sectors, which according to the argument above, indicates that markets identify groups of jobs that have more homogenous tasks than do sectors. One might be concerned that this isn't a fair comparison because we have 427 markets and only 15 sectors, however having a smaller number of groups mechanically leads to larger HHIs, so this bias runs against the result we find. Nevertheless, in Figure \ref{fig:concentration_figures_iota_gamma_sector5_hhi_worker_weighted} we repeat the analysis replacing our 15 sectors with 643 5-digit industries. The qualitative story is the same, but the market HHIs are even larger relative to the industry HHIs than before. 
+	%\centering
+	%\caption{Skill correlation across worker types and occupations (sorted and weighted)}
+	%\begin{subfigure}[b]{\w\textwidth}
+		%	\centering
+		%	\caption{($\i,\g$) correlogram}
+		%	\includegraphics[height=.25\textheight]{../../Code/aug2021/results/correlograms_iota_gamma_sorted_weighted}
+		%	\label{fig:correlograms_iota_gamma_sorted_weighted}
+		%\end{subfigure}\hfill
+	%\begin{subfigure}[b]{\w\textwidth}
+		%	\centering
+		%	\caption{($\i,\g$) histogram}
+		%	\includegraphics[height=.25\textheight]{../../Code/aug2021/results/correlograms_hist_iota_gamma_sorted_weighted}
+		%	\label{fig:correlograms_hist_iota_gamma_sorted_weighted}
+		%\end{subfigure}\vfill
+	%\begin{subfigure}[b]{\w\textwidth}
+		%	\centering
+		%	\caption{Occ4-Sector correlogram}
+		%	\includegraphics[height=.25\textheight]{../../Code/aug2021/results/correlograms_occ4_first_recode_sector_IBGE_sorted_weighted}
+		%	\label{fig:correlograms_occ4_first_recode_sector_IBGE_sorted_weighted}
+		%\end{subfigure}\hfill
+	%\begin{subfigure}[b]{\w\textwidth}
+		%	\centering
+		%	\caption{Occ4-Sector histogram}
+		%	\includegraphics[height=.25\textheight]{../../Code/aug2021/results/correlograms_hist_occ4_first_recode_sector_IBGE_sorted_weighted}
+		%	\label{fig:correlograms_hist_occ4_first_recode_sector_IBGE_sorted_weighted}
+		%\end{subfigure}\vfill
+	%\begin{subfigure}[b]{\w\textwidth}
+		%	\centering
+		%	\caption{Occ4-$\g$ correlogram}
+		%	\includegraphics[height=.25\textheight]{../../Code/aug2021/results/correlograms_occ4_first_recode_gamma_sorted_weighted}
+		%	\label{fig:correlograms_occ4_first_recode_gamma_sorted_weighted}
+		%\end{subfigure}\hfill
+	%\begin{subfigure}[b]{\w\textwidth}
+		%	\centering
+		%	\caption{Occ4-$\g$ histogram}
+		%	\includegraphics[height=.25\textheight]{../../Code/aug2021/results/correlograms_hist_occ4_first_recode_gamma_sorted_weighted}
+		%	\label{fig:correlograms_hist_occ4_first_recode_gamma_sorted_weighted}
+		%\end{subfigure}
+	%\flushleft\footnotesize Correlograms are sorted by worker type mean earnings (smallest to largest). Skill vectors are weighted by match probability before computing correlations.
+	%\label{fig:correlograms_sorted_weighted}
+	%\end{figure}
 
 
 
-
-\begin{figure}
-	\centering
-	\caption{Concentration of Worker Types' ($\i$) Employment Within Markets/Sectors}
-	\begin{subfigure}{\textwidth}
-		\centering
-		\caption{Markets ($\g$) and sectors}
-		\includegraphics[width=0.8\linewidth]{../Results/concentration_figures_iota_gamma_sector_hhi_worker_weighted}
-		\label{fig:concentration_figures_iota_gamma_sector_hhi_worker_weighted}
-	\end{subfigure}
-	\begin{subfigure}{\textwidth}
-		\centering
-		\caption{Markets ($\g$) and 5-digit industries}
-		\includegraphics[width=0.8\linewidth]{../Results/concentration_figures_iota_gamma_sector5_hhi_worker_weighted}
-		\label{fig:concentration_figures_iota_gamma_sector5_hhi_worker_weighted}
-	\end{subfigure}
-	\label{fig:concentration_figures_iota_gamma_hhi}
-	\footnotesize\flushleft \emph{Notes:} Figure presents concentration, defined as a Herfindahl-Hirschman Index (HHI), of worker types' employment within individual markets (orange lines) and sectors (blue line). The figure is weighted by the number of workers in each worker type. Workers are sorted from lowest to highest HHI along the horizontal axis. HHIs computed from the 2009-2012 RAIS worker earnings panel described in Section \ref{sec:data}.
-\end{figure}
-
-
-
-\subsection{Predicting out-of-sample job-to-job flows}
-
-Another test of a market definition's success at identifying similar jobs is its ability to successfully predict job-to-job flows. As noted in Section \ref{sec:model}, we assume that every time a worker changes jobs, they draw a new job from the same distribution. This implies that workers are more likely to transition to new jobs that have similar task distributions to their old jobs.  Therefore, a market definition that does a better job of predicting job-to-job flows will be one that better captures latent job similarity. In this subsection we predict out-of-sample job-to-job flows using both our network-based market definitions and traditional definitions and show that our definitions outperform traditional ones.
-
-
-Consider a market definition $\mathbf{M}$ and the matrix of out-of-sample job-to-job empirical transition probabilities $\mathbb{P}_{oos}[j'|j]$. The ability to predict future job-to-job transitions from the structure of $\mathbf{M}$ can be assessed as follows:
-
-\begin{enumerate}
-	\item Compute a matrix of empirical market-to-market transition probabilities denoted by $\mathbb{P}_{\mathbf{M}}[m'|m]$
-	\item For each job $j$ in market $m$, compute the probability of transitioning to $j'$ in market $m'$, $Prob(j' \in m'|j \in m)$, as follows:
-	\[Prob(j' \in m'|j \in m) := \mathbb{P}_{\mathbf{M}}[m'|m] \frac{d_{j'}}{\sum_{k\in m'} d_{k}} \]
-	Intuitively, the probability that a worker in job $j$ transitions to job $j'$ is the product of the market-level transition probabilities $Prob(j' \in m'|j \in m)$ and the probability that job $j'$ is chosen conditional on market $m'$ being chosen. The latter probability is simply job $j'$'s share of employment in market $m'$, $ \frac{d_{j'}}{\sum_{k\in m'} d_{k}}$.
-	\item Stack the probabilities computed in the previous step for each job, resulting in a predicted transitions matrix $\mathbb{\hat P}_{\mathbf{M}}[j'|j]$ with identical dimensions to the matrix $\mathbb{P}_{oos}[j'|j]$.
-	\item Compute a measure of fit, using a matrix norm of preference:
-	\[ \Omega_{\mathbf{M}} := \begin{Vmatrix}
-		\mathbb{\hat P}_{\mathbf{M}}[j'|j] - \mathbb{P}_{oos}[j'|j]
-	\end{Vmatrix} \]
-\end{enumerate}
-
-We perform this exercise using empirical transitions from our estimation period of 2013--2016 and compute out-of-sample transitions using 2017 and 2018. We compare our network-based market definitions to a traditional alternative defined as the intersection of two-digit occupations and meso regions. We obtain lower prediction error using our network-based market definitions according to both the $L_1$ and $L_2$ norms. 
-
-XX INSERT TABLE HERE
-
-
-
-
-\section{General equilibrium effects of Rio de Janeiro Olympics}
+\subsection{Predicting general equilibrium effects of Rio de Janeiro Olympics}
 
 \label{sec:model_fit}
 
@@ -1083,7 +1076,7 @@ If our model is able to perfectly predict the actual effects of the Rio Olympics
 
 
 
-We further assess our model's predictive ability by comparing it to a series of standard approaches, which use our model but classify worker and job heterogeneity using commonly-used observable variables. Our first two standard approaches classify workers using 4-digit occupation codes instead of our network-based worker types. After dropping occupations with fewer than 5,000 employees for computational reasons,\footnote{This is necessary because we can only use occupations that are observed both pre-shock and post-shock. \iffalse XX provide details here and review exactly why we did this and how sensitive results are.\fi}  we are left with 306 4-digit occupations, yielding a level of disaggregation similar to the 290 worker types. The second two benchmarks characterize worker heterogeneity using k-means clusters of 6-digit occupations based on 225 O*NET skills, where the number of clusters is chosen to match the number of worker types $\i$, however we have to drop some of the resulting clusters because they are very small and are not observed in both the pre-shock and post-shock periods.\footnote{O*NET is defined for the U.S., but we use a crosswalk from the U.S. O*NET to the Brazilian occupation classification system created by Aguinaldo Maciente \citep{Maciente2013}. The clustering method yields a highly skewed cluster size distribution and we must drop some of the smallest clusters because they are not observed in both the pre-shock and post-shock periods. Therefore the actual number of clusters is somewhat smaller than the number of $\i$'s.} We classify job heterogeneity using sector in the first and third benchmark and using our network-based markets in the second and fourth. We present the results of these standard approaches in columns 2--5 of Table \ref{table:model_fit}.
+We further assess our model's predictive ability by comparing it to a series of standard approaches, which use our model but classify worker and job heterogeneity using commonly-used observable variables. Our first two standard approaches classify workers using 4-digit occupation codes instead of our network-based worker types. After dropping occupations with fewer than 5,000 employees for computational reasons,\footnote{This is necessary because we can only use occupations that are observed both pre-shock and post-shock. \iffalse XX provide details here and review exactly why we did this and how sensitive results are.\fi}  we are left with 306 4-digit occupations, yielding a level of disaggregation similar to the 446 worker types. The second two benchmarks characterize worker heterogeneity using k-means clusters of 6-digit occupations based on 225 O*NET skills, where the number of clusters is chosen to match the number of worker types $\i$, however we have to drop some of the resulting clusters because they are very small and are not observed in both the pre-shock and post-shock periods.\footnote{O*NET is defined for the U.S., but we use a crosswalk from the U.S. O*NET to the Brazilian occupation classification system created by Aguinaldo Maciente \citep{Maciente2013}. The clustering method yields a highly skewed cluster size distribution and we must drop some of the smallest clusters because they are not observed in both the pre-shock and post-shock periods. Therefore the actual number of clusters is somewhat smaller than the number of $\i$'s.} We classify job heterogeneity using sector in the first and third benchmark and using our network-based markets in the second and fourth. We present the results of these standard approaches in columns 2--5 of Table \ref{table:model_fit}.
 
 While our network-based classifications yield an approximately unbiased prediction of the actual shock-induced changes in earnings, the standard classifications do not. The coefficients on model-implied earnings changes are far below 1 in all four of the standard classifications. Moreover, the mean squared error (MSE) of our network-based classifications is below all four standard classifications. We interpret this as evidence in favor of our network-based classifications since they do a better job of predicting actual changes in the data than reasonable standard classifications.
 
@@ -1339,7 +1332,7 @@ Why does the Bartik instrument have more explanatory power for workers' outcomes
 On the jobs side, classifying jobs by market rather than sector more accurately captures the channels through which shocks propagate from jobs to workers. Bartik instruments based on standard classifications assume that workers supply labor directly to sectors; our classifications allow workers to supply labor directly to markets but only indirectly to sectors, by way of markets (see Figure \ref{fig:us_vs_ADH_tikz}). We illustrate why our approach is prefereable by again focusing on type $\i=64$ workers. We have already established that these workers' skills are employable in both retail occupations and food service occupations, but who hires them? Do they supply labor to a retail market and a food services market? Or is there actually a market that includes jobs in both retail and food services? In Table \ref{table:shock_case_study_AccomFood_sector_share_table_3} we present type $\i=64$ workers' labor supply by sector. Type $\i=64$ workers supply labor to a variety of sectors, including Retail, Wholesale and Vehicle Repair (28\%) and Accommodations and Food (14\%). Since these workers supply labor to such a  variety of sectors, no single sector can reasonably approximate the set of jobs to which they supply labor. By contrast, type $\i=64$ workers' labor supply \emph{is} concentrated within specific network-based markets, $\g$. 
 
 
-Table \ref{table:shock_case_study_AccomFood_gamma_share_table_3} presents the percentage of their labor that type $\i=64$ workers supply to each market, restricting to the top 10. Type $\i=64$ workers supply over 60\% of their labor to a single market, market $\g=47$, and there is no other market to which they supply more than 3.5 percent of their labor. In other words, type $\i=64$ workers' labor supply is highly concentrated within a specific market, but not nearly as concentrated in specific sectors, despite the fact that we have vastly more markets (427) than sectors (15).  This is a specific example of the more general finding of greater concentration of employment within markets than sectors that we presented in Section \ref{sec:hhi}. Worker types' employment is more concentrated within markets than sectors because our markets are designed to identify groups of jobs that compete for similar workers, whereas sectors are defined by product markets. Therefore, our markets more closely approximate the channels through which shocks propagate through the labor market to workers. By contrast, classifying jobs by sectors introduces error by grouping together jobs with heterogeneous changes in labor demand.  Again, as we discussed in Section \ref{sec:reduced_form_real_olympics} and Appendix \ref{app:misclassification}, misclassifying jobs such that jobs that in fact hire dissimilar workers are assumed to hire similar workers, and vice versa, leads to biased coefficient estimates and attenuated $R^2$ values.
+Table \ref{table:shock_case_study_AccomFood_gamma_share_table_3} presents the percentage of their labor that type $\i=64$ workers supply to each market, restricting to the top 10. Type $\i=64$ workers supply over 60\% of their labor to a single market, market $\g=47$, and there is no other market to which they supply more than 3.5 percent of their labor. In other words, type $\i=64$ workers' labor supply is highly concentrated within a specific market, but not nearly as concentrated in specific sectors, despite the fact that we have vastly more markets (1,371) than sectors (15).  This is a specific example of the more general finding of greater concentration of employment within markets than sectors that we presented in Section \ref{sec:hhi}. Worker types' employment is more concentrated within markets than sectors because our markets are designed to identify groups of jobs that compete for similar workers, whereas sectors are defined by product markets. Therefore, our markets more closely approximate the channels through which shocks propagate through the labor market to workers. By contrast, classifying jobs by sectors introduces error by grouping together jobs with heterogeneous changes in labor demand.  Again, as we discussed in Section \ref{sec:reduced_form_real_olympics} and Appendix \ref{app:misclassification}, misclassifying jobs such that jobs that in fact hire dissimilar workers are assumed to hire similar workers, and vice versa, leads to biased coefficient estimates and attenuated $R^2$ values.
 
 \begin{table}[h!]
 	\centering
