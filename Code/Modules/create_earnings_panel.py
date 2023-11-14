@@ -104,7 +104,7 @@ def create_earnings_panel(modelname, appended, firstyear_panel, lastyear_panel, 
     #Identify first occupation/industry/occ2Xmeso worker is ever observed in
     print('Identifying workers first cbo2002 and clas_cnae20')
     occ_recode_cw = {}
-    for var in ['cbo2002','occ2','occ4','clas_cnae20','occ2Xmeso'] :
+    for var in ['cbo2002','occ2','occ4','clas_cnae20','occ2Xmeso', 'gamma_level_0'] :
         first = balanced.groupby('wid')[var].first().reset_index().rename(columns={var:var+'_first'})
         balanced = balanced.merge(first, on='wid', how='left',validate='m:1')
         # Set groups that rarely occur to missing. The cutoff at 500 is totally arbitrary
@@ -143,7 +143,7 @@ def create_earnings_panel(modelname, appended, firstyear_panel, lastyear_panel, 
     print('Pickling the BALANCED dataframe')
     balanced.to_pickle('./Data/derived/panel_'+modelname+'.p')
     print('Exporting each level of the model to CSV')
-    export_columns = ['wid_masked', 'jid_masked', 'year', 'sector_IBGE', 'codemun', 'code_meso', 'c', 'real_hrly_wage_dec', 'ln_real_hrly_wage_dec', 'yob', 'iota', 'gamma', 'cbo2002', 'cbo2002_first', 'cbo2002_recode', 'cbo2002_first_recode', 'clas_cnae20', 'clas_cnae20_first', 'clas_cnae20_recode', 'clas_cnae20_first_recode', 'occ2', 'occ2_first', 'occ2_recode', 'occ2_first_recode', 'occ4', 'occ4_first', 'occ4_recode', 'occ4_first_recode', 'occ2Xmeso', 'occ2Xmeso_first', 'occ2Xmeso_recode', 'occ2Xmeso_first_recode']
+    export_columns = ['wid_masked', 'jid_masked', 'year', 'sector_IBGE', 'codemun', 'code_meso', 'c', 'real_hrly_wage_dec', 'ln_real_hrly_wage_dec', 'yob', 'iota', 'gamma', 'cbo2002', 'cbo2002_first', 'cbo2002_recode', 'cbo2002_first_recode', 'clas_cnae20', 'clas_cnae20_first', 'clas_cnae20_recode', 'clas_cnae20_first_recode', 'occ2', 'occ2_first', 'occ2_recode', 'occ2_first_recode', 'occ4', 'occ4_first', 'occ4_recode', 'occ4_first_recode', 'occ2Xmeso', 'occ2Xmeso_first', 'occ2Xmeso_recode', 'occ2Xmeso_first_recode', 'gamma_level_0_first']
     for l in range(model.L):
         print('Exporting level ', l)
         gname = 'gamma_level_' + str(l)

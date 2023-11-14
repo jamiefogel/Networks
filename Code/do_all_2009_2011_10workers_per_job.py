@@ -1,3 +1,4 @@
+
 # conda activate gt
 
 import os
@@ -106,11 +107,18 @@ run_all = False
 run_mle = False
 run_query_sums = False
 run_normalization = False
-run_occ_counts = False
-run_correlogram = False
 solve_GE_silently = True
 a_s_variation = True
-run_predictions = True
+
+run_occ_counts = False
+run_shock_case_study=True
+run_reduced_form=True
+run_model_fit=False
+run_concentration_figures=False
+run_correlograms=False
+run_predictions=False
+run_gamma_summary_stats=False
+
 
 worker_type_var = 'iota'
 #worker_type_var = 'kmeans'
@@ -284,9 +292,10 @@ mle_estimates = pickle.load(open(mle_estimates_filename, "rb"), encoding='bytes'
 
 
 if run_occ_counts == True:
+    print('Running occ counts')
     [w_dict, j_dict] = occ_counts_by_type(mle_data_filename, root + 'Data/raw/translated_occ_codes_english_only.csv', level=0, w_output=root + '/Data/derived/occ_counts/' + filename_stub + '_occ_counts_by_i_level_' + str(level) + '.csv', j_output=root + '/Data/derived/occ_counts/' + filename_stub + '_occ_counts_by_g_level_' + str(level) + '.csv')
     pickle.dump((w_dict, j_dict), open(root + '/Data/derived/occ_counts/'+ filename_stub + 'occ_counts_level_' + str(level) + '.p', 'wb'))
-
+    print('Finished occ counts')
 
 
 
@@ -313,45 +322,56 @@ k = psi_and_k['k']
 
 
 # Correlograms
-if run_correlogram==True:
+if run_correlograms==True:
+    print('Starting Correlograms')
     exec(open(root + 'Code/run_correlograms.py').read())
-
-
+    print('Finished Correlograms')
 
 # Concentration figures
-data_full = pd.read_csv(mle_data_filename)
-data_full_concfigs = data_full.loc[(data_full.iota!=-1) & (data_full.gamma!=-1)]
-
-concentration_figures(data_full_concfigs, 'iota', 'Workers (sorted by employment HHI)', ['sector_IBGE','gamma'],    {'sector_IBGE':'Sector','gamma':'Market'},                     figuredir+'concentration_figures__iota__sector_IBGE__gamma.png',weighted=True)
-concentration_figures(data_full_concfigs, 'iota', 'Workers (sorted by employment HHI)', ['clas_cnae20','gamma'],    {'clas_cnae20':'5-Digit Industry','gamma':'Market'},           figuredir+'concentration_figures__iota__clas_cnae20__IBGE_gamma.png',weighted=True)
-concentration_figures(data_full_concfigs, 'iota', 'Workers (sorted by employment HHI)', ['occ2Xmeso','gamma'],      {'occ2Xmeso':'Occ2 X Meso Region','gamma':'Market'},           figuredir+'concentration_figures__iota__occ2Xmeso__IBGE_gamma.png',weighted=True)
-concentration_figures(data_full_concfigs, 'gamma', 'Markets (sorted by hiring HHI)',    ['occ2Xmeso_first','iota'], {'occ2Xmeso_first':'Occ2 X Meso Region','iota':'Worker Type'}, figuredir+'concentration_figures__gamma__occ2Xmeso_first__iota.png',weighted=True)
-concentration_figures(data_full_concfigs, 'gamma', 'Markets (sorted by hiring HHI)',    ['occ4_first','iota'],      {'occ4_first':'4-Digit Occupation','iota':'Worker Type'},      figuredir+'concentration_figures__gamma__occ4_first__iota.png',weighted=True)
+if run_concentration_figures==True:
+    print('Starting concentration figures')
+    data_full = pd.read_csv(mle_data_filename)
+    data_full_concfigs = data_full.loc[(data_full.iota!=-1) & (data_full.gamma!=-1)]
+    concentration_figures(data_full_concfigs, 'iota', 'Workers (sorted by employment HHI)', ['sector_IBGE','gamma'],    {'sector_IBGE':'Sector','gamma':'Market'},                     figuredir+'concentration_figures__iota__sector_IBGE__gamma.png',weighted=True)
+    concentration_figures(data_full_concfigs, 'iota', 'Workers (sorted by employment HHI)', ['clas_cnae20','gamma'],    {'clas_cnae20':'5-Digit Industry','gamma':'Market'},           figuredir+'concentration_figures__iota__clas_cnae20__gamma.png',weighted=True)
+    concentration_figures(data_full_concfigs, 'iota', 'Workers (sorted by employment HHI)', ['occ2Xmeso','gamma'],      {'occ2Xmeso':'Occ2 X Meso Region','gamma':'Market'},           figuredir+'concentration_figures__iota__occ2Xmeso__gamma.png',weighted=True)
+    concentration_figures(data_full_concfigs, 'gamma', 'Markets (sorted by hiring HHI)',    ['occ2Xmeso_first','iota'], {'occ2Xmeso_first':'Occ2 X Meso Region','iota':'Worker Type'}, figuredir+'concentration_figures__gamma__occ2Xmeso_first__iota.png',weighted=True)
+    concentration_figures(data_full_concfigs, 'gamma', 'Markets (sorted by hiring HHI)',    ['occ4_first','iota'],      {'occ4_first':'4-Digit Occupation','iota':'Worker Type'},      figuredir+'concentration_figures__gamma__occ4_first__iota.png',weighted=True)
+    print('Finished concentration figures')
 
 # Gamma summary stats including binscatters and meso_plots
-#exec(open(root + 'Code/gamma_summary_stats.py').read())
-
+if run_gamma_summary_stats==True:
+    print('Starting gamma summary stats')
+    exec(open(root + 'Code/gamma_summary_stats.py').read())
+    print('Finished gamma summary stats')
     
 #--------------------------
 #  Add prediction exercise code
 #--------------------------
 
+ins_years = [2009, 2010, 2011]
+oos_years = [2012, 2013]
+
 if run_predictions==True:
+    print('Starting predictions')
     exec(open(root + 'Code/predicting_flows_data_pull.py').read())
     # WE have been running the actual predictions (coded in the script below) in parallel using the following script: NetworksGit\Code\bash_parallel_jobtransitions_market_based_mutiple_mkts.sh
     # XX Code ran successfully through here on 8/11/2023. Failed somewhere in in the next script
     #exec(open(root + 'Code/parallel_jobtransitions_market_based_multiple_mkts.py').read())
     #exec(open(root + 'Code/parallel_jobtransitions_stack_results.py').read())
     subprocess.Popen([root + 'Code/bash_parallel_jobtransitions_market_based_mutiple_mkts.sh'], shell=True)
+    print('Finished predictions')
 
     
 #--------------------------
 #  ANALYSIS
-#--------------------------
+#-------------------------
 
 
-
-exec(open(root + 'Code/model_fit.py').read())
+if run_model_fit==True:
+    print('Starting model fit')
+    exec(open(root + 'Code/model_fit.py').read())
+    print('Finished model fit')
 
 ''' 
 
@@ -385,9 +405,15 @@ Traceback (most recent call last):
 RuntimeError: The size of tensor a (573) must match the size of tensor b (570) at non-singleton dimension 0
 '''
 
-exec(open(root + 'Code/reduced_form.py').read())
+if run_reduced_form==True:
+    print('Starting reduced form')
+    exec(open(root + 'Code/reduced_form.py').read())
+    print('Finished reduced form')
 
-exec(open(root + 'Code/shock_case_study.py').read())
+if run_shock_case_study==True:
+    print('Starting shock case study')
+    exec(open(root + 'Code/shock_case_study.py').read())
+    print('Finished shock case study')
 
 
 

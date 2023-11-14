@@ -22,7 +22,7 @@ from pull_one_year import pull_one_year
 
 
 run_pull= True 
-run_sbm = False
+
 state_codes = [31, 33, 35]
 rio_codes = [330045, 330170, 330185, 330190, 330200, 330227, 330250, 330285, 330320, 330330, 330350, 330360, 330414, 330455, 330490, 330510, 330555, 330575]
 region_codes = pd.read_csv('Data/raw/munic_microregion_rm.csv', encoding='latin1')
@@ -30,16 +30,10 @@ region_codes = region_codes.loc[region_codes.code_uf.isin(state_codes)]
 state_cw = region_codes[['code_meso','uf']].drop_duplicates()
 muni_meso_cw = pd.DataFrame({'code_meso':region_codes.code_meso,'codemun':region_codes.code_munic//10})
 
-firstyear = 2013
-lastyear = 2018
 
 #maxrows = 10000
 maxrows=None
 
-#modelname='junk'
-modelname = 'pred_flows'
-if maxrows!=None:
-    modelname = modelname + '_small'
 
 # 2004 appears to be the first year in which we have job start end dates (data_adm and data_deslig)
 
@@ -48,7 +42,8 @@ cpi = pd.read_csv('./Data/raw/BRACPIALLMINMEI.csv', parse_dates=['date'], names=
 cpi['cpi'] = cpi.cpi/100
 cpi['date'] = cpi['date'].dt.to_period('M')
 
-''' Don't need to re-run every time
+
+''' Don't need to re-run every time. Hopefully can delete but need to confirm
 # Load original bisbm model
 estimated_sbm = pickle.load( open('./Data/model_3states_2013to2016.p', "rb" ))
 
@@ -60,10 +55,11 @@ estimated_sbm_mcmc.export_blocks(output='./Data/model_3states_2013to2016_mcmc_bl
 pickle.dump( estimated_sbm_mcmc, open('./Data/model_3states_2013to2016_mcmc.p', "wb" ), protocol=4 )
 '''
 
-estimated_sbm_mcmc = pickle.load( open('./Data/derived/sbm_output/model_3states_2013to2016_mcmc.p', "rb" ) )
-gammas = pd.read_csv('./Data/derived/sbm_output/model_3states_2013to2016_mcmc_jblocks.csv', usecols=['jid','job_blocks_level_0']).rename(columns={'job_blocks_level_0':'gamma'})
+
+estimated_sbm_mcmc = pickle.load( open('./Data/derived/sbm_output/model_'+modelname+'.p', "rb" ) )
+gammas = pd.read_csv('./Data/derived/sbm_output/model_'+modelname+'_jblocks.csv', usecols=['jid','job_blocks_level_0']).rename(columns={'job_blocks_level_0':'gamma'})
 gammas['gamma'] = gammas.gamma.fillna(-1)
-iotas = pd.read_csv('./Data/derived/sbm_output/model_3states_2013to2016_mcmc_wblocks.csv', usecols=['wid','worker_blocks_level_0'], dtype={'wid': object}).rename(columns={'worker_blocks_level_0':'iota'})
+iotas = pd.read_csv('./Data/derived/sbm_output/model_'+modelname+'_wblocks.csv', usecols=['wid','worker_blocks_level_0'], dtype={'wid': object}).rename(columns={'worker_blocks_level_0':'iota'})
 iotas['iota'] = iotas.iota.fillna(-1)
     
 ########################################################################################
@@ -73,10 +69,13 @@ iotas['iota'] = iotas.iota.fillna(-1)
 ########################################################################################
 
 if run_pull==True:
-    for year in range(firstyear,lastyear+1):
+    raw_dict_ins = {}
+    raw_dict_oos = {}
+    for year in ins_years + oos_years:
         raw = pull_one_year(year, 'cbo2002', othervars=['data_adm'], state_codes=state_codes, age_lower=25, age_upper=55, parse_dates=['data_adm'], nrows=maxrows, filename=rais_filename_stub + str(year) + '.csv')
-        # Deflate
-        raw['start_date'] = pd.to_datetime(raw['data_adm'])
+        # Because dates aren't stored correctly in some years. Also we had a very small number of invalid dates (5 out of hundreds of millions) and this sets them to missing rather than failing.
+        raw['start_date'] = pd.to_datetime(raw['data_adm'], errors='coerce')
+        raw['codemun'] = raw['codemun'].astype(int)
         raw = raw.merge(muni_meso_cw, how='left', on='codemun', copy=False) # validate='m:1', indicator=True)
         raw['occ2Xmeso'] = raw.cbo2002.str[0:2] + '_' + raw['code_meso'].astype('str')
         raw = raw.merge(gammas, on='jid', how='left')
@@ -84,25 +83,25 @@ if run_pull==True:
         raw = raw.merge(iotas, on='wid', how='left')
         raw['iota'] = raw.iota.fillna(-1)
         raw = raw.drop(columns=['yob','occ4','tipo_vinculo','idade','codemun','id_estab'])
-        raw.to_pickle('./Data/derived/' + modelname + '_raw_' + str(year) + '.p')
+        raw.to_pickle('./Data/derived/' + modelname + '_pred_flows_raw_' + str(year) + '.p')
         gc.collect()
+        if year in ins_years:
+            raw_dict_ins[year] = raw
+        elif year in oos_years:
+            raw_dict_oos[year] = raw
+    pickle.dump(raw_dict_ins, open('./Data/derived/' + modelname + '_pred_flows_raw_dict_ins.p', 'wb'))
+    pickle.dump(raw_dict_oos, open('./Data/derived/' + modelname + '_pred_flows_raw_dict_oos.p', 'wb'))
 
-raw2013 = pd.read_pickle('./Data/derived/' + modelname + '_raw_2013.p')
-raw2014 = pd.read_pickle('./Data/derived/' + modelname + '_raw_2014.p')
-raw2015 = pd.read_pickle('./Data/derived/' + modelname + '_raw_2015.p')
-raw2016 = pd.read_pickle('./Data/derived/' + modelname + '_raw_2016.p')
-raw2017 = pd.read_pickle('./Data/derived/' + modelname + '_raw_2017.p')
-raw2018 = pd.read_pickle('./Data/derived/' + modelname + '_raw_2018.p')
 
 
 #####################
 # Create data frame of transitions
 
-df_trans_ins = create_df_trans([raw2013,raw2014,raw2015,raw2016])
-df_trans_ins.to_pickle('./Data/derived/predicting_flows/' + modelname + '_df_trans_ins.p')
+df_trans_ins = create_df_trans([raw_dict_ins[year] for year in ins_years])
+df_trans_ins.to_pickle('./Data/derived/predicting_flows/' + modelname + '_pred_flows_df_trans_ins.p')
 
-df_trans_oos = create_df_trans([raw2017,raw2018])
-df_trans_oos.to_pickle('./Data/derived/predicting_flows/' + modelname + '_df_trans_oos.p')
+df_trans_oos = create_df_trans([raw_dict_oos[year] for year in oos_years])
+df_trans_oos.to_pickle('./Data/derived/predicting_flows/' + modelname + '_pred_flows_df_trans_oos.p')
 
 # Compute a mapping of jids to market definitions (gammas and occ2Xmeso). Do this by taking the set of jids, occ2mesos, and gammas that are ever origins and stack the set of jids, occ2Xmesos, and gammas that are ever destinations. Then drop duplicates on jid and keep the columns jid, gamma, and occ2Xmeso. 
 jid_mkt_cw_ins = pd.concat([df_trans_ins[['jid', 'gamma', 'occ2Xmeso']], df_trans_ins[['jid_prev', 'gamma_prev', 'occ2Xmeso_prev']].rename(columns={'jid_prev':'jid','gamma_prev':'gamma', 'occ2Xmeso_prev':'occ2Xmeso'})]).drop_duplicates(subset=['jid'])

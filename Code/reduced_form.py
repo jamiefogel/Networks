@@ -104,11 +104,9 @@ if 1==1:
 
     
 # Rio Shock
-if 1==1:
-        
+if 1==1:        
     #shock = torch.ones(S)
-    a_s_rio = torch.tensor(a_ts[p_ts.index == 2016,])
-
+    a_s_rio = torch.tensor(a_ts[p_ts.index == 2014,])
     equi_rio = solve_model(eta,
                 mle_data_sums['I'],
                 mle_data_sums['G'],
@@ -135,14 +133,13 @@ if 1==1:
 
 # XXX Shock (arbitrarily defined shock that we used in dgp_adh)
 if 1==1:
-        
     shock = np.ones(15)
     shock[2] = .5
     shock[7] = .2
     shock[6] = 3
     shock[10]= 2
     a_s_xxx = a_s_pre * shock
-
+ 
     equi_xxx = solve_model(eta,
                 mle_data_sums['I'],
                 mle_data_sums['G'],
@@ -199,40 +196,50 @@ if 1==1:
     pickle.dump(equi_china,  open(root + "Data/derived/dgp/dgp_equi_china.p", "wb"))
   
     
+print('Location '+str(1))
 
-
-fake_data_pre       = dgp(mle_data_filename, mle_data_sums, phi_pre,       mle_estimates['sigma_hat'], equi_pre,       2013, 2013)
+fake_data_pre       = dgp(mle_data_filename, mle_data_sums, phi_pre,       mle_estimates['sigma_hat'], equi_pre,       2009, 2009)
 # The version we used for the current figures didn't get saved. This is a new version of fake_data_free
-fake_data_pre_filename = root + "Data/derived/dgp/fake_data_pre_rio_2013_2013_level_" + str(level) + ".csv"
+fake_data_pre_filename = root + "Data/derived/dgp/fake_data_pre_rio_2009_2009_level_" + str(level) + ".csv"
 fake_data_pre.to_csv(fake_data_pre_filename, index=False)
 fake_data_pre = pd.read_csv(fake_data_pre_filename)
 
+    
+print('Location '+str(2))
 
-fake_data_pre_rio   = dgp(mle_data_filename, mle_data_sums, phi_pre,       mle_estimates['sigma_hat'], equi_pre,     2013, 2013)
-fake_data_rio       = dgp(mle_data_filename, mle_data_sums, phi_rio,       mle_estimates['sigma_hat'], equi_rio,     2016, 2016)
-fake_data_xxx       = dgp(mle_data_filename, mle_data_sums, phi_xxx,       mle_estimates['sigma_hat'], equi_xxx,     2016, 2016)
+fake_data_pre_rio   = dgp(mle_data_filename, mle_data_sums, phi_pre,       mle_estimates['sigma_hat'], equi_pre,     2009, 2012)
+fake_data_rio       = dgp(mle_data_filename, mle_data_sums, phi_rio,       mle_estimates['sigma_hat'], equi_rio,     2014, 2014)
+fake_data_xxx       = dgp(mle_data_filename, mle_data_sums, phi_xxx,       mle_estimates['sigma_hat'], equi_xxx,     2014, 2014)
 
 
+print('Location '+str(3))
 
 equi_pre = pickle.load(open(root + "Data/derived/dgp/dgp_equi_pre.p", "rb"))
 equi_rio = pickle.load(open(root + "Data/derived/dgp/dgp_equi_rio.p", "rb"))
 
 
+    
+print('Location '+str(4))
 
-fake_data_rio_filename = root + "Data/derived/dgp/fake_data_rio_rio_2013_2013_level_" + str(level) + ".csv"
+fake_data_rio_filename = root + "Data/derived/dgp/fake_data_rio_rio_2009_2012_level_" + str(level) + ".csv"
 fake_data_rio = fake_data_rio.append(fake_data_pre_rio)
 fake_data_rio.sort_values(by=['wid_masked','year'], inplace=True)
 fake_data_rio.to_csv(fake_data_rio_filename, index=False)
 fake_data_rio = pd.read_csv(fake_data_rio_filename)
 
+    
+print('Location '+str(5))
+
 # We don't actually use the xxx version in the paper. Keeping it for now because it simulates a shock that leads to Bartik regressions with much large R2's, which may help satisfy the concerns John raised in his emails the weekend of 7/23/2022
-fake_data_xxx_filename = root + "Data/derived/dgp/fake_data_xxx_rio_2013_2013_level_" + str(level) + ".csv"
+fake_data_xxx_filename = root + "Data/derived/dgp/fake_data_xxx_rio_2009_2012_level_" + str(level) + ".csv"
 fake_data_xxx = fake_data_xxx.append(fake_data_pre_rio)
 fake_data_xxx.sort_values(by=['wid_masked','year'], inplace=True)
 fake_data_xxx.to_csv(fake_data_xxx_filename, index=False)
 fake_data_xxx = pd.read_csv(fake_data_xxx_filename)
 
 
+    
+print('Location '+str(6))
 
 
 ########################################################################################################################
@@ -244,15 +251,73 @@ fake_data_xxx = pd.read_csv(fake_data_xxx_filename)
 bartik_analysis(fake_data_rio_filename,         equi_shock=equi_rio,       equi_pre=equi_pre, figuredir=figuredir, savefile_stub='fake_data_rio') # Produces fake_data_rio_iota_occ4_exposure_regs_ln_wage_N.tex
 bartik_analysis(fake_data_xxx_filename,         equi_shock=equi_xxx,       equi_pre=equi_pre, figuredir=figuredir, savefile_stub='fake_data_xxx') # This doesn't perfectly match the old version because we generated new data which introduces some random variation. 
 
+    
+print('Location '+str(7))
 
 # Actual data
-mle_data_filename      = root + 'Data/RAIS_exports/earnings_panel/panel_rio_2013_2013_w_kmeans.csv'
-bartik_analysis(mle_data_filename,  y_ts=y_ts, shock_source='data', figuredir=figuredir, savefile_stub='real_data') # Produces real_data_iota_occ4_exposure_regs_ln_wage_N.tex
+bartik_analysis(mle_data_filename, 'iota', 'gamma', 2009, 2014, y_ts=y_ts, shock_source='data', figuredir=figuredir, savefile_stub='real_data') # Produces real_data_iota_occ4_exposure_regs_ln_wage_N.tex
+
+reg_dict = {}
+classification_list2 = [('iota','gamma'), ('iota','occ2Xmeso_recode'), ('occ2Xmeso_first_recode','gamma'), ('occ4_first_recode','gamma'), ('iota','occ4_recode'), ('occ4_first_recode', 'gamma'), ('occ4_first_recode', 'occ4_recode'), ('occ2Xmeso_first_recode', 'occ2Xmeso_recode')]
+for idx in classification_list2: #
+    print(idx[0])
+    print(idx[1])
+    (res1, res2, data) = bartik_analysis(mle_data_filename, idx[0], idx[1], 2009, 2014, y_ts=y_ts, shock_source='data', figuredir=figuredir, savefile_stub='real_data')
+    dict = {'wtype':idx[0], 'jtype':idx[1], 'reg_output_nojtype': res1, 'reg_output_jtype': res2} 
+    reg_dict[idx] = dict
+
+pickle.dump(reg_dict, open(root + '/Data/derived/'+ filename_stub + 'reduced_form_reg_results.p', 'wb'))
 
 
 
+regs_list = []
+exposure_list = []
+wtype_list = []
+jtype_list = []
+for idx in [('iota','gamma'), ('iota','occ2Xmeso_recode'), ('iota','occ4_recode'), ('occ2Xmeso_first_recode','gamma'), ('occ4_first_recode','gamma')]:
+    regs_list = regs_list + [reg_dict[idx]['reg_output_jtype'], reg_dict[idx]['reg_output_nojtype']]
+    exposure_list = exposure_list + ['Market', 'Sector']
+    wtype_str = idx[0].replace('gamma','$\gamma$').replace('iota','$\iota$').replace('occ2Xmeso','Occ2$\\times$Meso Region').replace('occ4_recode','Occ4').replace('occ4_first_recode','Occ4')
+    jtype_str = idx[0].replace('gamma','$\gamma$').replace('iota','$\iota$').replace('occ2Xmeso','Occ2$\\times$Meso Region').replace('occ4_recode','Occ4').replace('occ4_first_recode','Occ4')    
+    wtype_list = wtype_list + [wtype_str, wtype_str]
+    jtype_list = jtype_list + [jtype_str, 'N/A']
+    print(idx)
+    print(reg_dict[idx]['reg_output_nojtype'].params)
+    print(reg_dict[idx]['reg_output_nojtype'].rsquared)
+    print(reg_dict[idx]['reg_output_jtype'].params)
+    print(reg_dict[idx]['reg_output_jtype'].rsquared)
 
 
+    
+# Regress changes in earnings on various exposure measures
+# This is the output we actually use
+
+                                         
+
+stargazer = Stargazer(regs_list)
+stargazer.rename_covariates({'wtype_exposure_jtype_std':'Exposure (market)','wtype_exposure_std':'Exposure (sector)'})
+stargazer.covariate_order(['Intercept','wtype_exposure_jtype_std','wtype_exposure_std'])
+stargazer.show_model_numbers(False)
+stargazer.dep_var_name = None
+stargazer.show_degrees_of_freedom(False)
+stargazer.show_f_statistic = False
+stargazer.show_residual_std_err=False
+stargazer.show_adj_r2 = False
+stargazer.significance_levels([10e-100, 10e-101, 10e-102])  # Suppress significance stars
+stargazer.append_notes(False)
+stargazer.add_line('Exposure:', exposure_list, LineLocation.BODY_TOP)
+stargazer.add_line('Worker classification:', wtype_list, LineLocation.BODY_TOP)
+stargazer.add_line('Job classification:', jtype_list, LineLocation.BODY_TOP)
+#stargazer.add_line('\hline', ['', '', '', ''], LineLocation.BODY_TOP)
+#stargazer.add_line('Preferred Specification', ['No', 'Yes', 'No', 'No'], LineLocation.FOOTER_TOP)
+print(stargazer.render_latex())
+with open(figuredir + savefile_stub + "_rio_shock.tex", "w") as f:
+    f.write(stargazer.render_latex(only_tabular=True ))
+    
+    
+
+    
+print('Location '+str(8))
 
 
 ##############################################################################################################################
@@ -352,6 +417,12 @@ for s in range(S):
     del fake_data
     del dump
 
+
+
+
+    
+print('Location '+str(9))
+    
 pickle.dump(r2_df,    open(root + "Results/r2_df_30_shocks.p",   "wb"))
 pickle.dump(coef_df,  open(root + "Results/coef_df_30_shocks.p", "wb"))
 
@@ -370,6 +441,8 @@ ax.legend()
 ax.figure.savefig(figuredir + 'fake_data_all_sector_shocks_r2.png',bbox_inches='tight') # Used in paper and slides
 
 
+    
+print('Location '+str(10))
 
 # Used in paper and slides
 fig, ax = plt.subplots()
@@ -394,6 +467,9 @@ df_means = pd.concat([ \
 df_means.columns = pd.MultiIndex.from_arrays([df_means.columns, ['\hfill','\hfill','Mean','Std Dev','Mean','Std Dev']])
 
 
+    
+print('Location '+str(11))
+
 # Used in paper and slides. I create the table initially as temp.tex and then parse it and edit it and save as fake_data_all_sector_shocks_means.tex
 df_means.to_latex(index=False, buf=figuredir + "temp.tex", caption='Means across all simulated shocks', multicolumn=True, multicolumn_format='c', label='table:all_sector_shocks_means', escape=False)
 fin = open(figuredir + "temp.tex", "rt")
@@ -410,3 +486,6 @@ fin.close()
 fout.close()
 
 
+
+    
+print('Location '+str(12))

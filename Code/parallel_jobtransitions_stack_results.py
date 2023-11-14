@@ -17,7 +17,7 @@ os.chdir(homedir + '/labormkt_rafaelpereira/NetworksGit/')
 
 dfs = []
 
-for core in range(1, 28):
+for core in range(1, 26):
     try:
             df = pd.read_csv('job_transitions_results/results_core' + str(core) + '_multiple_mkts.csv')    
             df['core'] = core
@@ -35,12 +35,9 @@ np.round(combined_df.iloc[:,1:7].describe(),1)
 
 for i in [1,2]:
     combined_df['diff_l'+str(i)] = combined_df['l'+str(i)+'_g'] - combined_df['l'+str(i)+'_o']
-
     print('Summary stats for difference between Gamma and Occ2XMeso prediction errors, L'+str(i)+' norm')
     summary_stats = np.round(combined_df['diff_l'+str(i)].describe(),2)
     print(summary_stats)
-
-
     # Drop the 10, 100,and 1000 largest and smallest obs to see if findings are skewed by outlier
     for c in [10, 100, 1000]:
         sorted_df = combined_df.sort_values('diff_l'+str(i))
@@ -48,15 +45,13 @@ for i in [1,2]:
         summary_stats = np.round(trimmed_df['diff_l'+str(i)].describe(),2) 
         print('Summary stats for difference between Gamma and Occ2XMeso prediction errors, L'+str(i)+' norm. Trimming '+str(c)+' largest and smallest prediction errors')
         print(summary_stats)
-
     # Histogram of differences
     combined_df['diff_l'+str(i)].plot(kind='hist', bins=100)  # Adjust the number of bins as needed
     plt.xlabel('Difference (l'+str(i)+'_g - l'+str(i)+'_o)')
     plt.ylabel('Frequency')
     plt.title('Histogram of l'+str(i)+'_g - l'+str(i)+'_o')
     plt.show()
-
-    
+    #plt.savefig(figuredir + 'predicting_flows_diff_histogram_l' + str(i) + '.pdf')
     # Repeat for 100 random 1% draws from the set of predictions to assess robustness to outliers and small sample size
     num_draws = 100
     # Calculate the mean differences for each subset
@@ -64,15 +59,14 @@ for i in [1,2]:
     for _ in range(num_draws):
         subset = combined_df.sample(frac=0.01, replace=False)  # Adjust the fraction as desired
         mean_diff = subset['l2_g'].mean() - subset['l2_o'].mean()
-        mean_diffs.append(mean_diff)
-    
+        mean_diffs.append(mean_diff)    
     # Create a histogram of the mean differences
     plt.hist(mean_diffs, bins=100)  # Adjust the number of bins as needed
     plt.xlabel('Mean Difference (l'+str(i)+'_g - l'+str(i)+'_o)')
     plt.ylabel('Frequency')
     plt.title('Histogram of Mean Differences Across 100 Draws')
-    plt.show()
-    
+    #plt.savefig(figuredir + 'predicting_flows_diff_histogram_100draws_l' + str(i) + '.pdf')
+    plt.show()    
     np.round(pd.DataFrame(mean_diffs).describe(),2)
     pct_neg = (np.array(mean_diffs)<0).mean() *100
     print(str(pct_neg)+'% of the 100 draws yield a negative mean of l'+str(i)+'_g - l'+str(i)+'_o)')
