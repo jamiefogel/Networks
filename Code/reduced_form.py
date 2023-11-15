@@ -277,8 +277,8 @@ jtype_list = []
 for idx in [('iota','gamma'), ('iota','occ2Xmeso_recode'), ('iota','occ4_recode'), ('occ2Xmeso_first_recode','gamma'), ('occ4_first_recode','gamma')]:
     regs_list = regs_list + [reg_dict[idx]['reg_output_jtype'], reg_dict[idx]['reg_output_nojtype']]
     exposure_list = exposure_list + ['Market', 'Sector']
-    wtype_str = idx[0].replace('gamma','$\gamma$').replace('iota','$\iota$').replace('occ2Xmeso','Occ2$\\times$Meso Region').replace('occ4_recode','Occ4').replace('occ4_first_recode','Occ4')
-    jtype_str = idx[0].replace('gamma','$\gamma$').replace('iota','$\iota$').replace('occ2Xmeso','Occ2$\\times$Meso Region').replace('occ4_recode','Occ4').replace('occ4_first_recode','Occ4')    
+    wtype_str = idx[0].replace('gamma','$\gamma$').replace('iota','$\iota$').replace('occ2Xmeso_first_recode','Occ2$\\times$Meso Region').replace('occ2Xmeso','Occ2$\\times$Meso Region').replace('occ4_recode','Occ4').replace('occ4_first_recode','Occ4')
+    jtype_str = idx[0].replace('gamma','$\gamma$').replace('iota','$\iota$').replace('occ2Xmeso_first_recode','Occ2$\\times$Meso Region').replace('occ2Xmeso','Occ2$\\times$Meso Region').replace('occ4_recode','Occ4').replace('occ4_first_recode','Occ4')    
     wtype_list = wtype_list + [wtype_str, wtype_str]
     jtype_list = jtype_list + [jtype_str, 'N/A']
     print(idx)
@@ -311,7 +311,7 @@ stargazer.add_line('Job classification:', jtype_list, LineLocation.BODY_TOP)
 #stargazer.add_line('\hline', ['', '', '', ''], LineLocation.BODY_TOP)
 #stargazer.add_line('Preferred Specification', ['No', 'Yes', 'No', 'No'], LineLocation.FOOTER_TOP)
 print(stargazer.render_latex())
-with open(figuredir + savefile_stub + "_rio_shock.tex", "w") as f:
+with open(figuredir + 'reduced_form/' +  savefile_stub + "_rio_shock.tex", "w") as f:
     f.write(stargazer.render_latex(only_tabular=True ))
     
     
