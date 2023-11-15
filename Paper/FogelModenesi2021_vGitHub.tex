@@ -804,13 +804,13 @@ Figure \ref{fig:concentration_figures__iota__occ2Xmeso__gamma} presents $ HHI_{\
 	\begin{subfigure}{\textwidth}
 		\centering
 		\caption{Concentration of Worker Types' ($\i$) Employment Within Markets/Occ2Xmesos}
-		\includegraphics[width=0.7\linewidth]{../Results/concentration_figures__iota__occ2Xmeso__gamma.png}
+		\includegraphics[width=0.7\linewidth]{../Results/concentration_figures/concentration_figures__iota__occ2Xmeso__gamma.png}
 		\label{fig:concentration_figures__iota__occ2Xmeso__gamma}
 	\end{subfigure}
 	\begin{subfigure}{\textwidth}
 		\centering
 		\caption{Concentration of Markets' ($\g$) Hiring Within Worker Types' ($\i$)/Occ2Xmesos}
-		\includegraphics[width=0.7\linewidth]{../Results/concentration_figures__gamma__occ2Xmeso_first__iota}
+		\includegraphics[width=0.7\linewidth]{../Results/concentration_figures/concentration_figures__gamma__occ2Xmeso_first__iota}
 		\label{fig:concentration_figures__gamma__occ2Xmeso_first__iota}
 	\end{subfigure}
 	\label{fig:concentration_figures_iota_gamma_hhi}
@@ -863,78 +863,6 @@ We summarize the correlations between different worker types' productivity vecto
 
 Figure \ref{fig:correlograms_sorted} shows that correlations between different worker types' productivity vectors are smaller in magnitude when we use our model's ($\i,\g$) classifications rather than classifications based on labels available in the data, occupation and sector.  This is because the network-based clusters of workers are more successful at segregating workers with distinct skills than are standard occupations. Connecting this to the example in the previous section, if high school and middle school math teachers have similar skills but are classified as distinct worker types, we would observe large correlations (dark red) between their productivity vectors. By contrast, our worker types disentangle teachers into physical education teachers --- including coaches and personal trainers --- and teachers in traditional academic subjects. Physical education and academic teachers have less correlated skills than do elementary and middle school teachers.  Because we have done a better job of segregating workers with disparate skills, and aggregating workers with similar skills, we observe fewer clusters of highly-correlated worker types. 
 
-
-% XX \emph{Need to say something here about the unequal numbers of types. Is there a reason to expect greater correlations at a higher or lower level of aggregation? Would be good to pick the number of types to equal the number of occupations and then redo this analysis.}
-
-% XX Possibly useful robustness check: As an alternative to the correlograms based on Psi, we could do correlograms for all 16 dimensions of O*NET skills. Ideally, these would all show the same story as the Psi correlograms. 
-
-%\begin{sidewaysfigure}[h!]
-	%	\caption{Skill correlation across worker types: extreme benchmarks}
-	%	\centering 
-	%	\begin{subfigure}[b]{.3\textwidth}
-		%		\centering
-		%		\caption{No skill specificity}
-		%		\includegraphics[width=\textwidth]{../../Code/aug2021/results/correlograms_benchmark_1_cluster}
-		%		\label{fig:correlograms_benchmark_1_cluster}
-		%	\end{subfigure}
-	%	\begin{subfigure}[b]{.3\textwidth}
-		%		\centering
-		%		\caption{Two clusters}
-		%		\includegraphics[width=\textwidth]{../../Code/aug2021/results/correlograms_benchmark_2_clusters}
-		%		\label{fig:correlograms_benchmark_2_clusters}
-		%	\end{subfigure}
-	%	\begin{subfigure}[b]{.3\textwidth}
-		%		\centering
-		%		\caption{High skill specificity}
-		%		\includegraphics[width=\textwidth]{../../Code/aug2021/results/correlograms_benchmark_specific_skills}
-		%		\label{fig:correlograms_benchmark_specific_skills}
-		%	\end{subfigure}
-	%\end{sidewaysfigure}
-%
-
-%\def\w{.45}
-%\begin{figure}[!htbp][h!]
-	%	\centering
-	%	\caption{Skill correlation across worker types and occupations}
-	%	\begin{subfigure}[b]{\w\textwidth}
-		%		\centering
-		%		\caption{($\i,\g$) correlogram}
-		%		\includegraphics[height=.25\textheight]{../../Code/aug2021/results/correlograms_iota_gamma}
-		%		\label{fig:correlograms_iota_gamma}
-		%	\end{subfigure}\hfill
-	%	\begin{subfigure}[b]{\w\textwidth}
-		%		\centering
-		%		\caption{($\i,\g$) histogram}
-		%		\includegraphics[height=.25\textheight]{../../Code/aug2021/results/correlograms_hist_iota_gamma}
-		%		\label{fig:correlograms_hist_iota_gamma}
-		%	\end{subfigure}\vfill
-	%	\begin{subfigure}[b]{\w\textwidth}
-		%		\centering
-		%		\caption{Occ4-Sector correlogram}
-		%		\includegraphics[height=.25\textheight]{../../Code/aug2021/results/correlograms_occ4_first_recode_sector_IBGE}
-		%		\label{fig:correlograms_occ4_first_recode_sector_IBGE}
-		%	\end{subfigure}\hfill
-	%	\begin{subfigure}[b]{\w\textwidth}
-		%		\centering
-		%		\caption{Occ4-Sector histogram}
-		%		\includegraphics[height=.25\textheight]{../../Code/aug2021/results/correlograms_hist_occ4_first_recode_sector_IBGE}
-		%		\label{fig:correlograms_hist_occ4_first_recode_sector_IBGE}
-		%	\end{subfigure}\vfill
-	%	\begin{subfigure}[b]{\w\textwidth}
-		%		\centering
-		%		\caption{Occ4-$\g$ correlogram}
-		%		\includegraphics[height=.25\textheight]{../../Code/aug2021/results/correlograms_occ4_first_recode_gamma}
-		%		\label{fig:correlograms_occ4_first_recode_gamma}
-		%	\end{subfigure}\hfill
-	%	\begin{subfigure}[b]{\w\textwidth}
-		%		\centering
-		%		\caption{Occ4-$\g$ histogram}
-		%		\includegraphics[height=.25\textheight]{../../Code/aug2021/results/correlograms_hist_occ4_first_recode_gamma}
-		%		\label{fig:correlograms_hist_occ4_first_recode_gamma}
-		%	\end{subfigure}
-	%	\label{fig:correlograms}
-	%\end{figure}
-
 \def\w{.45}
 \begin{figure}[!htbp]
 	\centering
@@ -942,86 +870,42 @@ Figure \ref{fig:correlograms_sorted} shows that correlations between different w
 	\begin{subfigure}[b]{\w\textwidth}
 		\centering
 		\caption{($\i,\g$) correlogram}
-		\includegraphics[height=.25\textheight]{../Results/correlograms_iota_gamma_sorted}
+		\includegraphics[height=.25\textheight]{../Results/correlograms/correlograms_iota_gamma_sorted}
 		\label{fig:correlograms_iota_gamma_sorted}
 	\end{subfigure}\hfill
 	\begin{subfigure}[b]{\w\textwidth}
 		\centering
 		\caption{($\i,\g$) histogram}
-		\includegraphics[height=.25\textheight]{../Results/correlograms_hist_iota_gamma_sorted}
+		\includegraphics[height=.25\textheight]{../Results/correlograms/correlograms_hist_iota_gamma_sorted}
 		\label{fig:correlograms_hist_iota_gamma_sorted}
 	\end{subfigure}\vfill
 	\begin{subfigure}[b]{\w\textwidth}
 		\centering
 		\caption{(Occ4, Sector) correlogram}
-		\includegraphics[height=.25\textheight]{../Results/correlograms_occ4_first_recode_sector_IBGE_sorted}
+		\includegraphics[height=.25\textheight]{../Results/correlograms/correlograms_occ4_first_recode_sector_IBGE_sorted}
 		\label{fig:correlograms_occ4_first_recode_sector_IBGE_sorted}
 	\end{subfigure}\hfill
 	\begin{subfigure}[b]{\w\textwidth}
 		\centering
 		\caption{(Occ4, Sector) histogram}
-		\includegraphics[height=.25\textheight]{../Results/correlograms_hist_occ4_first_recode_sector_IBGE_sorted}
+		\includegraphics[height=.25\textheight]{../Results/correlograms/correlograms_hist_occ4_first_recode_sector_IBGE_sorted}
 		\label{fig:correlograms_hist_occ4_first_recode_sector_IBGE_sorted}
 	\end{subfigure}\vfill
 	\begin{subfigure}[b]{\w\textwidth}
 		\centering
 		\caption{(Occ4, $\g$) correlogram}
-		\includegraphics[height=.25\textheight]{../Results/correlograms_occ4_first_recode_gamma_sorted}
+		\includegraphics[height=.25\textheight]{../Results/correlograms/correlograms_occ4_first_recode_gamma_sorted}
 		\label{fig:correlograms_occ4_first_recode_gamma_sorted}
 	\end{subfigure}\hfill
 	\begin{subfigure}[b]{\w\textwidth}
 		\centering
 		\caption{(Occ4, $\g$) histogram}
-		\includegraphics[height=.25\textheight]{../Results/correlograms_hist_occ4_first_recode_gamma_sorted}
+		\includegraphics[height=.25\textheight]{../Results/correlograms/correlograms_hist_occ4_first_recode_gamma_sorted}
 		\label{fig:correlograms_hist_occ4_first_recode_gamma_sorted}
 	\end{subfigure}
 	\label{fig:correlograms_sorted}
 	\flushleft\footnotesize \emph{Notes:} Figure presents pairwise skills vector correlations (left column) and histograms of these skill correlations (right column) for all pairs of worker types $\i$ (row 1) and 4-digit occupations (rows 2 and 3). In the left column, dark red squares indicate large positive correlations, while dark blue squares represent large negative correlations. ``Skills'' defined as row vectors of the matrix $\Psi$, $\psi_{\i\cdot}$, where $\Psi$ is estimated as described in Section \ref{sec:estimating_psi} using the 2009-2012 RAIS worker earnings panel described in Section \ref{sec:data}. Workers classified by worker types $\i$ in row 1 and by 4-digit occupation in rows 2 and 3. Jobs classified by market $\g$ in rows 1 and 3, and by sector in row 2. Figures in the left column are sorted by worker type mean earnings (smallest to largest).
 \end{figure}
-
-%\def\w{.45}
-%\begin{figure}
-	%\centering
-	%\caption{Skill correlation across worker types and occupations (sorted and weighted)}
-	%\begin{subfigure}[b]{\w\textwidth}
-		%	\centering
-		%	\caption{($\i,\g$) correlogram}
-		%	\includegraphics[height=.25\textheight]{../../Code/aug2021/results/correlograms_iota_gamma_sorted_weighted}
-		%	\label{fig:correlograms_iota_gamma_sorted_weighted}
-		%\end{subfigure}\hfill
-	%\begin{subfigure}[b]{\w\textwidth}
-		%	\centering
-		%	\caption{($\i,\g$) histogram}
-		%	\includegraphics[height=.25\textheight]{../../Code/aug2021/results/correlograms_hist_iota_gamma_sorted_weighted}
-		%	\label{fig:correlograms_hist_iota_gamma_sorted_weighted}
-		%\end{subfigure}\vfill
-	%\begin{subfigure}[b]{\w\textwidth}
-		%	\centering
-		%	\caption{Occ4-Sector correlogram}
-		%	\includegraphics[height=.25\textheight]{../../Code/aug2021/results/correlograms_occ4_first_recode_sector_IBGE_sorted_weighted}
-		%	\label{fig:correlograms_occ4_first_recode_sector_IBGE_sorted_weighted}
-		%\end{subfigure}\hfill
-	%\begin{subfigure}[b]{\w\textwidth}
-		%	\centering
-		%	\caption{Occ4-Sector histogram}
-		%	\includegraphics[height=.25\textheight]{../../Code/aug2021/results/correlograms_hist_occ4_first_recode_sector_IBGE_sorted_weighted}
-		%	\label{fig:correlograms_hist_occ4_first_recode_sector_IBGE_sorted_weighted}
-		%\end{subfigure}\vfill
-	%\begin{subfigure}[b]{\w\textwidth}
-		%	\centering
-		%	\caption{Occ4-$\g$ correlogram}
-		%	\includegraphics[height=.25\textheight]{../../Code/aug2021/results/correlograms_occ4_first_recode_gamma_sorted_weighted}
-		%	\label{fig:correlograms_occ4_first_recode_gamma_sorted_weighted}
-		%\end{subfigure}\hfill
-	%\begin{subfigure}[b]{\w\textwidth}
-		%	\centering
-		%	\caption{Occ4-$\g$ histogram}
-		%	\includegraphics[height=.25\textheight]{../../Code/aug2021/results/correlograms_hist_occ4_first_recode_gamma_sorted_weighted}
-		%	\label{fig:correlograms_hist_occ4_first_recode_gamma_sorted_weighted}
-		%\end{subfigure}
-	%\flushleft\footnotesize Correlograms are sorted by worker type mean earnings (smallest to largest). Skill vectors are weighted by match probability before computing correlations.
-	%\label{fig:correlograms_sorted_weighted}
-	%\end{figure}
 
 
 
@@ -1134,13 +1018,14 @@ While our results indicate that classifying worker and job heterogeneity with er
 
 Although the focus of this paper is classification of workers rather than identification of shocks, it is possible that the Olympics shock we study in this section may have been confounded by labor supply or other shocks. For example, workers may have anticipated the shock and migrated to Rio de Janeiro from other parts of Brazil. Therefore, in the next subsection we replicate the analysis in this subsection using simulated data in which we control the data generating process. 
 
-\begin{table}
+\begin{sidewaystable}
 	\centering
 	\caption{Effects of exposure to Rio Olympics shock}
-	\input{"../Results/real_data_iota_occ4_exposure_regs_ln_wage_N.tex"} %Produced by lots_of_dgps_reduced_form.py, line 293. 
+	\scriptsize
+	\input{"../Results/reduced_form/real_data_rio_shock.tex"} 
 	\label{table:real_data_iota_occ4_exposure_regs_ln_wage_N} 
 	\footnotesize\flushleft \emph{Notes:} Table presents the effect of the 2016 Rio de Janeiro Olympics shock on workers earnings from estimating equation (\ref{eq:bartik_reg}). Independent variables normalized to have mean 0 and standard deviation 1. Workers classified by worker type ($\i$) in columns 1 and 2, and by 4-digit occupation in columns 3 and 4. Standard errors reported in parentheses. Jobs classified by market in columns 1 and 3, and by sector in columns 2 and 4. Estimated using data from the 2009-2012 RAIS worker earnings panel described in Section \ref{sec:data} aggregated to the worker classification level. 
-\end{table}
+\end{sidewaystable}
 
 
 
