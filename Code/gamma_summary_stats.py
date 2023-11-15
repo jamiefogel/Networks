@@ -380,7 +380,7 @@ def sector_scatter_plots(var1,var2):
     plt.subplots_adjust(right=0.69)
     plt.legend(handles, sector_labels, title='ind', loc='upper left', bbox_to_anchor=(1, 1))
     plt.tight_layout()
-    plt.savefig(root + '/Results/sector_scatterplot_' + var1 + '_' + var2 +' .pdf', format='pdf')
+    plt.savefig(root + '/Results/gamma_summary_stats/sector_scatterplot_' + var1 + '_' + var2 +' .pdf', format='pdf')
     plt.show()
     
     

@@ -59,6 +59,7 @@ def correlogram(psi_hat, corrsavefile, histsavefile, cosine=False, p_ig=None, re
     #ax.tick_params(axis='both', which='major', labelsize=18)
     plt.show()    
     ax.figure.savefig(histsavefile, dpi=300, bbox_inches="tight")
+    plt.close()
     if return_correlations==True:
         return coefs, corrmatrix
 

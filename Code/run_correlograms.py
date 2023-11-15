@@ -11,9 +11,9 @@ for idx in [('iota','gamma'), ('occ4_first_recode','sector_IBGE'), ('occ4_first_
     psi_hat_sorted = psi_hat_merged[psi_hat_merged[:, 0].sort()[1]][:,1:]
     corr_name_stub = 'correlograms_' + wtype_var + '_' + jtype_var
     hist_name_stub = 'correlograms_hist_' + wtype_var + '_' + jtype_var
-    correlogram(psi_hat,        figuredir+corr_name_stub + '.png'                , figuredir+hist_name_stub + '.png')
-    correlogram(psi_hat_sorted, figuredir+corr_name_stub + '_sorted.png'         , figuredir+hist_name_stub + '_sorted.png')
-    correlogram(psi_hat_sorted, figuredir+corr_name_stub + '_sorted_weighted.png', figuredir+hist_name_stub + '_sorted_weighted.png', p_ig = mle_data_sums_corr['p_ig_actual'])
+    correlogram(psi_hat,        figuredir+'correlograms/'+corr_name_stub + '.png'                , figuredir+'correlograms/'+hist_name_stub + '.png')
+    correlogram(psi_hat_sorted, figuredir+'correlograms/'+corr_name_stub + '_sorted.png'         , figuredir+'correlograms/'+hist_name_stub + '_sorted.png')
+    correlogram(psi_hat_sorted, figuredir+'correlograms/'+corr_name_stub + '_sorted_weighted.png', figuredir+'correlograms/'+hist_name_stub + '_sorted_weighted.png', p_ig = mle_data_sums_corr['p_ig_actual'])
     
   
     
@@ -28,17 +28,17 @@ cov = np.vstack((np.hstack((diagonal,offdiagonal)), np.hstack((np.transpose(offd
 psi_2_clusters = torch.tensor(np.transpose(np.random.multivariate_normal(means,cov, (50))) )
 corr_name_stub = 'correlograms_benchmark_2_clusters'
 hist_name_stub = 'correlograms_hist_benchmark_2_clusters'
-correlogram(psi_2_clusters,        figuredir+corr_name_stub + '.png'                , figuredir+hist_name_stub + '.png')
+correlogram(psi_2_clusters,        figuredir+'correlograms/'+corr_name_stub + '.png'                , figuredir+'correlograms/'+hist_name_stub + '.png')
 
 # Highly correlated
 psi_1_cluster =  torch.tensor(np.transpose(np.random.multivariate_normal(np.ones(50), np.random.uniform(low=10, high=10.5, size=(50,50)), (200))) )
 corr_name_stub = 'correlograms_benchmark_1_cluster'
 hist_name_stub = 'correlograms_hist_benchmark_1_cluster'
-correlogram(psi_1_cluster,        figuredir+corr_name_stub + '.png'                , figuredir+hist_name_stub + '.png')
+correlogram(psi_1_cluster,        figuredir+'correlograms/'+corr_name_stub + '.png'                , figuredir+'correlograms/'+hist_name_stub + '.png')
 
 # Uncorrelated
 psi_specific_skills = torch.tensor(np.diag(np.random.uniform(low=.5, high=2, size=(50))))
 corr_name_stub = 'correlograms_benchmark_specific_skills'
 hist_name_stub = 'correlograms_hist_benchmark_specific_skills'
-correlogram(psi_specific_skills,        figuredir+corr_name_stub + '.png'                , figuredir+hist_name_stub + '.png')
+correlogram(psi_specific_skills,        figuredir+'correlograms/'+corr_name_stub + '.png'                , figuredir+'correlograms/'+hist_name_stub + '.png')
 
