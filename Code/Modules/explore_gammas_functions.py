@@ -69,7 +69,7 @@ def plot_mesos(gamma, gammas_w_attributes, meso_share_df, meso_share_norm_df, ga
         ax=ax1,
     )
     # Plot the normalized shares
-    meso_share_norm_df_winsor = meso_share_norm_df[['code_meso','name_meso','geometry']]
+    meso_share_norm_df_winsor = meso_share_norm_df[['code_meso','name_meso','geometry']].copy()
     meso_share_norm_df_winsor[gamma] = meso_share_norm_df[gamma].clip(lower=0.1, upper=10.0)
     fig2, ax2 = plt.subplots(figsize=(4, 4), dpi=200)
     meso_share_norm_df_winsor.plot(
@@ -111,12 +111,13 @@ def plot_mesos(gamma, gammas_w_attributes, meso_share_df, meso_share_norm_df, ga
     [educ,earn,dist,var,educ_rank,earn_rank,dist_rank,var_rank] = gammas_w_attributes.loc[gammas_w_attributes.gamma==gamma, columns].values.tolist()[0]
     textstr1 = 'Mean education: {:.2f};                   Rank: {:.2f} \nMean monthly earnings: {:.2f};     Rank: {:.2f} \nMean move distance (km): {:.2f};     Rank: {:.2f}\nSpatial variance (km): {:.2f};          Rank: {:.2f}'.format(educ,educ_rank,earn,earn_rank,dist,dist_rank,var,var_rank)
     fig.text(0.05, 0.08, textstr1, ha='left', va='center')
-    [hhi_jid,num_unique_jids,num_unique_wids,num_unique_wid_jids] = gammas_w_attributes.loc[gammas_w_attributes.gamma==gamma][['hhi_jid','num_unique_jids','num_unique_wids','num_unique_wid_jids']].values.tolist()[0]
+    column_list = ['hhi_jid','num_unique_jids','num_unique_wids','num_unique_wid_jids']
+    [hhi_jid,num_unique_jids,num_unique_wids,num_unique_wid_jids] = gammas_w_attributes.loc[gammas_w_attributes.gamma==gamma,column_list].values.tolist()[0]
     textstr2 = 'HHI of jids within gamma: {:.3f} \nNumber of Unique Jobs: {:.0f} \nNumber of Unique Workers: {:.0f}\nNumber of Unique Worker-Job Pairs: {:.0f}'.format(hhi_jid,num_unique_jids,num_unique_wids,num_unique_wid_jids)
     fig.text(0.7, 0.08, textstr2, ha='left', va='center')
     plt.axis('off')
     plt.savefig("./Results/meso_maps/map_mesos_gamma_"+str(gamma)+".pdf")
-    plt.savefig("./Results/meso_maps/map_mesos_gamma_"+str(gamma)+".png")
+    #plt.savefig("./Results/meso_maps/map_mesos_gamma_"+str(gamma)+".png")
 
 
  

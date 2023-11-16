@@ -100,7 +100,7 @@ raw.to_pickle(root + '/Data/derived/explore_gammas_raw.p')
 #raw = pd.read_pickle(root + '/Data/derived/explore_gammas_raw.p')
 
 # Collapse a bunch of the variables in raw by gamma
-gammas_w_attributes = raw.groupby(['gamma']).agg(educ_median=('grau_instr','median'), educ_mean=('grau_instr','mean'), educ_mode=('grau_instr',lambda x: stats.mode(x)[0][0]), mean_monthly_earnings=('rem_med_r','mean'),modal_ind2=('ind2', lambda x: stats.mode(x)[0][0]), modal_sector=('sector_IBGE', lambda x: stats.mode(x)[0][0]), modal_occ2=('occ2', lambda x: stats.mode(x)[0][0]), modal_occ4=('occ4', lambda x: stats.mode(x)[0][0]))
+gammas_w_attributes = raw.groupby(['gamma']).agg(educ_median=('grau_instr','median'), educ_mean=('grau_instr','mean'), educ_mode=('grau_instr',lambda x: stats.mode(x)[0][0]), mean_monthly_earnings=('rem_med_r','mean'),modal_ind2=('ind2', lambda x: stats.mode(x)[0][0]), modal_sector=('sector_IBGE', lambda x: stats.mode(x)[0][0]), modal_occ2=('occ2', lambda x: stats.mode(x)[0][0]), modal_occ4=('occ4', lambda x: stats.mode(x)[0][0])).reset_index()
 
 # Create some rank variables 
 gammas_w_attributes['educ_mean_rank'] = gammas_w_attributes['educ_mean'].rank(method='dense', pct=True)
@@ -278,7 +278,7 @@ gamma_dict=        pickle.load(  open(root + '/Data/derived/dump/' + modelname +
 ##############################################################################################################################
 # Create figures for each of the gammas displaying the geographic and occupation distributions, along with other stats
 
-for g in range(0,1154):
+for g in range(0,gammas.gamma.max()+1):
     print(g)
     plot_mesos(g, gammas_w_attributes, meso_share_df, meso_share_norm_df, gamma_dict)
 
@@ -304,8 +304,7 @@ lower_triangle_corr_matrix = correlation_matrix.mask(mask)
 
 print(lower_triangle_corr_matrix)
 
-
-
+lower_triangle_corr_matrix.to_csv(root + '/Results/gamma_summary_stats/correlation_matrix_lower.csv')
 
 ##############################################################################################################################
 # A bunch of exploratory correlation plots
