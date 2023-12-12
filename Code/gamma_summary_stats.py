@@ -141,7 +141,7 @@ munis['lon'] = munis.geometry.centroid.x
 munis['lat'] = munis.geometry.centroid.y
 munis['codemun'] = munis.code_muni//10
 
-df_trans = pd.read_pickle(root + '/Data/derived/predicting_flows/pred_flows_df_trans_ins.p')
+df_trans = pd.read_pickle(root + '/Data/derived/predicting_flows/' + modelname + 'pred_flows_df_trans_ins.p')
 
 # Assign each jid its modal municipality code based on 2016 data
 jid_muni = raw[['jid','codemun']].groupby('jid').agg(lambda x: x.mode()[0]).reset_index()
@@ -307,7 +307,7 @@ print(lower_triangle_corr_matrix)
 lower_triangle_corr_matrix.to_csv(root + '/Results/gamma_summary_stats/correlation_matrix_lower.csv')
 
 ##############################################################################################################################
-# A bunch of exploratory correlation plots
+# A bunch of ploratory correlation plots
 
 corr_plots(gammas_w_attributes['hhi_codemun'],gammas_w_attributes['hhi_occ4'])
 corr_plots(gammas_w_attributes['hhi_jid'],gammas_w_attributes['educ_mean'])

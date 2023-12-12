@@ -278,7 +278,7 @@ for idx in [('iota','gamma'), ('iota','occ2Xmeso_recode'), ('iota','occ4_recode'
     regs_list = regs_list + [reg_dict[idx]['reg_output_jtype'], reg_dict[idx]['reg_output_nojtype']]
     exposure_list = exposure_list + ['Market', 'Sector']
     wtype_str = idx[0].replace('gamma','$\gamma$').replace('iota','$\iota$').replace('occ2Xmeso_first_recode','Occ2$\\times$Meso Region').replace('occ2Xmeso','Occ2$\\times$Meso Region').replace('occ4_recode','Occ4').replace('occ4_first_recode','Occ4')
-    jtype_str = idx[0].replace('gamma','$\gamma$').replace('iota','$\iota$').replace('occ2Xmeso_first_recode','Occ2$\\times$Meso Region').replace('occ2Xmeso','Occ2$\\times$Meso Region').replace('occ4_recode','Occ4').replace('occ4_first_recode','Occ4')    
+    jtype_str = idx[1].replace('gamma','$\gamma$').replace('iota','$\iota$').replace('occ2Xmeso_first_recode','Occ2$\\times$Meso Region').replace('occ2Xmeso','Occ2$\\times$Meso Region').replace('occ4_recode','Occ4').replace('occ4_first_recode','Occ4')    
     wtype_list = wtype_list + [wtype_str, wtype_str]
     jtype_list = jtype_list + [jtype_str, 'N/A']
     print(idx)

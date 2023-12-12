@@ -18,3 +18,4 @@ job_transitions_results/*
 *.log#
 *.txt#
 Logs
+Results/meso_maps/*.png
