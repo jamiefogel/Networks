@@ -3,28 +3,23 @@
 """
 Created on Wed Jul 28 17:06:27 2021
 
+
+Edit 12/13/2023: 
+- allow user to specify which worker types and job types (in addition to iota and gamma) to include in final data. Worker types are just kept from the raw data and then job types are drawn as we draw sectors from the gamma-sector and gamma-occ2Xmeso distributions
+- Deleted the 'persistent' option because we don't actually use it
+
 @author: jfogel
 """
 import pandas as pd
 import numpy as np
 import torch
 
-def dgp(mle_data_filename, mle_data_sums, phi, sigma, equi, firstyear, lastyear, nrows=None, replaceyear=None, persistent=False):
+def dgp(mle_data_filename, mle_data_sums, phi, sigma, equi, firstyear, lastyear, wtypes_to_impute=['occ2Xmeso_first_recode'], jtypes_to_impute=['occ2Xmeso_recode'], nrows=None, replaceyear=None):
     
-    real_data = pd.read_csv(mle_data_filename, usecols=['wid_masked','year','iota','gamma','c','occ4_first_recode', 'sector_IBGE', 'ln_real_hrly_wage_dec'], nrows=nrows)
+    real_data = pd.read_csv(mle_data_filename, usecols=['wid_masked','year','iota','gamma','c', 'sector_IBGE', 'ln_real_hrly_wage_dec'] + wtypes_to_impute + jtypes_to_impute, nrows=nrows)
     #real_data = pd.read_csv(mle_data_filename, usecols=['wid_masked','year','iota','gamma','c','occ4_first_recode', 'sector_IBGE', 'ln_real_hrly_wage_dec'])
     real_data = real_data[(real_data['gamma']!=-1) & (real_data['iota']!=-1)]
-
     real_data = real_data.loc[(real_data.year>=firstyear) & (real_data.year<=lastyear)]
-    
-    S = int(real_data.sector_IBGE.max())
-    
-    # creating a matrix with proportion of sector IBGE per each gamma
-    sector_prop = real_data[['sector_IBGE', 'gamma']].copy()
-    sector_prop['count'] = 1
-    sector_prop = sector_prop.pivot_table(columns='sector_IBGE', index='gamma', aggfunc='count')
-    sector_prop = sector_prop.fillna(0)
-    sector_prop = sector_prop.div(sector_prop.sum(axis=1), axis=0)
     
     ##########################
     # Creating log Phi matrix
@@ -36,7 +31,7 @@ def dgp(mle_data_filename, mle_data_sums, phi, sigma, equi, firstyear, lastyear,
     
     
     
-    iotas_and_occs = real_data.drop(columns = ['gamma', 'sector_IBGE']).sort_values(by=['iota','wid_masked','year']).reset_index().drop(columns='index')
+    iotas_and_occs = real_data.drop(columns = ['gamma', 'sector_IBGE'] + jtypes_to_impute).sort_values(by=['iota','wid_masked','year']).reset_index().drop(columns='index')
     
     iotas_and_occs['gamma'] = np.nan
     iotas_and_occs['ln_real_hrly_wage_dec'] = np.nan
@@ -51,36 +46,37 @@ def dgp(mle_data_filename, mle_data_sums, phi, sigma, equi, firstyear, lastyear,
         choice_temp = np.random.choice(mle_data_sums['G']+1, size=iota_count, replace=True, p=equi['p_ig'][idx_iota-1,:])
         iotas_and_occs.loc[iotas_and_occs.iota == idx_iota, 'gamma'] = choice_temp
     
-    # Make gammas persistent whenever c==0
-    if persistent==True:
-        iotas_and_occs.loc[iotas_and_occs.c==0, 'gamma'] = np.nan
-        iotas_and_occs['gamma'] = iotas_and_occs['gamma'].ffill()
-        
-    
-    #######################
-    # Draw sectors
+
     iotas_and_occs.sort_values(by=['gamma'], inplace=True)
     gamma_counts =iotas_and_occs.gamma.value_counts().reset_index().rename(columns={'index':'gamma','gamma':'count'}).sort_values(by='gamma')
-    for idx_gamma in range(1,mle_data_sums['G']+1):
-        gamma_count     = gamma_counts.loc[gamma_counts.gamma==idx_gamma]['count'].values # Number of obs in this gamma
-        # The issue here is that some very small gammas are never observed in 2014. This me
-        if sector_prop[sector_prop.index == idx_gamma].empty==False:
-            sector_temp = np.random.choice(np.arange(1,S+1), size=gamma_count, replace=True, p=sector_prop[sector_prop.index == idx_gamma].values[0])
-        else:
-            sector_temp = 12 # I just chose the modal sector (sector_prop.sum()).  This is super sloppy but it's for rare cases so whatever. 
-        iotas_and_occs.loc[iotas_and_occs.gamma==idx_gamma, 'sector_IBGE'] = sector_temp
-    
-    
-    iotas_and_occs.sort_values(by=['iota','wid_masked','year'], inplace=True)
-    
-    # Make sectors persistent whenever c==0. Need to be sorted by wid and year first.
-    if persistent==True:
-        iotas_and_occs.loc[iotas_and_occs.c==0,'sector_IBGE'] = np.nan
-        iotas_and_occs.loc[iotas_and_occs.c==0,'sector_IBGE'] = np.nan
-        iotas_and_occs.loc[iotas_and_occs.gamma==0,'sector_IBGE'] = 999   # Need a temporary filler for when gamma=0 to prevent sector from being filled forward 
-        iotas_and_occs['sector_IBGE'] = iotas_and_occs['sector_IBGE'].ffill()
-        iotas_and_occs.loc[iotas_and_occs['sector_IBGE','sector_IBGE']==999] = np.nan
 
+        
+    #######################
+    # Draw other job classifications
+
+    jtypes_dict = {}
+    for jtype in ['sector_IBGE'] + jtypes_to_impute:
+        N = int(real_data[jtype].nunique())
+        jtype_mode = int(real_data[jtype].mode())
+        
+        # creating a matrix with proportion of jtype per each gamma
+        jtype_prop = real_data[[jtype, 'gamma']].copy()
+        jtype_prop['count'] = 1
+        jtype_prop = jtype_prop.pivot_table(columns=jtype, index='gamma', aggfunc='count')
+        jtype_prop = jtype_prop.fillna(0)
+        jtype_prop = jtype_prop.div(jtype_prop.sum(axis=1), axis=0)
+            
+        for idx_gamma in range(1,mle_data_sums['G']+1):
+            gamma_count     = gamma_counts.loc[gamma_counts.gamma==idx_gamma]['count'].values # Number of obs in this gamma
+            # The issue here is that some very small gammas are never observed in 2014. This me
+            if jtype_prop[jtype_prop.index == idx_gamma].empty==False:
+                jtype_temp = np.random.choice(np.arange(1,N+1), size=gamma_count, replace=True, p=jtype_prop[jtype_prop.index == idx_gamma].values[0])
+            else:
+                jtype_temp = jtype_mode # I just chose the modal sector (jtype_prop.sum()).  This is super sloppy but it's for rare cases so whatever. 
+            iotas_and_occs.loc[iotas_and_occs.gamma==idx_gamma, jtype] = jtype_temp
+        
+        
+    iotas_and_occs.sort_values(by=['iota','wid_masked','year'], inplace=True)
         
     iotas_and_occs = iotas_and_occs.merge(log_phi_df, on=['iota','gamma'], how="left", validate='m:1', indicator=False)
     
