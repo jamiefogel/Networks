@@ -37,6 +37,7 @@ region_codes = pd.read_csv(root + '/Data/raw/munic_microregion_rm.csv', encoding
 region_codes = region_codes.loc[region_codes.code_uf.isin(state_codes)]
 state_cw = region_codes[['code_meso','uf']].drop_duplicates()
 muni_meso_cw = pd.DataFrame({'code_meso':region_codes.code_meso,'codemun':region_codes.code_munic//10})
+region_codes['codemun'] = region_codes.code_munic//10
 
 
 # 2004 appears to be the first year in which we have job start end dates (data_adm and data_deslig)
@@ -65,7 +66,7 @@ iotas['wid'] = iotas['wid'].astype('str')
 # Pull other variables like education for a specific year
 # - These are variables that we want to merge on by wid-jid but then collapse by gamma to better characterize the different gammas
 
-raw = pull_one_year(gamma_summary_stats_year, 'cbo2002', othervars=['grau_instr','rem_med_r','clas_cnae20','codemun'], state_codes=state_codes, age_lower=25, age_upper=55, nrows=None, filename=rais_filename_stub + str(year) + '.csv')
+raw = pull_one_year(gamma_summary_stats_year, 'cbo2002', othervars=['grau_instr','rem_med_r','clas_cnae20','codemun'], state_codes=state_codes, age_lower=25, age_upper=55, nrows=None, filename=rais_filename_stub + str(gamma_summary_stats_year) + '.csv')
 
 raw = raw.merge(gammas, how='left', validate='m:1', on='jid',indicator=False)
 raw = raw.merge(iotas, how='left', validate='m:1', on='wid',indicator=False)
@@ -251,9 +252,46 @@ from occ_counts_by_type import occ_counts_by_type
 pickle.dump( iota_dict,          open(root + '/Data/derived/dump/' + modelname + '_iota_dict.p', "wb" ) )
 pickle.dump( gamma_dict,         open(root + '/Data/derived/dump/' + modelname + '_gamma_dict.p', "wb" ) )
 
+# Distribution of other variables by gamma
+
+translated_occ_codes = pd.read_csv(root + 'Data/raw/translated_occ_codes_english_only.csv', names=['cbo2002','occupation_name'], header=0, dtype={'cbo2002':'str'})
+translated_ind_codes = pd.read_csv(root + 'Data/raw/translated_clas_cnae20.csv', names=['clas_cnae20','industry_name'], header=0)
 
 
 
+raw_temp = raw.rename(columns={'grau_instr':'education'})
+raw_temp = raw_temp.merge(translated_occ_codes, on='cbo2002')
+raw_temp = raw_temp.merge(translated_ind_codes, on='clas_cnae20') # ,validate='m:1',indicator='_merge'
+raw_temp = raw_temp.merge(region_codes[['codemun','meso','micro','munic','uf']], on='codemun')
+raw_temp['municipality'] = raw_temp['munic'] + ', ' + raw_temp['uf']
+
+
+for var in ['education','industry_name','occupation_name','municipality']:
+    dict = {gamma: sub_df['var'].value_counts() for gamma, sub_df in raw_temp.groupby('gamma')}
+    pickle.dump(dict,         open(root + '/Data/derived/dump/' + modelname + '_gamma_' + var + '_dict.p', "wb" ) )
+
+
+
+
+
+    
+    
+gamma_educ_dict = {gamma: sub_df['educ'].value_counts() for gamma, sub_df in raw.rename(columns={'grau_instr':'educ'}).groupby('gamma')}
+
+gamma_industry_dict = {gamma: sub_df['clas_cnae20'].value_counts() for gamma, sub_df in raw.groupby('gamma')}
+
+
+raw_temp = raw_temp.merge(region_codes[['codemun','meso','micro','munic','uf']], on='codemun')
+raw_temp['municipality'] = raw_temp['munic'] + ', ' + raw_temp['uf']
+
+gamma_codemun_dict = {gamma: sub_df[['codemun','meso','micro','munic','uf']].value_counts() for gamma, sub_df in temp.groupby('gamma')}
+
+
+pickle.dump( gamma_educ_dict,         open(root + '/Data/derived/dump/' + modelname + '_gamma_educ_dict.p', "wb" ) )
+
+pickle.dump( gamma_industry_dict,         open(root + '/Data/derived/dump/' + modelname + '_gamma_industry_dict.p', "wb" ) )
+
+pickle.dump( gamma_codemun_dict,         open(root + '/Data/derived/dump/' + modelname + '_gamma_codemun_dict.p', "wb" ) )
 
 
 #############################################################################################

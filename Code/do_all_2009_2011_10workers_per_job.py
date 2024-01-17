@@ -103,19 +103,19 @@ np.set_printoptions(linewidth=200)
 np.set_printoptions(suppress=True)
 
 
-run_all = False
-run_mle = False
-run_query_sums = False
-run_normalization = False
+run_all = True
+run_mle = True
+run_query_sums = True
+run_normalization = True
 solve_GE_silently = True
 a_s_variation = True
 
-run_occ_counts = False
+run_occ_counts = True
 run_shock_case_study=True
 run_reduced_form=True
-run_model_fit=False
-run_concentration_figures=False
-run_correlograms=False
+run_model_fit=True
+run_concentration_figures=True
+run_correlograms=True
 run_predictions=False
 run_gamma_summary_stats=False
 
@@ -129,8 +129,8 @@ job_type_var    = 'gamma'
 #job_type_var = 'iota'
 
 
-
-classification_list = [('iota','gamma'), ('occ2_first_recode','sector_IBGE'), ('occ4_first_recode','sector_IBGE'), ('occ4_first_recode','gamma'), ('iota','occ2Xmeso_recode')] # ('occ2Xmeso_recode','occ2Xmeso_recode')] # , ('kmeans','sector_IBGE'), ('kmeans','gamma')
+#
+classification_list = [('iota','gamma'), ('occ2_first_recode','sector_IBGE'), ('occ4_first_recode','sector_IBGE'), ('occ4_first_recode','gamma'), ('iota','occ2Xmeso_recode'), ('occ2Xmeso_first_recode','gamma'), ('occ2Xmeso_first_recode','sector_IBGE') ] # ('occ2Xmeso_recode','occ2Xmeso_recode')] # , ('kmeans','sector_IBGE'), ('kmeans','gamma')
 
 
 

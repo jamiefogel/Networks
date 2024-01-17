@@ -1,6 +1,6 @@
 
 
-for idx in classification_list :
+for idx in classification_list:
     # using wtype_var and jtype_Var instead of worker_type_var and job_type_var so we don't reset the master versions set in do_all.py
     wtype_var = idx[0]
     jtype_var    = idx[1]

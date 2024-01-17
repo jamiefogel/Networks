@@ -22,7 +22,7 @@ import time
 from dgp_func import dgp
 from bartik_analysis import bartik_analysis
 from solve_model_functions import *
-
+from stargazer.stargazer import Stargazer, LineLocation
 
 obs = 1e5
 homedir = os.path.expanduser("~")
@@ -130,7 +130,7 @@ if 1==1:
     phi_rio = equi_rio['w_g'] * psi_hat
     pickle.dump(equi_rio,  open(root + "Data/derived/dgp/dgp_equi_rio.p", "wb"))
  
-
+'''
 # XXX Shock (arbitrarily defined shock that we used in dgp_adh)
 if 1==1:
     shock = np.ones(15)
@@ -162,9 +162,9 @@ if 1==1:
     
     phi_xxx = equi_xxx['w_g'] * psi_hat
     pickle.dump(equi_xxx, open(root + "Data/derived/dgp/dgp_equi_xxx.p", "wb"))
+'''
 
-
-
+'''
 # "China" shock
 if 1==1:
         
@@ -194,11 +194,13 @@ if 1==1:
     
     phi_china = equi_china['w_g'] * psi_hat
     pickle.dump(equi_china,  open(root + "Data/derived/dgp/dgp_equi_china.p", "wb"))
-  
+'''
     
 print('Location '+str(1))
 
-fake_data_pre       = dgp(mle_data_filename, mle_data_sums, phi_pre,       mle_estimates['sigma_hat'], equi_pre,       2009, 2009)
+fake_data_pre       = dgp(mle_data_filename, mle_data_sums, phi_pre,       mle_estimates['sigma_hat'], equi_pre,       2009, 2009, wtypes_to_impute=['occ2Xmeso_first_recode','occ4_first_recode'], jtypes_to_impute=['occ2Xmeso_recode','occ4_recode'])
+
+
 # The version we used for the current figures didn't get saved. This is a new version of fake_data_free
 fake_data_pre_filename = root + "Data/derived/dgp/fake_data_pre_rio_2009_2009_level_" + str(level) + ".csv"
 fake_data_pre.to_csv(fake_data_pre_filename, index=False)
@@ -209,8 +211,9 @@ print('Location '+str(2))
 
 fake_data_pre_rio   = dgp(mle_data_filename, mle_data_sums, phi_pre,       mle_estimates['sigma_hat'], equi_pre,     2009, 2012)
 fake_data_rio       = dgp(mle_data_filename, mle_data_sums, phi_rio,       mle_estimates['sigma_hat'], equi_rio,     2014, 2014)
+'''
 fake_data_xxx       = dgp(mle_data_filename, mle_data_sums, phi_xxx,       mle_estimates['sigma_hat'], equi_xxx,     2014, 2014)
-
+'''
 
 print('Location '+str(3))
 
@@ -229,7 +232,7 @@ fake_data_rio = pd.read_csv(fake_data_rio_filename)
 
     
 print('Location '+str(5))
-
+'''
 # We don't actually use the xxx version in the paper. Keeping it for now because it simulates a shock that leads to Bartik regressions with much large R2's, which may help satisfy the concerns John raised in his emails the weekend of 7/23/2022
 fake_data_xxx_filename = root + "Data/derived/dgp/fake_data_xxx_rio_2009_2012_level_" + str(level) + ".csv"
 fake_data_xxx = fake_data_xxx.append(fake_data_pre_rio)
@@ -237,7 +240,7 @@ fake_data_xxx.sort_values(by=['wid_masked','year'], inplace=True)
 fake_data_xxx.to_csv(fake_data_xxx_filename, index=False)
 fake_data_xxx = pd.read_csv(fake_data_xxx_filename)
 
-
+'''
     
 print('Location '+str(6))
 
@@ -248,15 +251,19 @@ print('Location '+str(6))
 
 
 # This function creates iota_occ4_exposure_regs_ln_wage_N.tex as well as a bunch of other files we didn't end up using
-bartik_analysis(fake_data_rio_filename,         equi_shock=equi_rio,       equi_pre=equi_pre, figuredir=figuredir, savefile_stub='fake_data_rio') # Produces fake_data_rio_iota_occ4_exposure_regs_ln_wage_N.tex
-bartik_analysis(fake_data_xxx_filename,         equi_shock=equi_xxx,       equi_pre=equi_pre, figuredir=figuredir, savefile_stub='fake_data_xxx') # This doesn't perfectly match the old version because we generated new data which introduces some random variation. 
+#bartik_analysis(fake_data_rio_filename,         equi_shock=equi_rio,       equi_pre=equi_pre, figuredir=figuredir, savefile_stub='fake_data_rio') # Produces fake_data_rio_iota_occ4_exposure_regs_ln_wage_N.tex
+#bartik_analysis(fake_data_xxx_filename,         equi_shock=equi_xxx,       equi_pre=equi_pre, figuredir=figuredir, savefile_stub='fake_data_xxx') # This doesn't perfectly match the old version because we generated new data which introduces some random variation. 
 
     
 print('Location '+str(7))
 
 # Actual data
-bartik_analysis(mle_data_filename, 'iota', 'gamma', 2009, 2014, y_ts=y_ts, shock_source='data', figuredir=figuredir, savefile_stub='real_data') # Produces real_data_iota_occ4_exposure_regs_ln_wage_N.tex
+# Commented out on 12/13/2023 b/c I think this has been supplanted by the loop over classification_list2 below
+#bartik_analysis(mle_data_filename, 'iota', 'gamma', 2009, 2014, y_ts=y_ts, shock_source='data', figuredir=figuredir, savefile_stub='real_data') # Produces real_data_iota_occ4_exposure_regs_ln_wage_N.tex
 
+
+##################################################################################################
+# Actual Rio shock
 reg_dict = {}
 classification_list2 = [('iota','gamma'), ('iota','occ2Xmeso_recode'), ('occ2Xmeso_first_recode','gamma'), ('occ4_first_recode','gamma'), ('iota','occ4_recode'), ('occ4_first_recode', 'gamma'), ('occ4_first_recode', 'occ4_recode'), ('occ2Xmeso_first_recode', 'occ2Xmeso_recode')]
 for idx in classification_list2: #
@@ -277,8 +284,8 @@ jtype_list = []
 for idx in [('iota','gamma'), ('iota','occ2Xmeso_recode'), ('iota','occ4_recode'), ('occ2Xmeso_first_recode','gamma'), ('occ4_first_recode','gamma')]:
     regs_list = regs_list + [reg_dict[idx]['reg_output_jtype'], reg_dict[idx]['reg_output_nojtype']]
     exposure_list = exposure_list + ['Market', 'Sector']
-    wtype_str = idx[0].replace('gamma','$\gamma$').replace('iota','$\iota$').replace('occ2Xmeso_first_recode','Occ2$\\times$Meso Region').replace('occ2Xmeso','Occ2$\\times$Meso Region').replace('occ4_recode','Occ4').replace('occ4_first_recode','Occ4')
-    jtype_str = idx[1].replace('gamma','$\gamma$').replace('iota','$\iota$').replace('occ2Xmeso_first_recode','Occ2$\\times$Meso Region').replace('occ2Xmeso','Occ2$\\times$Meso Region').replace('occ4_recode','Occ4').replace('occ4_first_recode','Occ4')    
+    wtype_str = idx[0].replace('gamma','$\gamma$').replace('iota','$\iota$').replace('occ2Xmeso_first_recode','Occ2$\\times$Meso Region').replace('occ2Xmeso_recode','Occ2$\\times$Meso Region').replace('occ2Xmeso','Occ2$\\times$Meso Region').replace('occ4_recode','Occ4').replace('occ4_first_recode','Occ4')
+    jtype_str = idx[1].replace('gamma','$\gamma$').replace('iota','$\iota$').replace('occ2Xmeso_first_recode','Occ2$\\times$Meso Region').replace('occ2Xmeso_recode','Occ2$\\times$Meso Region').replace('occ2Xmeso','Occ2$\\times$Meso Region').replace('occ4_recode','Occ4').replace('occ4_first_recode','Occ4')    
     wtype_list = wtype_list + [wtype_str, wtype_str]
     jtype_list = jtype_list + [jtype_str, 'N/A']
     print(idx)
@@ -311,7 +318,7 @@ stargazer.add_line('Job classification:', jtype_list, LineLocation.BODY_TOP)
 #stargazer.add_line('\hline', ['', '', '', ''], LineLocation.BODY_TOP)
 #stargazer.add_line('Preferred Specification', ['No', 'Yes', 'No', 'No'], LineLocation.FOOTER_TOP)
 print(stargazer.render_latex())
-with open(figuredir + 'reduced_form/' +  savefile_stub + "_rio_shock.tex", "w") as f:
+with open(figuredir + 'reduced_form/real_data_rio_shock.tex', "w") as f:
     f.write(stargazer.render_latex(only_tabular=True ))
     
     
@@ -330,12 +337,10 @@ r2_df   = pd.DataFrame(columns=['Shock','IotaSector','IotaMarket','Occ4Sector','
 coef_df = pd.DataFrame(columns=['Shock','IotaSector','IotaMarket','Occ4Sector','Occ4Market'])
 
 for s in range(S):
-    print(s)
-        
+    print(s)        
     shock = torch.ones(S)
     shock[s] = .5 # Accomodations and food
     a_s_pandemic = a_s_pre * shock
-
     equi_neg = solve_model(eta,
                 mle_data_sums['I'],
                 mle_data_sums['G'],
@@ -355,7 +360,6 @@ for s in range(S):
                 decimals = 4,   # printed output rounding decimals
                 silent = solve_GE_silently
                 )
-    
     phi_shock_loop = equi_neg['w_g'] * psi_hat    
     fake_data = dgp(mle_data_filename, mle_data_sums, phi_shock_loop,  mle_estimates['sigma_hat'], equi_neg,  2013, 2013, replaceyear='2016')
     fake_data_filename = root + "Data/derived/dgp/fake_data_temp.csv"
@@ -363,15 +367,11 @@ for s in range(S):
     fake_data.sort_values(by=['wid_masked','year'], inplace=True)
     fake_data.to_csv(fake_data_filename, index=False)
     (dump, r2_vec, coef_vec, se_vec) = bartik_analysis(fake_data_filename,    equi_shock=equi_neg,  equi_pre=equi_pre, figuredir=figuredir, savefile_stub='fake_data_sector' +str(s+1) + 'neg')
-    
     #r2_append_df = pd.DataFrame({'Shock':str(s+1)+', negative','IotaSector':r2_vec[0],'IotaMarket':r2_vec[1],'Occ4Sector':r2_vec[2],'Occ4Market':r2_vec[3]}, index=np.array(0))
-    
     r2_append_df = pd.DataFrame(data=[[str(s+1)+', negative'] + r2_vec  ], columns = ['Shock','IotaSector','IotaMarket','Occ4Sector','Occ4Market'], index=[0])
-    r2_df = r2_df.append(r2_append_df) 
-    
+    r2_df = r2_df.append(r2_append_df)     
     coef_append_df = pd.DataFrame(data=[[str(s+1)+', negative'] + coef_vec  ], columns = ['Shock','IotaSector','IotaMarket','Occ4Sector','Occ4Market'], index=[0])
-    coef_df = coef_df.append(coef_append_df) 
-    
+    coef_df = coef_df.append(coef_append_df)     
     del fake_data
     del dump
 
@@ -379,7 +379,6 @@ for s in range(S):
     shock = torch.ones(S)
     shock[s] = 2 # Accomodations and food
     a_s_pandemic = a_s_pre * shock
-
     equi_pos = solve_model(eta,
                 mle_data_sums['I'],
                 mle_data_sums['G'],
@@ -409,6 +408,7 @@ for s in range(S):
     (dump, r2_vec, coef_vec, se_vec) = bartik_analysis(fake_data_filename,    equi_shock=equi_pos,  equi_pre=equi_pre, figuredir=figuredir, savefile_stub='fake_data_sector' +str(s+1) + 'pos')
 
     r2_append_df = pd.DataFrame(data=[[str(s+1)+', positive'] + r2_vec  ], columns = ['Shock','IotaSector','IotaMarket','Occ4Sector','Occ4Market'], index=[0])
+
     r2_df = r2_df.append(r2_append_df) 
     
     coef_append_df = pd.DataFrame(data=[[str(s+1)+', positive'] + coef_vec  ], columns = ['Shock','IotaSector','IotaMarket','Occ4Sector','Occ4Market'], index=[0])

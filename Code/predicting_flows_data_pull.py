@@ -55,11 +55,10 @@ estimated_sbm_mcmc.export_blocks(output='./Data/model_3states_2013to2016_mcmc_bl
 pickle.dump( estimated_sbm_mcmc, open('./Data/model_3states_2013to2016_mcmc.p', "wb" ), protocol=4 )
 '''
 
-
-estimated_sbm_mcmc = pickle.load( open('./Data/derived/sbm_output/model_'+modelname+'.p', "rb" ) )
-gammas = pd.read_csv('./Data/derived/sbm_output/model_'+modelname+'_jblocks.csv', usecols=['jid','job_blocks_level_0']).rename(columns={'job_blocks_level_0':'gamma'})
+sbm_modelname = '3states_2013to2016_new'
+gammas = pd.read_csv('./Data/derived/sbm_output/model_'+sbm_modelname+'_jblocks.csv', usecols=['jid','job_blocks_level_0']).rename(columns={'job_blocks_level_0':'gamma'})
 gammas['gamma'] = gammas.gamma.fillna(-1)
-iotas = pd.read_csv('./Data/derived/sbm_output/model_'+modelname+'_wblocks.csv', usecols=['wid','worker_blocks_level_0'], dtype={'wid': object}).rename(columns={'worker_blocks_level_0':'iota'})
+iotas = pd.read_csv('./Data/derived/sbm_output/model_'+sbm_modelname+'_wblocks.csv', usecols=['wid','worker_blocks_level_0'], dtype={'wid': object}).rename(columns={'worker_blocks_level_0':'iota'})
 iotas['iota'] = iotas.iota.fillna(-1)
     
 ########################################################################################
