@@ -21,7 +21,6 @@ from haversine import haversine, Unit
 from shapely.geometry import MultiPoint
 from scipy.stats import mstats
 from binsreg import binsregselect, binsreg, binsqreg, binsglm, binstest, binspwc
-from binscatter import *
 from sklearn.linear_model import LinearRegression
 
 homedir = os.path.expanduser('~')
@@ -39,7 +38,7 @@ from pull_one_year import pull_one_year
 
 def binned_scatter_plot(X, y, num_bins, plot_actual_data=False, add_linear_fit=False):
     # Create bins for the independent variable
-    X_binned = pd.qcut(X, q=num_bins, labels=[f'bin_{i}' for i in range(num_bins)], duplicates='drop')
+    X_binned = pd.qcut(X, q=num_bins, duplicates='drop') #, labels=[f'bin_{i}' for i in range(num_bins)]
     # Create a DataFrame with the binned data
     data = pd.DataFrame({'X': X, 'X_binned': X_binned, 'y': y})
     # Create a figure and axes
@@ -164,8 +163,11 @@ df_trans['salario_change'] = df_trans['salario_next'] - df_trans['salario']
 # XX The main thing I havent dealt with here is when someone holds multiple jobs at the same time
 
 
-df.to_parquet(root + 'Data/derived/transitions_for_rafa_df.parquet')
+df.to_parquet(      root + 'Data/derived/transitions_for_rafa_df.parquet')
 df_trans.to_parquet(root + 'Data/derived/transitions_for_rafa_df_trans.parquet')
+
+df       = pd.read_parquet(root + 'Data/derived/transitions_for_rafa_df.parquet')
+df_trans = pd.read_parquet(root + 'Data/derived/transitions_for_rafa_df_trans.parquet')
 
 
 ##########################################################################################
@@ -180,6 +182,7 @@ df_person = df_person.merge( df.groupby('wid')[['new_job_ever']].max(), on='wid'
 
 df_trans['change_city'] = (df_trans['codemun']!=df_trans['codemun_next']) & (df_trans['codemun'].notna())
 
+#########
 # Change city rates and move distances by education
 moves_by_educ = pd.merge(df_trans.groupby('grau_instr')[['change_city','move_distance']].mean(),df_trans.groupby('grau_instr')['change_city'].size()/len(df_trans) , left_index=True, right_index=True).rename(columns={'change_city_x':'Change City Rate','change_city_y':'Share of Movers', 'move_distance':'Average Move Distance (km)'})
 # Fraction of people who changed jobs by education
@@ -188,7 +191,15 @@ moves_by_educ = moves_by_educ.merge( df_person.groupby('grau_instr')['new_job_ev
 moves_by_educ = moves_by_educ.merge( df_person.groupby('grau_instr')['flag_new_job'].mean(), on='grau_instr')
 moves_by_educ.rename(columns={'new_job_ever':'Frac Ever Change Job','flag_new_job':'Avg. Num Job Changes (incl. 0)'}, inplace=True)
 
+# Compute the 5th and 95th percentiles of move distance for each education group
+move_distance_percentiles = df_trans.groupby('grau_instr')['move_distance'].quantile([0.05, 0.75, 0.95, 0.99]).unstack()
+move_distance_percentiles.columns = ['Move Distance P5 (km)', 'Move Distance P75 (km)', 'Move Distance P95 (km)', 'Move Distance P99 (km)']
+moves_by_educ = moves_by_educ.merge(move_distance_percentiles, left_index=True, right_index=True)
 
+
+
+
+#########
 # Change city rates and move distances by income decile
 moves_by_income_decile = pd.merge(df_trans.groupby('rem_med_r_decile')[['change_city','move_distance']].mean(),df_trans.groupby('rem_med_r_decile')['change_city'].size()/len(df_trans) , left_index=True, right_index=True).rename(columns={'change_city_x':'Change City Rate','change_city_y':'Share of Movers', 'move_distance':'Average Move Distance (km)'})
 # Fraction of people who changed jobs by income decile
@@ -196,6 +207,11 @@ moves_by_income_decile = moves_by_income_decile.merge( df_person.groupby('rem_me
 # Average number of new jobs per person by income decile
 moves_by_income_decile = moves_by_income_decile.merge( df_person.groupby('rem_med_r_decile')['flag_new_job'].mean(), on='rem_med_r_decile')
 moves_by_income_decile.rename(columns={'new_job_ever':'Frac Ever Change Job','flag_new_job':'Avg. Num Job Changes (incl. 0)'}, inplace=True)
+
+# Compute the 5th and 95th percentiles of move distance for each education group
+move_distance_percentiles = df_trans.groupby('rem_med_r_decile')['move_distance'].quantile([0.05, 0.75, 0.95, 0.99]).unstack()
+move_distance_percentiles.columns = ['Move Distance P5 (km)', 'Move Distance P75 (km)', 'Move Distance P95 (km)', 'Move Distance P99 (km)']
+moves_by_income_decile = moves_by_income_decile.merge(move_distance_percentiles, left_index=True, right_index=True)
 
 
 
@@ -248,6 +264,38 @@ for xvar in ['salario_change', 'salario', 'rem_med_r']: #, 'grau_instr'
     fig.savefig(root + 'Code/Misc/binsreg__move_distance__' + xvar + '.pdf', format='pdf')        
 
 
+# Restricting to bachelor's degrees only
+fig, ax = binned_scatter_plot(df_trans.loc[df_trans.grau_instr==9,'salario_change'], df_trans.loc[df_trans.grau_instr==9,'move_distance'], 19, plot_actual_data=False, add_linear_fit=True)
+ax.set_xlabel('Salary Change')
+ax.set_ylabel('Move Distance')
+ax.set_title('College graduates')
+# Save the plot to a PDF file                                                                 
+fig.savefig(root + 'Code/Misc/binsreg__move_distance__salario_change_college.pdf', format='pdf')        
+    
+fig, ax = binned_scatter_plot(df_trans.loc[df_trans.grau_instr==9,'move_distance'], df_trans.loc[df_trans.grau_instr==9,'salario_change'], 20, plot_actual_data=False, add_linear_fit=True)
+ax.set_xlabel('Move Distance')
+ax.set_ylabel('Salary Change')
+ax.set_title('High School Grads')
+# Save the plot to a PDF file                                                                 
+fig.savefig(root + 'Code/Misc/binsreg__salario_change__move_distance_college.pdf', format='pdf')        
+    
+
+
+# Restricting to high school diploma only
+fig, ax = binned_scatter_plot(df_trans.loc[df_trans.grau_instr==7,'salario_change'], df_trans.loc[df_trans.grau_instr==7,'move_distance'], 20, plot_actual_data=False, add_linear_fit=True)
+ax.set_xlabel('Salary Change')
+ax.set_ylabel('Move Distance')
+ax.set_title('High School Grads')
+# Save the plot to a PDF file                                                                 
+fig.savefig(root + 'Code/Misc/binsreg__move_distance__salario_change_hs.pdf', format='pdf')        
+    
+fig, ax = binned_scatter_plot(df_trans.loc[df_trans.grau_instr==7,'move_distance'], df_trans.loc[df_trans.grau_instr==7,'salario_change'], 20, plot_actual_data=False, add_linear_fit=True)
+ax.set_xlabel('Move Distance')
+ax.set_ylabel('Salary Change')
+ax.set_title('High School Grads')
+# Save the plot to a PDF file                                                                 
+fig.savefig(root + 'Code/Misc/binsreg__salario_change__move_distance_hs.pdf', format='pdf')        
+    
     
 # Without actual data points
 
