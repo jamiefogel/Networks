@@ -44,7 +44,9 @@ rais2017_sumstats = {
 	'id_estab_nunique' :id_estab_nunique}
 
 pickle.dump( rais2017_sumstats, open(root + 'Code/Misc/stats_for_keyon.p', "wb" ) )
+rais2017_sumstats = pickle.load( open(root + 'Code/Misc/stats_for_keyon.p', "rb" ) )
 
+keyon_stats = pickle.load( open(root + 'Code/Misc/stats_for_jamie_fixed.p', "rb" ))
 
 '''
 state_counts.to_csv(root + 'Code/Misc/stats_for_keyon_state_counts.csv')
