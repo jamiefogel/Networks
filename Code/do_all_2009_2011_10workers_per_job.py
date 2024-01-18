@@ -232,7 +232,6 @@ exec(open(root + 'Code/intro_figs.py').read())
 #  LOAD DATA AND RUN MLE
 #--------------------------
 filename_stub = "panel_"+modelname
-#filename_stub = "panel_3states_2013to2016_new"
 # Define filenames
 if 1==1:
     mle_data_filename      = root + "Data/derived/earnings_panel/" + filename_stub + "_level_0.csv"
@@ -421,10 +420,10 @@ if run_shock_case_study==True:
 #--------------------------
 #  Some summary stats about occ4s and kmeans
 #--------------------------
-
-data_full = pd.read_csv(root + 'Data/RAIS_exports/earnings_panel/" + filename_stub + "_w_kmeans.csv')
-n_kmeans = data_full.kmeans.value_counts().shape[0]
-print(n_kmeans, " kmeans groups remaining after dropping those with fewer than 5000 observations")
+# XX 1/17/2024: not currently relevant but not ready to delete quite yet
+#data_full = pd.read_csv(root + 'Data/RAIS_exports/earnings_panel/" + filename_stub + "_w_kmeans.csv')
+#n_kmeans = data_full.kmeans.value_counts().shape[0]
+#print(n_kmeans, " kmeans groups remaining after dropping those with fewer than 5000 observations")
 
 
 
@@ -435,6 +434,10 @@ print(n_kmeans, " kmeans groups remaining after dropping those with fewer than 5
 
 exec(open(root + 'Code/trans_mat_symmetry_analysis.py').read())  # Previously called misc_analysis
 exec(open(root + 'Code/classification_error_analysis.py').read())
+# XX These two should probably be combined. I think I should put everything that actually makes it into the paper into summary_stats.py and everything else in other_descriptive_stats.py
+exec(open(root + 'Code/summary_stats.py').read())
+# Stuff in this script doesn't make it into the final paper except for some ocupation transition rate stats that I think we should cut. Need to make some edits to the code before it will run so commenting it out for now. 
+#exec(open(root + 'Code/other_descriptive_stats.py').read())
 #exec(open(root + 'Code/akm_exercise.py').read())
 
 #--------------------------

@@ -1,14 +1,14 @@
+import seaborn as sns
+import sklearn.metrics
 
 ####################################################################################
 # Compute NMI
 ####################################################################################
 
 
-import sklearn.metrics
-
-data_full = pd.read_csv(homedir + "/Networks/RAIS_exports/earnings_panel/panel_rio_2009_2012_w_kmeans.csv")
+data_full = pd.read_csv(mle_data_filename)
 data_full = data_full.loc[(data_full['gamma']!=-1) & (data_full['iota']!=-1) & (data_full['occ4_first_recode']!=-1)]
-data_full = data_full.loc[(data_full.year>=2009) & (data_full.year<=2012)]
+data_full = data_full.loc[(data_full.year>=2009) & (data_full.year<=2011)]
 
 print('Printing normalized mutual information between pairs of variables (in correlogram.py).')
 with open(figuredir + "nmi.tex", "w") as f:  
@@ -25,18 +25,19 @@ print('Done with NMI')
 # Compute occupation and industry transition rates
 ####################################################################################
 
-df = pd.read_csv(root + "Data/RAIS_exports/earnings_panel/panel_rio_2009_2012_w_kmeans.csv", nrows=None)
+# XX This doesn't work because I didn;t keep grau_instr, id_estab, or cnpj_raiz and jid/wid need to jid_masked/wid_masked.
+balanced = pd.read_csv(mle_data_filename)
+df_raw = balanced.loc[(balanced.year>=2009) & (balanced.year<=2011)][['wid','wid_masked','jid','jid_masked','cbo2002','gamma_level_0','sector_IBGE','clas_cnae20','grau_instr','cnpj_raiz','id_estab']].rename(columns={'gamma_level_0':'gamma','cnpj_raiz':'id_firm'})
 
-# I can't find the data set temp_educ. Need to figure this out once we get access to the server back. 
-#df_educ = pd.read_csv(homedir + "/Networks/RAIS_exports/earnings_panel/temp_educ.csv", nrows=None)
-#df = df.drop(columns='_merge').merge(df_educ, on=['wid_masked','jid_masked','year'], how='left', indicator=True)
-
+df = df_raw 
 df['occ4'] = pd.to_numeric(df['cbo2002'].astype(str).str.slice(0,4), errors='coerce')
 df['occ2'] = pd.to_numeric(df['cbo2002'].astype(str).str.slice(0,2), errors='coerce')
 df['occ1'] = pd.to_numeric(df['cbo2002'].astype(str).str.slice(0,1), errors='coerce')
 df['jid_masked'].loc[df.jid_masked==-1] = np.nan
 
 df['jid_masked_lag'] = df.groupby(['wid_masked'])['jid_masked'].shift(1)
+df['id_estab_lag'] = df.groupby(['wid_masked'])['id_estab'].shift(1)
+df['id_firm_lag'] = df.groupby(['wid_masked'])['id_firm'].shift(1)
 df['occ1_lag'] = df.groupby(['wid_masked'])['occ1'].shift(1)
 df['occ2_lag'] = df.groupby(['wid_masked'])['occ2'].shift(1)
 df['occ4_lag'] = df.groupby(['wid_masked'])['occ4'].shift(1)
@@ -45,10 +46,11 @@ df['cbo2002_lag'] = df.groupby(['wid_masked'])['cbo2002'].shift(1)
 df['clas_cnae20_lag'] = df.groupby(['wid_masked'])['clas_cnae20'].shift(1)
 df['sector_IBGE_lag'] = df.groupby(['wid_masked'])['sector_IBGE'].shift(1)
 df['job_change'] = (df.jid_masked != df.jid_masked_lag) & (pd.isnull(df.jid_masked)==False) & (pd.isnull(df.jid_masked_lag)==False)
-# df['educ'] = df.grau_instr.map({1:'dropout',2:'dropout',3:'dropout',4:'dropout',5:'dropout',6:'dropout',7:'hs',8:'some_college',9:'college',10:'grad',11:'grad'})
+df['educ'] = df.grau_instr.map({1:'dropout',2:'dropout',3:'dropout',4:'dropout',5:'dropout',6:'dropout',7:'hs',8:'some_college',9:'college',10:'grad',11:'grad'})
 
-changes_df = df.loc[df.job_change==True][['cbo2002','cbo2002_lag','clas_cnae20','clas_cnae20_lag','gamma','gamma_lag','occ1','occ1_lag','occ2','occ2_lag','occ4','occ4_lag','sector_IBGE', 'sector_IBGE_lag']]
-#changes_df = df.loc[df.job_change==True][['cbo2002','cbo2002_lag','clas_cnae20','clas_cnae20_lag','gamma','gamma_lag','occ1','occ1_lag','occ2','occ2_lag','occ4','occ4_lag','sector_IBGE', 'sector_IBGE_lag', 'educ']]
+changes_df = df.loc[df.job_change==True][['cbo2002','cbo2002_lag','clas_cnae20','clas_cnae20_lag','gamma','gamma_lag','occ1','occ1_lag','occ2','occ2_lag','occ4','occ4_lag','sector_IBGE', 'sector_IBGE_lag', 'educ','id_estab','id_estab_lag','id_firm','id_firm_lag']]
+changes_df['change_id_estab'] = changes_df.id_estab!=changes_df.id_estab_lag
+changes_df['change_id_firm'] = changes_df.id_firm!=changes_df.id_firm_lag
 changes_df['change_occ6'] = changes_df.cbo2002!=changes_df.cbo2002_lag
 changes_df['change_occ1']= changes_df.occ1!=changes_df.occ1_lag
 changes_df['change_occ2']= changes_df.occ2!=changes_df.occ2_lag
@@ -65,46 +67,23 @@ print(changes_df.change_occ6.mean())
 print(changes_df.change_ind.mean())
 print(changes_df.change_sector.mean())
 print(changes_df.change_gamma.mean())
-
-output_df = pd.DataFrame(columns=['Variable','Fraction'])
-vars = ('change_occ1', 'change_occ2', 'change_occ4', 'change_occ6', 'change_ind', 'change_sector', 'change_gamma')
-varnames = ('1-digit Occupation', '2-digit Occupation', '4-digit Occupation', '6-digit Occupation', 'Industry', 'Sector (IBGE)', 'Gamma')
+print(changes_df.change_id_firm.mean())
+print(changes_df.change_id_estab.mean())
+output_df = pd.DataFrame(columns=['Variable','All Job Changes','Firm Change Only', 'No Firm Change'])
+vars = ('change_occ1', 'change_occ2', 'change_occ4', 'change_occ6', 'change_ind', 'change_sector', 'change_gamma', 'change_id_firm', 'change_id_estab')
+varnames = ('1-digit Occupation', '2-digit Occupation', '4-digit Occupation', '6-digit Occupation', '5-digit Industry', 'Sector (IBGE)', 'Market $\g$', 'Firm', 'Establishment')
 
 idx = 0
 for v in vars:
-    newrow = {'Variable':varnames[idx],'Fraction':round(changes_df[v].mean(),3)}
+    newrow = {'Variable':varnames[idx],'All Job Changes':round(changes_df[v].mean(),3),'Firm Change Only':round(changes_df.loc[changes_df.change_id_firm==1][v].mean(),3),'No Firm Change':round(changes_df.loc[changes_df.change_id_firm==0][v].mean(),3)}
     output_df = output_df.append(newrow, ignore_index=True)
     idx = idx+1
 
 print(output_df)
-
-# It would be good to do this for employer changes to kind of get at the job ladder thing but we'll need to do that on the IPEA server since we haven't brought over employer ID
-
-
-print(df.occ1.value_counts().shape)
-print(df.occ2.value_counts().shape)
-print(df.occ4.value_counts().shape)
-print(df.cbo2002.value_counts().shape)
-print(df.clas_cnae20.value_counts().shape)
-print(df.gamma.value_counts().shape)
-
-d = {'occ1':1, 'occ2':2, 'occ4':4}
-
-
-# Commented out because can't find temp_educ.csv
-# print(changes_df.groupby(['educ'])['change_occ1'].mean())
-# print(changes_df.groupby(['educ'])['change_occ2'].mean())
-# print(changes_df.groupby(['educ'])['change_occ4'].mean())
-# print(changes_df.groupby(['educ'])['change_occ6'].mean())
-# print(changes_df.groupby(['educ'])['change_ind'].mean())
-# print(changes_df.groupby(['educ'])['change_gamma'].mean())
+output_df.to_latex(root + '/Results/summary_stats/transitions_table.tex', index=False)
 
 
 
-
-# Gamma transition matrix
-#data_full = data_full.pivot(index='wid_masked', columns='year', values=['employed','real_hrly_wage_dec','ln_real_hrly_wage_dec','iota','occ4_first_recode','sector_IBGE','gamma'])
-    
 
 
 
@@ -255,71 +234,3 @@ ax.tick_params(axis='both', which='major', labelsize=18)
 ax.figure.savefig(figuredir + 'iota_occ6_crosstab_heatmap_share.png', dpi=300, bbox_inches="tight")
 
 
-
-#############################################
-# Degree distribution histograms
-#############################################
-
-[worker_degs, job_degs] = pickle.load(open( homedir + '/Networks/RAIS_exports/other/degree_distribution.p', 'rb'))
-
-fig, ax = plt.subplots(figsize=(5.76,4.8))
-ax.hist(worker_degs, density=False, bins=20)
-plt.yscale('log')
-plt.show()    
-ax.figure.savefig(figuredir + 'worker_degree_distribution_hist.png', dpi=300, bbox_inches="tight")
-
-
-print('Average worker degree: ', worker_degs.mean())
-print('Average job degree: ', job_degs.mean())
-
-print('Fraction of workers with more than one job: ', (worker_degs>1).mean())
-
-
-def plot_loghist(x, bins, savefile):
-  hist, bins = np.histogram(x, bins=bins)
-  logbins = np.logspace(np.log10(bins[0]),np.log10(bins[-1]),len(bins))
-  fig, ax = plt.subplots(figsize=(5.76,4.8))
-  ax.hist(x, bins=logbins)
-  plt.xscale('log')
-  plt.yscale('log')
-  plt.show()    
-  ax.figure.savefig(savefile , dpi=300, bbox_inches="tight")
-
-
-#plot_loghist(worker_degs, 20, figuredir +'worker_degree_distribution_hist.png')
-plot_loghist(job_degs[job_degs>=5], 50, figuredir +'job_degree_distribution_hist.png')
-
-
-
-
-
-########################################################
-# Distribution  of iota and gamma sizes histograms
-########################################################
-
-# XX Not sure where I created this file
-[iota_sizes, gamma_sizes] = pickle.load(open( homedir + '/Networks/RAIS_exports/other/iota_gamma_sizes.p', 'rb'))
-
-fig, ax = plt.subplots(figsize=(5.76,4.8))
-ax.hist(iota_sizes, density=False, bins=50)
-#plt.yscale('log')
-plt.show()    
-ax.figure.savefig(figuredir + 'iota_size_distribution.png', dpi=300, bbox_inches="tight")
-
-
-fig, ax = plt.subplots(figsize=(5.76,4.8))
-ax.hist(gamma_sizes, density=False, bins=50)
-#plt.yscale('log')
-plt.show()    
-ax.figure.savefig(figuredir + 'gamma_size_distribution.png', dpi=300, bbox_inches="tight")
-
-
-        
-iota_sizes_by_worker = iota_sizes.loc[iota_sizes.index.repeat(iota_sizes)]
-iota_sizes_by_worker.mean()
-iota_sizes_by_worker.median()
-
-        
-gamma_sizes_by_worker = gamma_sizes.loc[gamma_sizes.index.repeat(gamma_sizes)]
-gamma_sizes_by_worker.mean()
-gamma_sizes_by_worker.median()
