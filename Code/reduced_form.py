@@ -275,8 +275,6 @@ for idx in classification_list2: #
 
 pickle.dump(reg_dict, open(root + '/Data/derived/'+ filename_stub + 'reduced_form_reg_results.p', 'wb'))
 
-
-
 regs_list = []
 exposure_list = []
 wtype_list = []
@@ -332,14 +330,17 @@ print('Location '+str(8))
 # Let's loop over sectors and do a positive and a negative shock for each
 ##############################################################################################################################
 ##############################################################################################################################
-
+#    (res1, res2, data) = bartik_analysis(mle_data_filename, idx[0], idx[1], 2009, 2014, y_ts=y_ts, shock_source='data', figuredir=figuredir, savefile_stub='real_data')
 r2_df   = pd.DataFrame(columns=['Shock','IotaSector','IotaMarket','Occ4Sector','Occ4Market'])
 coef_df = pd.DataFrame(columns=['Shock','IotaSector','IotaMarket','Occ4Sector','Occ4Market'])
 
+loop_reg_dict={}
 for s in range(S):
-    print(s)        
+    print(s)
+    ########################
+    # Negative shock
     shock = torch.ones(S)
-    shock[s] = .5 # Accomodations and food
+    shock[s] = .5 
     a_s_pandemic = a_s_pre * shock
     equi_neg = solve_model(eta,
                 mle_data_sums['I'],
@@ -366,18 +367,16 @@ for s in range(S):
     fake_data = fake_data.append(fake_data_pre)
     fake_data.sort_values(by=['wid_masked','year'], inplace=True)
     fake_data.to_csv(fake_data_filename, index=False)
-    (dump, r2_vec, coef_vec, se_vec) = bartik_analysis(fake_data_filename,    equi_shock=equi_neg,  equi_pre=equi_pre, figuredir=figuredir, savefile_stub='fake_data_sector' +str(s+1) + 'neg')
-    #r2_append_df = pd.DataFrame({'Shock':str(s+1)+', negative','IotaSector':r2_vec[0],'IotaMarket':r2_vec[1],'Occ4Sector':r2_vec[2],'Occ4Market':r2_vec[3]}, index=np.array(0))
-    r2_append_df = pd.DataFrame(data=[[str(s+1)+', negative'] + r2_vec  ], columns = ['Shock','IotaSector','IotaMarket','Occ4Sector','Occ4Market'], index=[0])
-    r2_df = r2_df.append(r2_append_df)     
-    coef_append_df = pd.DataFrame(data=[[str(s+1)+', negative'] + coef_vec  ], columns = ['Shock','IotaSector','IotaMarket','Occ4Sector','Occ4Market'], index=[0])
-    coef_df = coef_df.append(coef_append_df)     
+    for idx in classification_list2:
+        # Run the Bartik analysis for specified worker type, job type, negatively shocked sector
+        #(res1, res2, data) = bartik_analysis(fake_data_filename, idx[0], idx[1], 2009, 2016, equi_shock=equi_neg,  equi_pre=equi_pre, savefile_stub='fake_data_sector' +str(s+1) + 'neg')
+        (res1, res2, data) = bartik_analysis(fake_data_filename, idx[0], idx[1], 2009, 2016, y_ts=y_ts, shock_source='data', savefile_stub='fake_data_sector' +str(s+1) + 'neg')
+        loop_reg_dict[(s, 'neg', idx[0], idx[1])] = {'sector':s+1,'positive_or_negative':'negative','wtype':idx[0], 'jtype':idx[1], 'reg_output_nojtype': res1, 'reg_output_jtype': res2}     
     del fake_data
-    del dump
-
-        
+    ########################
+    # Positive shock    
     shock = torch.ones(S)
-    shock[s] = 2 # Accomodations and food
+    shock[s] = 2 
     a_s_pandemic = a_s_pre * shock
     equi_pos = solve_model(eta,
                 mle_data_sums['I'],
@@ -398,28 +397,26 @@ for s in range(S):
                 decimals = 4,   # printed output rounding decimals
                 silent = solve_GE_silently
                 )
-    
     phi_shock_loop = equi_pos['w_g'] * psi_hat    
     fake_data = dgp(mle_data_filename, mle_data_sums, phi_shock_loop,  mle_estimates['sigma_hat'], equi_pos,  2013, 2013, replaceyear='2016')
     fake_data_filename = root + "Data/derived/dgp/fake_data_temp.csv"
     fake_data = fake_data.append(fake_data_pre)
     fake_data.sort_values(by=['wid_masked','year'], inplace=True)
     fake_data.to_csv(fake_data_filename, index=False)
-    (dump, r2_vec, coef_vec, se_vec) = bartik_analysis(fake_data_filename,    equi_shock=equi_pos,  equi_pre=equi_pre, figuredir=figuredir, savefile_stub='fake_data_sector' +str(s+1) + 'pos')
-
-    r2_append_df = pd.DataFrame(data=[[str(s+1)+', positive'] + r2_vec  ], columns = ['Shock','IotaSector','IotaMarket','Occ4Sector','Occ4Market'], index=[0])
-
-    r2_df = r2_df.append(r2_append_df) 
-    
-    coef_append_df = pd.DataFrame(data=[[str(s+1)+', positive'] + coef_vec  ], columns = ['Shock','IotaSector','IotaMarket','Occ4Sector','Occ4Market'], index=[0])
-    coef_df = coef_df.append(coef_append_df) 
-    
+    for idx in classification_list2:
+        # Run the Bartik analysis for specified worker type, job type, negatively shocked sector
+        (res1, res2, data) = bartik_analysis(fake_data_filename, idx[0], idx[1], 2009, 2016, y_ts=y_ts, shock_source='data', savefile_stub='fake_data_sector' +str(s+1) + 'pos')
+        loop_reg_dict[(s, 'pos', idx[0], idx[1])] = {'sector':s+1,'positive_or_negative':'positive','wtype':idx[0], 'jtype':idx[1], 'reg_output_nojtype': res1, 'reg_output_jtype': res2}     
     del fake_data
-    del dump
 
 
+###################################################################################################
+###################################################################################################
+# EVERYTHING BELOW THIS NEEDS TO BE UPDATED TO HANDLE THE NEW SPECS AND NEW WAY I'M SAVING RESULTS
+###################################################################################################
+###################################################################################################
 
-
+    
     
 print('Location '+str(9))
     
