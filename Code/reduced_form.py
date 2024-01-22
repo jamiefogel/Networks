@@ -4,7 +4,7 @@
 """
 Created on Wed Jul 28 17:03:46 2021
 
-In our 7/28/2021 meeting Matthew suggested I do the reduced form exercise for a bunch of different simulated shocks. I implement that here. 
+In our 7/28/2021 meeting Matthew suggested I do the reduced form exercise for a bunch of different simulated shocks. I implement that here.
 
 @author: jfogel
 """
@@ -97,14 +97,14 @@ if 1==1:
                 decimals = 4,   # printed output rounding decimals
                 silent = solve_GE_silently
                 )
-    
+
     phi_pre = equi_pre['w_g'] * psi_hat
     pickle.dump(equi_pre,  open(root + "Data/derived/dgp/dgp_equi_pre.p", "wb"))
 
 
-    
+
 # Rio Shock
-if 1==1:        
+if 1==1:
     #shock = torch.ones(S)
     a_s_rio = torch.tensor(a_ts[p_ts.index == 2014,])
     equi_rio = solve_model(eta,
@@ -126,10 +126,10 @@ if 1==1:
                 decimals = 4,   # printed output rounding decimals
                 silent = solve_GE_silently
                 )
-    
+
     phi_rio = equi_rio['w_g'] * psi_hat
     pickle.dump(equi_rio,  open(root + "Data/derived/dgp/dgp_equi_rio.p", "wb"))
- 
+
 '''
 # XXX Shock (arbitrarily defined shock that we used in dgp_adh)
 if 1==1:
@@ -139,7 +139,7 @@ if 1==1:
     shock[6] = 3
     shock[10]= 2
     a_s_xxx = a_s_pre * shock
- 
+
     equi_xxx = solve_model(eta,
                 mle_data_sums['I'],
                 mle_data_sums['G'],
@@ -159,7 +159,7 @@ if 1==1:
                 decimals = 4,   # printed output rounding decimals
                 silent = solve_GE_silently
                 )
-    
+
     phi_xxx = equi_xxx['w_g'] * psi_hat
     pickle.dump(equi_xxx, open(root + "Data/derived/dgp/dgp_equi_xxx.p", "wb"))
 '''
@@ -167,7 +167,7 @@ if 1==1:
 '''
 # "China" shock
 if 1==1:
-        
+
     shock = torch.ones(S)
     shock[2] = .5 # Manufacturing industries
     a_s_china = a_s_pre * shock
@@ -191,11 +191,11 @@ if 1==1:
                 decimals = 4,   # printed output rounding decimals
                 silent = solve_GE_silently
                 )
-    
+
     phi_china = equi_china['w_g'] * psi_hat
     pickle.dump(equi_china,  open(root + "Data/derived/dgp/dgp_equi_china.p", "wb"))
 '''
-    
+
 print('Location '+str(1))
 
 fake_data_pre       = dgp(mle_data_filename, mle_data_sums, phi_pre,       mle_estimates['sigma_hat'], equi_pre,       2009, 2009, wtypes_to_impute=['occ2Xmeso_first_recode','occ4_first_recode'], jtypes_to_impute=['occ2Xmeso_recode','occ4_recode'])
@@ -206,7 +206,7 @@ fake_data_pre_filename = root + "Data/derived/dgp/fake_data_pre_rio_2009_2009_le
 fake_data_pre.to_csv(fake_data_pre_filename, index=False)
 fake_data_pre = pd.read_csv(fake_data_pre_filename)
 
-    
+
 print('Location '+str(2))
 
 fake_data_pre_rio   = dgp(mle_data_filename, mle_data_sums, phi_pre,       mle_estimates['sigma_hat'], equi_pre,     2009, 2012)
@@ -221,7 +221,7 @@ equi_pre = pickle.load(open(root + "Data/derived/dgp/dgp_equi_pre.p", "rb"))
 equi_rio = pickle.load(open(root + "Data/derived/dgp/dgp_equi_rio.p", "rb"))
 
 
-    
+
 print('Location '+str(4))
 
 fake_data_rio_filename = root + "Data/derived/dgp/fake_data_rio_rio_2009_2012_level_" + str(level) + ".csv"
@@ -230,7 +230,7 @@ fake_data_rio.sort_values(by=['wid_masked','year'], inplace=True)
 fake_data_rio.to_csv(fake_data_rio_filename, index=False)
 fake_data_rio = pd.read_csv(fake_data_rio_filename)
 
-    
+
 print('Location '+str(5))
 '''
 # We don't actually use the xxx version in the paper. Keeping it for now because it simulates a shock that leads to Bartik regressions with much large R2's, which may help satisfy the concerns John raised in his emails the weekend of 7/23/2022
@@ -241,7 +241,7 @@ fake_data_xxx.to_csv(fake_data_xxx_filename, index=False)
 fake_data_xxx = pd.read_csv(fake_data_xxx_filename)
 
 '''
-    
+
 print('Location '+str(6))
 
 
@@ -252,9 +252,9 @@ print('Location '+str(6))
 
 # This function creates iota_occ4_exposure_regs_ln_wage_N.tex as well as a bunch of other files we didn't end up using
 #bartik_analysis(fake_data_rio_filename,         equi_shock=equi_rio,       equi_pre=equi_pre, figuredir=figuredir, savefile_stub='fake_data_rio') # Produces fake_data_rio_iota_occ4_exposure_regs_ln_wage_N.tex
-#bartik_analysis(fake_data_xxx_filename,         equi_shock=equi_xxx,       equi_pre=equi_pre, figuredir=figuredir, savefile_stub='fake_data_xxx') # This doesn't perfectly match the old version because we generated new data which introduces some random variation. 
+#bartik_analysis(fake_data_xxx_filename,         equi_shock=equi_xxx,       equi_pre=equi_pre, figuredir=figuredir, savefile_stub='fake_data_xxx') # This doesn't perfectly match the old version because we generated new data which introduces some random variation.
 
-    
+
 print('Location '+str(7))
 
 # Actual data
@@ -270,7 +270,7 @@ for idx in classification_list2: #
     print(idx[0])
     print(idx[1])
     (res1, res2, data) = bartik_analysis(mle_data_filename, idx[0], idx[1], 2009, 2014, y_ts=y_ts, shock_source='data', figuredir=figuredir, savefile_stub='real_data')
-    dict = {'wtype':idx[0], 'jtype':idx[1], 'reg_output_nojtype': res1, 'reg_output_jtype': res2} 
+    dict = {'wtype':idx[0], 'jtype':idx[1], 'reg_output_nojtype': res1, 'reg_output_jtype': res2}
     reg_dict[idx] = dict
 
 pickle.dump(reg_dict, open(root + '/Data/derived/'+ filename_stub + 'reduced_form_reg_results.p', 'wb'))
@@ -283,7 +283,7 @@ for idx in [('iota','gamma'), ('iota','occ2Xmeso_recode'), ('iota','occ4_recode'
     regs_list = regs_list + [reg_dict[idx]['reg_output_jtype'], reg_dict[idx]['reg_output_nojtype']]
     exposure_list = exposure_list + ['Market', 'Sector']
     wtype_str = idx[0].replace('gamma','$\gamma$').replace('iota','$\iota$').replace('occ2Xmeso_first_recode','Occ2$\\times$Meso Region').replace('occ2Xmeso_recode','Occ2$\\times$Meso Region').replace('occ2Xmeso','Occ2$\\times$Meso Region').replace('occ4_recode','Occ4').replace('occ4_first_recode','Occ4')
-    jtype_str = idx[1].replace('gamma','$\gamma$').replace('iota','$\iota$').replace('occ2Xmeso_first_recode','Occ2$\\times$Meso Region').replace('occ2Xmeso_recode','Occ2$\\times$Meso Region').replace('occ2Xmeso','Occ2$\\times$Meso Region').replace('occ4_recode','Occ4').replace('occ4_first_recode','Occ4')    
+    jtype_str = idx[1].replace('gamma','$\gamma$').replace('iota','$\iota$').replace('occ2Xmeso_first_recode','Occ2$\\times$Meso Region').replace('occ2Xmeso_recode','Occ2$\\times$Meso Region').replace('occ2Xmeso','Occ2$\\times$Meso Region').replace('occ4_recode','Occ4').replace('occ4_first_recode','Occ4')
     wtype_list = wtype_list + [wtype_str, wtype_str]
     jtype_list = jtype_list + [jtype_str, 'N/A']
     print(idx)
@@ -293,11 +293,11 @@ for idx in [('iota','gamma'), ('iota','occ2Xmeso_recode'), ('iota','occ4_recode'
     print(reg_dict[idx]['reg_output_jtype'].rsquared)
 
 
-    
+
 # Regress changes in earnings on various exposure measures
 # This is the output we actually use
 
-                                         
+
 
 stargazer = Stargazer(regs_list)
 stargazer.rename_covariates({'wtype_exposure_jtype_std':'Exposure (market)','wtype_exposure_std':'Exposure (sector)'})
@@ -316,13 +316,8 @@ stargazer.add_line('Job classification:', jtype_list, LineLocation.BODY_TOP)
 #stargazer.add_line('\hline', ['', '', '', ''], LineLocation.BODY_TOP)
 #stargazer.add_line('Preferred Specification', ['No', 'Yes', 'No', 'No'], LineLocation.FOOTER_TOP)
 print(stargazer.render_latex())
-with open(figuredir + 'reduced_form/real_data_rio_shock.tex', "w") as f:
+with open(figuredir + f'reduced_form/{modelname}_real_data_rio_shock.tex', "w") as f:
     f.write(stargazer.render_latex(only_tabular=True ))
-    
-    
-
-    
-print('Location '+str(8))
 
 
 ##############################################################################################################################
@@ -331,16 +326,14 @@ print('Location '+str(8))
 ##############################################################################################################################
 ##############################################################################################################################
 #    (res1, res2, data) = bartik_analysis(mle_data_filename, idx[0], idx[1], 2009, 2014, y_ts=y_ts, shock_source='data', figuredir=figuredir, savefile_stub='real_data')
-r2_df   = pd.DataFrame(columns=['Shock','IotaSector','IotaMarket','Occ4Sector','Occ4Market'])
-coef_df = pd.DataFrame(columns=['Shock','IotaSector','IotaMarket','Occ4Sector','Occ4Market'])
 
-loop_reg_dict={}
+sim_30_shock_reg_dict={}
 for s in range(S):
     print(s)
     ########################
     # Negative shock
     shock = torch.ones(S)
-    shock[s] = .5 
+    shock[s] = .5
     a_s_pandemic = a_s_pre * shock
     equi_neg = solve_model(eta,
                 mle_data_sums['I'],
@@ -361,7 +354,7 @@ for s in range(S):
                 decimals = 4,   # printed output rounding decimals
                 silent = solve_GE_silently
                 )
-    phi_shock_loop = equi_neg['w_g'] * psi_hat    
+    phi_shock_loop = equi_neg['w_g'] * psi_hat
     fake_data = dgp(mle_data_filename, mle_data_sums, phi_shock_loop,  mle_estimates['sigma_hat'], equi_neg,  2013, 2013, replaceyear='2016')
     fake_data_filename = root + "Data/derived/dgp/fake_data_temp.csv"
     fake_data = fake_data.append(fake_data_pre)
@@ -371,12 +364,12 @@ for s in range(S):
         # Run the Bartik analysis for specified worker type, job type, negatively shocked sector
         #(res1, res2, data) = bartik_analysis(fake_data_filename, idx[0], idx[1], 2009, 2016, equi_shock=equi_neg,  equi_pre=equi_pre, savefile_stub='fake_data_sector' +str(s+1) + 'neg')
         (res1, res2, data) = bartik_analysis(fake_data_filename, idx[0], idx[1], 2009, 2016, y_ts=y_ts, shock_source='data', savefile_stub='fake_data_sector' +str(s+1) + 'neg')
-        loop_reg_dict[(s, 'neg', idx[0], idx[1])] = {'sector':s+1,'positive_or_negative':'negative','wtype':idx[0], 'jtype':idx[1], 'reg_output_nojtype': res1, 'reg_output_jtype': res2}     
+        sim_30_shock_reg_dict[(s, 'neg', idx[0], idx[1])] = {'sector':s+1,'positive_or_negative':'negative','wtype':idx[0], 'jtype':idx[1], 'reg_output_nojtype': res1, 'reg_output_jtype': res2}
     del fake_data
     ########################
-    # Positive shock    
+    # Positive shock
     shock = torch.ones(S)
-    shock[s] = 2 
+    shock[s] = 2
     a_s_pandemic = a_s_pre * shock
     equi_pos = solve_model(eta,
                 mle_data_sums['I'],
@@ -397,7 +390,7 @@ for s in range(S):
                 decimals = 4,   # printed output rounding decimals
                 silent = solve_GE_silently
                 )
-    phi_shock_loop = equi_pos['w_g'] * psi_hat    
+    phi_shock_loop = equi_pos['w_g'] * psi_hat
     fake_data = dgp(mle_data_filename, mle_data_sums, phi_shock_loop,  mle_estimates['sigma_hat'], equi_pos,  2013, 2013, replaceyear='2016')
     fake_data_filename = root + "Data/derived/dgp/fake_data_temp.csv"
     fake_data = fake_data.append(fake_data_pre)
@@ -406,8 +399,54 @@ for s in range(S):
     for idx in classification_list2:
         # Run the Bartik analysis for specified worker type, job type, negatively shocked sector
         (res1, res2, data) = bartik_analysis(fake_data_filename, idx[0], idx[1], 2009, 2016, y_ts=y_ts, shock_source='data', savefile_stub='fake_data_sector' +str(s+1) + 'pos')
-        loop_reg_dict[(s, 'pos', idx[0], idx[1])] = {'sector':s+1,'positive_or_negative':'positive','wtype':idx[0], 'jtype':idx[1], 'reg_output_nojtype': res1, 'reg_output_jtype': res2}     
+        sim_30_shock_reg_dict[(s, 'pos', idx[0], idx[1])] = {'sector':s+1,'positive_or_negative':'positive','wtype':idx[0], 'jtype':idx[1], 'reg_output_nojtype': res1, 'reg_output_jtype': res2}
     del fake_data
+
+pickle.dump(sim_30_shock_reg_dict,    open(root + f"Results/{modelname}_sim_30_shock_reg_dict.p",   "wb"))
+
+# [('iota', 'gamma'), ('iota', 'occ2Xmeso_recode'), ('occ2Xmeso_first_recode', 'gamma'), ('occ4_first_recode', 'gamma'), ('occ4_first_recode', 'gamma'), ('occ2Xmeso_first_recode', 'occ2Xmeso_recode')]
+
+r2_df   = pd.DataFrame(columns=['ShockNumber'] + ['__'.join(t) for t in classification_list2])
+coef_df = pd.DataFrame(columns=['ShockNumber'] + ['__'.join(t) for t in classification_list2])
+
+i = 0
+for s in range(S):
+    for posneg in ['neg', 'pos']:
+        r2_row = [f"{s}_{posneg}"]  # Initialize row with ShockNumber
+        coef_row = [f"{s}_{posneg}"] # Initialize row with ShockNumber
+        for spec in classification_list2:
+            key = (s, posneg, spec[0], spec[1])
+            r2_row.append(sim_30_shock_reg_dict[key]['reg_output_jtype'].rsquared)
+            coef_row.append(sim_30_shock_reg_dict[key]['reg_output_jtype'].params[1])
+        r2_df.loc[i] = r2_row
+        coef_df.loc[i] = coef_row
+        i += 1
+# XX When do I do jtype vs nojtype?
+
+pickle.dump(r2_df,    open(root + f"Results/reduced_form/{modelname}_r2_df_sim_30_shocks.p",   "wb"))
+pickle.dump(coef_df,  open(root + f"Results/reduced_form/{modelname}_coef_df_sim_30_shocks.p", "wb"))
+
+
+fig, ax = plt.subplots()
+ax.plot(r2_df.ShockNumber, r2_df.iota__gamma                             , label="Worker type, Market", linestyle='--')
+ax.plot(r2_df.ShockNumber, r2_df.iota__occ2Xmeso_recode                  , label="Worker type, Occ2XMeso", linestyle='-')
+ax.plot(r2_df.ShockNumber, r2_df.occ2Xmeso_first_recode__gamma           , label="First Occ2XMeso, Market", linestyle=':')
+ax.plot(r2_df.ShockNumber, r2_df.occ2Xmeso_first_recode__occ2Xmeso_recode, label="First Occ2XMeso, Occ2XMeso", linestyle='-.')
+ax.set_xlabel('Simulation')
+ax.set_ylabel('$R^2$')
+ax.legend()
+ax.figure.savefig(figuredir + f'reduced_form/{modelname}_fake_data_all_sector_shocks_r2.png',bbox_inches='tight') # Used in paper and slides
+
+fig, ax = plt.subplots()
+ax.plot(coef_df.ShockNumber, coef_df.iota__gamma                             , label="Worker type, Market", linestyle='--')
+ax.plot(coef_df.ShockNumber, coef_df.iota__occ2Xmeso_recode                  , label="Worker type, Occ2XMeso", linestyle='-')
+ax.plot(coef_df.ShockNumber, coef_df.occ2Xmeso_first_recode__gamma           , label="First Occ2XMeso, Market", linestyle=':')
+ax.plot(coef_df.ShockNumber, coef_df.occ2Xmeso_first_recode__occ2Xmeso_recode, label="First Occ2XMeso, Occ2XMeso", linestyle='-.')
+ax.set_xlabel('Simulation')
+ax.set_ylabel(r'$\beta_{Exposure}$')
+ax.legend()
+ax.figure.savefig(figuredir + f'reduced_form/{modelname}_fake_data_all_sector_shocks_coef.png',bbox_inches='tight') # Used in paper and slides
+
 
 
 ###################################################################################################
@@ -416,73 +455,41 @@ for s in range(S):
 ###################################################################################################
 ###################################################################################################
 
-    
-    
+worker_classifications = ["Worker type","Worker type","First Occ2XMeso","First Occ2XMeso"]
+job_classifications = ["Market","Occ2XMeso","Market","Occ2XMeso"]
+column_names = ['iota__gamma','iota__occ2Xmeso_recode','occ2Xmeso_first_recode__gamma','occ2Xmeso_first_recode__occ2Xmeso_recode']
+
+
 print('Location '+str(9))
-    
-pickle.dump(r2_df,    open(root + "Results/r2_df_30_shocks.p",   "wb"))
-pickle.dump(coef_df,  open(root + "Results/coef_df_30_shocks.p", "wb"))
-
-r2_df   = pickle.load(open(root + "Results/r2_df_30_shocks.p",   "rb"), encoding='bytes')
-coef_df = pickle.load(open(root + "Results/coef_df_30_shocks.p", "rb"), encoding='bytes')
-
-
-fig, ax = plt.subplots()
-ax.plot(range(r2_df.shape[0]), r2_df.IotaMarket, label="Worker type, Market", linestyle='--')
-ax.plot(range(r2_df.shape[0]), r2_df.IotaSector, label="Worker type, Sector", linestyle='-')
-ax.plot(range(r2_df.shape[0]), r2_df.Occ4Market, label="Occ4, Market", linestyle=':')
-ax.plot(range(r2_df.shape[0]), r2_df.Occ4Sector, label="Occ4, Sector", linestyle='-.')
-ax.set_xlabel('Simulation')
-ax.set_ylabel('$R^2$')
-ax.legend()
-ax.figure.savefig(figuredir + 'fake_data_all_sector_shocks_r2.png',bbox_inches='tight') # Used in paper and slides
-
-
-    
-print('Location '+str(10))
-
-# Used in paper and slides
-fig, ax = plt.subplots()
-ax.plot(range(coef_df.shape[0]), coef_df.IotaMarket, label="Worker type, Market", linestyle='--')
-ax.plot(range(coef_df.shape[0]), coef_df.IotaSector, label="Worker type, Sector", linestyle='-')
-ax.plot(range(coef_df.shape[0]), coef_df.Occ4Market, label="Occ4, Market", linestyle=':')
-ax.plot(range(coef_df.shape[0]), coef_df.Occ4Sector, label="Occ4, Sector", linestyle='-.')
-ax.set_xlabel('Simulation')
-ax.set_ylabel(r'$\beta_{Exposure}$')
-ax.legend()
-ax.figure.savefig(figuredir + 'fake_data_all_sector_shocks_coef.png',bbox_inches='tight')
 
 df_means = pd.concat([ \
-    pd.DataFrame({'Worker Classification':['Worker type','Worker type','Occ4','Occ4']}, index=r2_df[['IotaMarket','IotaSector','Occ4Market','Occ4Sector']].mean().index), \
-    pd.DataFrame({'Job Classification':['Market','Sector','Market','Sector']}, index=r2_df[['IotaMarket','IotaSector','Occ4Market','Occ4Sector']].mean().index), \
-    pd.DataFrame({'Coefficient':np.round(coef_df[['IotaMarket','IotaSector','Occ4Market','Occ4Sector']].mean(),3)}), \
-    pd.DataFrame({'Coefficient':np.round(coef_df[['IotaMarket','IotaSector','Occ4Market','Occ4Sector']].std(),3)}), \
-    pd.DataFrame({r'$R^2$':np.round(r2_df[['IotaMarket','IotaSector','Occ4Market','Occ4Sector']].mean(),3)}), \
-    pd.DataFrame({r'$R^2$':np.round(r2_df[['IotaMarket','IotaSector','Occ4Market','Occ4Sector']].std(),3)}) \
+    pd.DataFrame({'Worker Classification':worker_classifications}, index=r2_df[column_names].mean().index), \
+    pd.DataFrame({'Job Classification'   :job_classifications   }, index=r2_df[column_names].mean().index), \
+    pd.DataFrame({'Coefficient':np.round(coef_df[column_names].mean(),3)}), \
+    pd.DataFrame({'Coefficient':np.round(coef_df[column_names].std(),3)}), \
+    pd.DataFrame({r'$R^2$'     :np.round(  r2_df[column_names].mean(),3)}), \
+    pd.DataFrame({r'$R^2$'     :np.round(  r2_df[column_names].std(),3)}) \
     ], axis=1)
-    
+
 df_means.columns = pd.MultiIndex.from_arrays([df_means.columns, ['\hfill','\hfill','Mean','Std Dev','Mean','Std Dev']])
 
-
-    
 print('Location '+str(11))
 
 # Used in paper and slides. I create the table initially as temp.tex and then parse it and edit it and save as fake_data_all_sector_shocks_means.tex
 df_means.to_latex(index=False, buf=figuredir + "temp.tex", caption='Means across all simulated shocks', multicolumn=True, multicolumn_format='c', label='table:all_sector_shocks_means', escape=False)
 fin = open(figuredir + "temp.tex", "rt")
 #output file to write the result to
-fout = open(figuredir + "fake_data_all_sector_shocks_means.tex", "wt")
+fout = open(figuredir + f"reduced_form/{modelname}_fake_data_all_sector_shocks_means.tex", "wt")
 #for each line in the input file
 for line in fin:
-	line = line.replace(r'\multicolumn{2}{c}{$R^2$} \\', r'\multicolumn{2}{c}{$R^2$} \\ \cline{3-4}\cline{5-6}')
-	line = line.replace(r'\begin{tabular}{llrrrr}',r'\begin{tabular}{@{\extracolsep{10pt}}llrrrr}')
-	fout.write(line)
-    #print(line.replace(r'Worker Classification & Job Classification & \multicolumn{2}{c}{Coefficient} & \multicolumn{2}{c}{$R^2$} \\', r'Worker Classification & Job Classification & \multicolumn{2}{c}{Coefficient} & \multicolumn{2}{c}{$R^2$} \\\cline{3-4}\cline{5-6}'))
+    line = line.replace(r'\multicolumn{2}{c}{$R^2$} \\', r'\multicolumn{2}{c}{$R^2$} \\ \cline{3-4}\cline{5-6}')
+    line = line.replace(r'\begin{tabular}{llrrrr}',r'\begin{tabular}{@{\extracolsep{10pt}}llrrrr}')
+    fout.write(line)
 
 fin.close()
 fout.close()
 
 
 
-    
+
 print('Location '+str(12))
