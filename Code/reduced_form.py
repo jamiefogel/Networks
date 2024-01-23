@@ -265,8 +265,8 @@ print('Location '+str(7))
 ##################################################################################################
 # Actual Rio shock
 reg_dict = {}
-classification_list2 = [('iota','gamma'), ('iota','occ2Xmeso_recode'), ('occ2Xmeso_first_recode','gamma'), ('occ4_first_recode','gamma'), ('iota','occ4_recode'), ('occ4_first_recode', 'gamma'), ('occ4_first_recode', 'occ4_recode'), ('occ2Xmeso_first_recode', 'occ2Xmeso_recode')]
-for idx in classification_list2: #
+classification_list2 = [('iota','gamma'), ('iota','occ2Xmeso_recode'), ('occ2Xmeso_first_recode','gamma'), ('occ2Xmeso_first_recode', 'occ2Xmeso_recode'), ('occ4_first_recode', 'gamma'), ('occ4_first_recode', 'occ4_recode')]#, ('iota','occ4_recode') iota-occ4_recode gave me the error ValueError: zero-size array to reduction operation maximum which has no identity in the simulated 30 shocks. I haven't tried to understand this issue further
+for idx in classification_list2: 
     print(idx[0])
     print(idx[1])
     (res1, res2, data) = bartik_analysis(mle_data_filename, idx[0], idx[1], 2009, 2014, y_ts=y_ts, shock_source='data', figuredir=figuredir, savefile_stub='real_data')
@@ -279,7 +279,7 @@ regs_list = []
 exposure_list = []
 wtype_list = []
 jtype_list = []
-for idx in [('iota','gamma'), ('iota','occ2Xmeso_recode'), ('iota','occ4_recode'), ('occ2Xmeso_first_recode','gamma'), ('occ4_first_recode','gamma')]:
+for idx in classification_list2: # [('iota','gamma'), ('iota','occ2Xmeso_recode'), ('iota','occ4_recode'), ('occ2Xmeso_first_recode','gamma'), ('occ4_first_recode','gamma')]:
     regs_list = regs_list + [reg_dict[idx]['reg_output_jtype'], reg_dict[idx]['reg_output_nojtype']]
     exposure_list = exposure_list + ['Market', 'Sector']
     wtype_str = idx[0].replace('gamma','$\gamma$').replace('iota','$\iota$').replace('occ2Xmeso_first_recode','Occ2$\\times$Meso Region').replace('occ2Xmeso_recode','Occ2$\\times$Meso Region').replace('occ2Xmeso','Occ2$\\times$Meso Region').replace('occ4_recode','Occ4').replace('occ4_first_recode','Occ4')
@@ -293,7 +293,7 @@ for idx in [('iota','gamma'), ('iota','occ2Xmeso_recode'), ('iota','occ4_recode'
     print(reg_dict[idx]['reg_output_jtype'].rsquared)
 
 
-
+print('Location '+str(8))
 # Regress changes in earnings on various exposure measures
 # This is the output we actually use
 
@@ -327,11 +327,14 @@ with open(figuredir + f'reduced_form/{modelname}_real_data_rio_shock.tex', "w") 
 ##############################################################################################################################
 #    (res1, res2, data) = bartik_analysis(mle_data_filename, idx[0], idx[1], 2009, 2014, y_ts=y_ts, shock_source='data', figuredir=figuredir, savefile_stub='real_data')
 
+print('Location '+str(8))
+
 sim_30_shock_reg_dict={}
 for s in range(S):
     print(s)
     ########################
     # Negative shock
+    print('Negative Shock')
     shock = torch.ones(S)
     shock[s] = .5
     a_s_pandemic = a_s_pre * shock
@@ -361,13 +364,14 @@ for s in range(S):
     fake_data.sort_values(by=['wid_masked','year'], inplace=True)
     fake_data.to_csv(fake_data_filename, index=False)
     for idx in classification_list2:
-        # Run the Bartik analysis for specified worker type, job type, negatively shocked sector
-        #(res1, res2, data) = bartik_analysis(fake_data_filename, idx[0], idx[1], 2009, 2016, equi_shock=equi_neg,  equi_pre=equi_pre, savefile_stub='fake_data_sector' +str(s+1) + 'neg')
-        (res1, res2, data) = bartik_analysis(fake_data_filename, idx[0], idx[1], 2009, 2016, y_ts=y_ts, shock_source='data', savefile_stub='fake_data_sector' +str(s+1) + 'neg')
-        sim_30_shock_reg_dict[(s, 'neg', idx[0], idx[1])] = {'sector':s+1,'positive_or_negative':'negative','wtype':idx[0], 'jtype':idx[1], 'reg_output_nojtype': res1, 'reg_output_jtype': res2}
+        if idx[1]!='occ4_recode':
+            print(f'Running sector {s} positive shock for wtype={idx[0]} and jtype={idx[1]}')
+            (res1, res2, data) = bartik_analysis(fake_data_filename, idx[0], idx[1], 2009, 2016, y_ts=y_ts, shock_source='data', savefile_stub='fake_data_sector' +str(s+1) + 'neg')
+            sim_30_shock_reg_dict[(s, 'neg', idx[0], idx[1])] = {'sector':s+1,'positive_or_negative':'negative','wtype':idx[0], 'jtype':idx[1], 'reg_output_nojtype': res1, 'reg_output_jtype': res2}
     del fake_data
     ########################
     # Positive shock
+    print('Positive Shock')
     shock = torch.ones(S)
     shock[s] = 2
     a_s_pandemic = a_s_pre * shock
@@ -397,9 +401,11 @@ for s in range(S):
     fake_data.sort_values(by=['wid_masked','year'], inplace=True)
     fake_data.to_csv(fake_data_filename, index=False)
     for idx in classification_list2:
-        # Run the Bartik analysis for specified worker type, job type, negatively shocked sector
-        (res1, res2, data) = bartik_analysis(fake_data_filename, idx[0], idx[1], 2009, 2016, y_ts=y_ts, shock_source='data', savefile_stub='fake_data_sector' +str(s+1) + 'pos')
-        sim_30_shock_reg_dict[(s, 'pos', idx[0], idx[1])] = {'sector':s+1,'positive_or_negative':'positive','wtype':idx[0], 'jtype':idx[1], 'reg_output_nojtype': res1, 'reg_output_jtype': res2}
+        if idx[1]!='occ4_recode':   # occ4_recode is causing this to crash for some reason and it's not important so dropping it
+            print(f'Running sector {s} positive shock for wtype={idx[0]} and jtype={idx[1]}')
+            # Run the Bartik analysis for specified worker type, job type, negatively shocked sector
+            (res1, res2, data) = bartik_analysis(fake_data_filename, idx[0], idx[1], 2009, 2016, y_ts=y_ts, shock_source='data', savefile_stub='fake_data_sector' +str(s+1) + 'pos')
+            sim_30_shock_reg_dict[(s, 'pos', idx[0], idx[1])] = {'sector':s+1,'positive_or_negative':'positive','wtype':idx[0], 'jtype':idx[1], 'reg_output_nojtype': res1, 'reg_output_jtype': res2}
     del fake_data
 
 pickle.dump(sim_30_shock_reg_dict,    open(root + f"Results/{modelname}_sim_30_shock_reg_dict.p",   "wb"))
@@ -449,47 +455,4 @@ ax.figure.savefig(figuredir + f'reduced_form/{modelname}_fake_data_all_sector_sh
 
 
 
-###################################################################################################
-###################################################################################################
-# EVERYTHING BELOW THIS NEEDS TO BE UPDATED TO HANDLE THE NEW SPECS AND NEW WAY I'M SAVING RESULTS
-###################################################################################################
-###################################################################################################
-
-worker_classifications = ["Worker type","Worker type","First Occ2XMeso","First Occ2XMeso"]
-job_classifications = ["Market","Occ2XMeso","Market","Occ2XMeso"]
-column_names = ['iota__gamma','iota__occ2Xmeso_recode','occ2Xmeso_first_recode__gamma','occ2Xmeso_first_recode__occ2Xmeso_recode']
-
-
-print('Location '+str(9))
-
-df_means = pd.concat([ \
-    pd.DataFrame({'Worker Classification':worker_classifications}, index=r2_df[column_names].mean().index), \
-    pd.DataFrame({'Job Classification'   :job_classifications   }, index=r2_df[column_names].mean().index), \
-    pd.DataFrame({'Coefficient':np.round(coef_df[column_names].mean(),3)}), \
-    pd.DataFrame({'Coefficient':np.round(coef_df[column_names].std(),3)}), \
-    pd.DataFrame({r'$R^2$'     :np.round(  r2_df[column_names].mean(),3)}), \
-    pd.DataFrame({r'$R^2$'     :np.round(  r2_df[column_names].std(),3)}) \
-    ], axis=1)
-
-df_means.columns = pd.MultiIndex.from_arrays([df_means.columns, ['\hfill','\hfill','Mean','Std Dev','Mean','Std Dev']])
-
-print('Location '+str(11))
-
-# Used in paper and slides. I create the table initially as temp.tex and then parse it and edit it and save as fake_data_all_sector_shocks_means.tex
-df_means.to_latex(index=False, buf=figuredir + "temp.tex", caption='Means across all simulated shocks', multicolumn=True, multicolumn_format='c', label='table:all_sector_shocks_means', escape=False)
-fin = open(figuredir + "temp.tex", "rt")
-#output file to write the result to
-fout = open(figuredir + f"reduced_form/{modelname}_fake_data_all_sector_shocks_means.tex", "wt")
-#for each line in the input file
-for line in fin:
-    line = line.replace(r'\multicolumn{2}{c}{$R^2$} \\', r'\multicolumn{2}{c}{$R^2$} \\ \cline{3-4}\cline{5-6}')
-    line = line.replace(r'\begin{tabular}{llrrrr}',r'\begin{tabular}{@{\extracolsep{10pt}}llrrrr}')
-    fout.write(line)
-
-fin.close()
-fout.close()
-
-
-
-
-print('Location '+str(12))
+print('Location '+str(10))
