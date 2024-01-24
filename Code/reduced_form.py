@@ -266,6 +266,7 @@ print('Location '+str(7))
 # Actual Rio shock
 reg_dict = {}
 classification_list2 = [('iota','gamma'), ('iota','occ2Xmeso_recode'), ('occ2Xmeso_first_recode','gamma'), ('occ2Xmeso_first_recode', 'occ2Xmeso_recode'), ('occ4_first_recode', 'gamma'), ('occ4_first_recode', 'occ4_recode')]#, ('iota','occ4_recode') iota-occ4_recode gave me the error ValueError: zero-size array to reduction operation maximum which has no identity in the simulated 30 shocks. I haven't tried to understand this issue further
+classification_list3 = [('iota','gamma'), ('iota','occ2Xmeso_recode'), ('occ2Xmeso_first_recode','gamma'), ('occ2Xmeso_first_recode', 'occ2Xmeso_recode'), ('occ4_first_recode', 'gamma')] #, ('iota','occ4_recode') iota-occ4_recode gave me the error ValueError: zero-size array to reduction operation maximum which has no identity in the simulated 30 shocks. I haven't tried to understand this issue further
 for idx in classification_list2: 
     print(idx[0])
     print(idx[1])
@@ -363,7 +364,7 @@ for s in range(S):
     fake_data = fake_data.append(fake_data_pre)
     fake_data.sort_values(by=['wid_masked','year'], inplace=True)
     fake_data.to_csv(fake_data_filename, index=False)
-    for idx in classification_list2:
+    for idx in classification_list3:
         if idx[1]!='occ4_recode':
             print(f'Running sector {s} positive shock for wtype={idx[0]} and jtype={idx[1]}')
             (res1, res2, data) = bartik_analysis(fake_data_filename, idx[0], idx[1], 2009, 2016, y_ts=y_ts, shock_source='data', savefile_stub='fake_data_sector' +str(s+1) + 'neg')
@@ -400,7 +401,7 @@ for s in range(S):
     fake_data = fake_data.append(fake_data_pre)
     fake_data.sort_values(by=['wid_masked','year'], inplace=True)
     fake_data.to_csv(fake_data_filename, index=False)
-    for idx in classification_list2:
+    for idx in classification_list3:
         if idx[1]!='occ4_recode':   # occ4_recode is causing this to crash for some reason and it's not important so dropping it
             print(f'Running sector {s} positive shock for wtype={idx[0]} and jtype={idx[1]}')
             # Run the Bartik analysis for specified worker type, job type, negatively shocked sector
@@ -412,15 +413,15 @@ pickle.dump(sim_30_shock_reg_dict,    open(root + f"Results/{modelname}_sim_30_s
 
 # [('iota', 'gamma'), ('iota', 'occ2Xmeso_recode'), ('occ2Xmeso_first_recode', 'gamma'), ('occ4_first_recode', 'gamma'), ('occ4_first_recode', 'gamma'), ('occ2Xmeso_first_recode', 'occ2Xmeso_recode')]
 
-r2_df   = pd.DataFrame(columns=['ShockNumber'] + ['__'.join(t) for t in classification_list2])
-coef_df = pd.DataFrame(columns=['ShockNumber'] + ['__'.join(t) for t in classification_list2])
+r2_df   = pd.DataFrame(columns=['ShockNumber'] + ['__'.join(t) for t in classification_list3])
+coef_df = pd.DataFrame(columns=['ShockNumber'] + ['__'.join(t) for t in classification_list3])
 
 i = 0
 for s in range(S):
     for posneg in ['neg', 'pos']:
         r2_row = [f"{s}_{posneg}"]  # Initialize row with ShockNumber
         coef_row = [f"{s}_{posneg}"] # Initialize row with ShockNumber
-        for spec in classification_list2:
+        for spec in classification_list3:
             key = (s, posneg, spec[0], spec[1])
             r2_row.append(sim_30_shock_reg_dict[key]['reg_output_jtype'].rsquared)
             coef_row.append(sim_30_shock_reg_dict[key]['reg_output_jtype'].params[1])
