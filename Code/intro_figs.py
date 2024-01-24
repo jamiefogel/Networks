@@ -125,7 +125,7 @@ for v in model_fake.g.vertices():
 
 
 
-filename = figuredir + 'intro_figs_part3_1.png'
+filename = figuredir + 'intro_figs/intro_figs_part3_1.png'
 model_fake.state.draw(layout='bipartite', output=filename,subsample_edges=200, hshortcuts=levels-2, hide=levels, vertex_color=plot_color1, vertex_fill_color=plot_color1, vertex_size=10, output_size=(1690,1000), bip_aspect=1.69, vertex_shape = vertex_shape, beta=.8 )
 
 
@@ -139,7 +139,7 @@ ax.axis('off')
 f.savefig(filename,dpi=300)
 
     
-filename = figuredir + 'intro_figs_part3_2.png'
+filename = figuredir + 'intro_figs/intro_figs_part3_2.png'
 model_fake.state.draw(layout='bipartite', output=filename,subsample_edges=150, hshortcuts=levels-2, hide=levels, vertex_color=vertex_color, vertex_fill_color=vertex_color, vertex_size=10, output_size=(1690,1000), bip_aspect=1.69, vertex_shape = vertex_shape, rel_order=blocks )
 
 
@@ -161,7 +161,7 @@ f.savefig(filename,dpi=300)
 
 
 
-filename = figuredir + 'intro_figs_part3_3.png'
+filename = figuredir + 'intro_figs/intro_figs_part3_3.png'
 model_fake.state.draw(layout='bipartite', output=filename,subsample_edges=100, hshortcuts=levels-2, hide=levels, vertex_color=vertex_color, vertex_fill_color=vertex_color, vertex_size=10, edge_gradient=blackwhite_colormap[0], output_size=(1690,1000), bip_aspect=1.69, vertex_shape = vertex_shape )
 
 
