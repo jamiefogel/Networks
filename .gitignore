@@ -19,3 +19,6 @@ job_transitions_results/*
 *.txt#
 Logs
 Results/meso_maps/*.png
+Code/MarketPower/nested_logit.p
+
+Code/Misc/stats_for_jamie_fixed.p
