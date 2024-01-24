@@ -457,3 +457,59 @@ ax.figure.savefig(figuredir + f'reduced_form/{modelname}_fake_data_all_sector_sh
 
 
 print('Location '+str(10))
+
+
+
+###################################################################################################
+###################################################################################################
+# EVERYTHING BELOW THIS NEEDS TO BE UPDATED TO HANDLE THE NEW SPECS AND NEW WAY I'M SAVING RESULTS
+###################################################################################################
+###################################################################################################
+
+r2_df   = pickle.load(  open(root + f"Results/reduced_form/{modelname}_r2_df_sim_30_shocks.p",   "rb"))
+coef_df = pickle.load(  open(root + f"Results/reduced_form/{modelname}_coef_df_sim_30_shocks.p", "rb"))
+
+clean_labels = {
+    'iota': 'Worker Type',
+    'occ2Xmeso_recode': 'Occ2Xmeso',
+    'occ2Xmeso_first_recode': 'First Occ2XMeso',
+    'gamma': 'Market',
+    'occ4_first_recode': 'First Occ4'
+}
+
+
+worker_classifications  = [clean_labels.get(item[0], item[0]) for item in classification_list3]
+job_classifications     = [clean_labels.get(item[1], item[1]) for item in classification_list3]
+column_names = [f'{idx[0]}__{idx[1]}'  for idx in classification_list3]
+
+df_means = pd.concat([ \
+    pd.DataFrame({'Worker Classification':worker_classifications}, index=r2_df[column_names].mean().index), \
+    pd.DataFrame({'Job Classification'   :job_classifications   }, index=r2_df[column_names].mean().index), \
+    pd.DataFrame({'Coefficient':np.round(coef_df[column_names].mean(),3)}), \
+    pd.DataFrame({'Coefficient':np.round(coef_df[column_names].std(),3)}), \
+    pd.DataFrame({r'$R^2$'     :np.round(  r2_df[column_names].mean(),3)}), \
+    pd.DataFrame({r'$R^2$'     :np.round(  r2_df[column_names].std(),3)}) \
+    ], axis=1)
+
+df_means.columns = pd.MultiIndex.from_arrays([df_means.columns, ['\hfill','\hfill','Mean','Std Dev','Mean','Std Dev']])
+
+print('Location '+str(11))
+
+# Used in paper and slides. I create the table initially as temp.tex and then parse it and edit it and save as fake_data_all_sector_shocks_means.tex
+df_means.to_latex(index=False, buf=figuredir + "temp.tex", caption='Means across all simulated shocks', multicolumn=True, multicolumn_format='c', label='table:all_sector_shocks_means', escape=False)
+fin = open(figuredir + "temp.tex", "rt")
+#output file to write the result to
+fout = open(figuredir + f"reduced_form/{modelname}_fake_data_all_sector_shocks_means.tex", "wt")
+#for each line in the input file
+for line in fin:
+    line = line.replace(r'\multicolumn{2}{c}{$R^2$} \\', r'\multicolumn{2}{c}{$R^2$} \\ \cline{3-4}\cline{5-6}')
+    line = line.replace(r'\begin{tabular}{llrrrr}',r'\begin{tabular}{@{\extracolsep{10pt}}llrrrr}')
+    fout.write(line)
+
+fin.close()
+fout.close()
+
+
+
+
+print('Location '+str(12))
