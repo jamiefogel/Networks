@@ -52,7 +52,7 @@ plt.yscale('log')
 ax.set_xlabel('Number of Matches Per Worker')
 ax.set_ylabel('Frequency (Log Scale)')
 plt.show()    
-ax.figure.savefig(figuredir + 'worker_degree_distribution_hist.png', dpi=300, bbox_inches="tight")
+ax.figure.savefig(figuredir + 'summary_stats/worker_degree_distribution_hist.png', dpi=300, bbox_inches="tight")
 
 
 hist, bins = np.histogram(job_degs[job_degs>=10], bins=50)
@@ -64,7 +64,7 @@ plt.yscale('log')
 ax.set_xlabel('Number of Matches Per Job (Log Scale)')
 ax.set_ylabel('Frequency (Log Scale)')
 plt.show()    
-ax.figure.savefig(figuredir +'job_degree_distribution_hist.png' , dpi=300, bbox_inches="tight")
+ax.figure.savefig(figuredir + 'summary_stats/job_degree_distribution_hist.png' , dpi=300, bbox_inches="tight")
 
 
 
@@ -87,14 +87,14 @@ fig, ax = plt.subplots(figsize=(5.76,4.8))
 ax.hist(iota_sizes, density=False, bins=50)
 #plt.yscale('log')
 plt.show()    
-ax.figure.savefig(figuredir + 'iota_size_distribution.png', dpi=300, bbox_inches="tight")
+ax.figure.savefig(figuredir + 'summary_stats/iota_size_distribution.png', dpi=300, bbox_inches="tight")
 
 
 fig, ax = plt.subplots(figsize=(5.76,4.8))
 ax.hist(gamma_sizes, density=False, bins=50)
 #plt.yscale('log')
 plt.show()    
-ax.figure.savefig(figuredir + 'gamma_size_distribution.png', dpi=300, bbox_inches="tight")
+ax.figure.savefig(figuredir + 'summary_stats/gamma_size_distribution.png', dpi=300, bbox_inches="tight")
 
 
         
@@ -110,9 +110,18 @@ gamma_sizes_by_job.median()
 sumstats_dict['gamma_sizes_by_job_mean']   = gamma_sizes_by_job.mean()  
 sumstats_dict['gamma_sizes_by_job_median'] = gamma_sizes_by_job.median()
 
+# Confirming that all workers and jobs are assigned an iota/gamma
+model.edgelist_w_blocks.worker_blocks_level_0.isnull().sum()
+model.edgelist_w_blocks.job_blocks_level_0.isnull().sum()   
+
+
+# Not all vertices belong to the giant component but 99% do
+g_comp = gt.label_largest_component(model.g)
+frac_in_giant_component = g_comp.a.mean()
+sumstats_dict['frac_in_giant_component'] = frac_in_giant_component
 
 # Open a file for writing
-with open(root + 'Results/sumstats.csv', 'w', newline='') as csvfile:
+with open(root + 'Results/summary_stats/sumstats.csv', 'w', newline='') as csvfile:
     # Create a CSV writer object
     writer = csv.writer(csvfile)
     # Write header
@@ -122,28 +131,8 @@ with open(root + 'Results/sumstats.csv', 'w', newline='') as csvfile:
         writer.writerow([key, value])
 
 
-
-
-# Confirming that all workers and jobs are assigned an iota/gamma
-model.edgelist_w_blocks.worker_blocks_level_0.isnull().sum()
-model.edgelist_w_blocks.job_blocks_level_0.isnull().sum()   
-
-
-# Not all vertices belong to the giant component but 99% do
-gt.extract_largest_component(model.g)
-model.g
-print(gt.extract_largest_component(model.g)/model.g)
-#print(4814812/4868046)
-
-# A better way of doing the same thing as above
-g_comp = gt.label_largest_component(model.g)
-g_comp.a.mean()
-
-
-
-temp = pd.DataFrame({'block':model.state.project_level(0).get_blocks().a,'g_comp':gt.label_largest_component(model.g),'worker_node':model.g.vp.kind.a})
-
 # It seems like nodes not in the giant component are kind of just randomly assigned but it doesn't matter since 99% of nodes are in the giant component
+temp = pd.DataFrame({'block':model.state.project_level(0).get_blocks().a,'g_comp':gt.label_largest_component(model.g),'worker_node':model.g.vp.kind.a})
 temp.loc[temp.g_comp==0].block.value_counts()
 
 
