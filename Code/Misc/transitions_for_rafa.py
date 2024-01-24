@@ -250,7 +250,7 @@ results_dict ={
     'move_distance_by_change_city' :move_distance_by_change_city,
     'moves_by_educ'                :moves_by_educ,
     'moves_by_income_decile'       :moves_by_income_decile}
-pickle.dump(results_dict, open(root + 'Code/Misc/results_dict.p', 'wb'))
+pickle.dump(results_dict, open(root + 'Results/for_rafa/results_dict.p', 'wb'))
 
 # Next steal some stuff from gamma_summary_stats:
 # - Plot move distance against education level
@@ -261,7 +261,7 @@ for xvar in ['salario_change', 'salario', 'rem_med_r']: #, 'grau_instr'
     ax.set_xlabel(xvar)
     ax.set_ylabel('Move Distance')
     # Save the plot to a PDF file                                                                 
-    fig.savefig(root + 'Code/Misc/binsreg__move_distance__' + xvar + '.pdf', format='pdf')        
+    fig.savefig(root + 'Results/for_rafa/binsreg__move_distance__' + xvar + '.pdf', format='pdf')        
 
 
 # Restricting to bachelor's degrees only
@@ -270,14 +270,14 @@ ax.set_xlabel('Salary Change')
 ax.set_ylabel('Move Distance')
 ax.set_title('College graduates')
 # Save the plot to a PDF file                                                                 
-fig.savefig(root + 'Code/Misc/binsreg__move_distance__salario_change_college.pdf', format='pdf')        
+fig.savefig(root + 'Results/for_rafa/binsreg__move_distance__salario_change_college.pdf', format='pdf')        
     
 fig, ax = binned_scatter_plot(df_trans.loc[df_trans.grau_instr==9,'move_distance'], df_trans.loc[df_trans.grau_instr==9,'salario_change'], 20, plot_actual_data=False, add_linear_fit=True)
 ax.set_xlabel('Move Distance')
 ax.set_ylabel('Salary Change')
 ax.set_title('High School Grads')
 # Save the plot to a PDF file                                                                 
-fig.savefig(root + 'Code/Misc/binsreg__salario_change__move_distance_college.pdf', format='pdf')        
+fig.savefig(root + 'Results/for_rafa/binsreg__salario_change__move_distance_college.pdf', format='pdf')        
     
 
 
@@ -287,76 +287,16 @@ ax.set_xlabel('Salary Change')
 ax.set_ylabel('Move Distance')
 ax.set_title('High School Grads')
 # Save the plot to a PDF file                                                                 
-fig.savefig(root + 'Code/Misc/binsreg__move_distance__salario_change_hs.pdf', format='pdf')        
+fig.savefig(root + 'Results/for_rafa/binsreg__move_distance__salario_change_hs.pdf', format='pdf')        
     
 fig, ax = binned_scatter_plot(df_trans.loc[df_trans.grau_instr==7,'move_distance'], df_trans.loc[df_trans.grau_instr==7,'salario_change'], 20, plot_actual_data=False, add_linear_fit=True)
 ax.set_xlabel('Move Distance')
 ax.set_ylabel('Salary Change')
 ax.set_title('High School Grads')
 # Save the plot to a PDF file                                                                 
-fig.savefig(root + 'Code/Misc/binsreg__salario_change__move_distance_hs.pdf', format='pdf')        
+fig.savefig(root + 'Results/for_rafa/binsreg__salario_change__move_distance_hs.pdf', format='pdf')        
     
     
 # Without actual data points
 
 
-
-
-
-
-plt = 
-
-
-    
-
-# Example usage:
-np.random.seed(42)
-X_example = np.random.rand(100) * 10
-y_example = 2 * X_example + np.random.randn(100) * 2
-
-binned_regression(X_example, y_example, num_bins=5)
-    
-
-    
-df = pd.read_parquet(root + 'Data/derived/transitions_for_rafa.parquet')
-
-unique_counts = df.groupby('id_estab')['codemun'].nunique()
-unique_counts.value_counts()
-''' 
-# Some establishments have non-unique municipality codes. This may be irrelevant once we get Rafa's geocodes but flagging it for now.
-1     5034058
-2      133698
-3        3304
-4         235
-5         113
-6          93
-7          55
-8          37
-9          37
-11         34
-10         22
-12         16
-13         13
-15         10
-14          8
-17          8
-16          7
-20          7
-22          5
-18          4
-19          4
-21          4
-24          4
-27          4
-34          3
-25          2
-26          2
-30          2
-57          1
-23          1
-28          1
-29          1
-54          1
-55          1
-71          1
-'''
