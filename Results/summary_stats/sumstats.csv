@@ -1,0 +1,12 @@
+Key,Value
+num_unique_workers,13694535
+num_unique_jobs,552109
+num_unique_edges,20815674
+average_worker_degree,1.5199985979808734
+average_job_degree,37.70210954720898
+Fraction of workers with more than one job,0.34334396896280156
+iota_sizes_by_worker_mean,70473.677860475
+iota_sizes_by_worker_median,43990.0
+gamma_sizes_by_job_mean,1096.8197855858173
+gamma_sizes_by_job_median,840.0
+frac_in_giant_component,0.9896892910358397
