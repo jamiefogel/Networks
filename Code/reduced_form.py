@@ -413,14 +413,14 @@ pickle.dump(sim_30_shock_reg_dict,    open(root + f"Results/{modelname}_sim_30_s
 
 # [('iota', 'gamma'), ('iota', 'occ2Xmeso_recode'), ('occ2Xmeso_first_recode', 'gamma'), ('occ4_first_recode', 'gamma'), ('occ4_first_recode', 'gamma'), ('occ2Xmeso_first_recode', 'occ2Xmeso_recode')]
 
-r2_df   = pd.DataFrame(columns=['ShockNumber'] + ['__'.join(t) for t in classification_list3])
-coef_df = pd.DataFrame(columns=['ShockNumber'] + ['__'.join(t) for t in classification_list3])
+r2_df   = pd.DataFrame(columns=['ShockNumber', 'ShockType'] + ['__'.join(t) for t in classification_list3])
+coef_df = pd.DataFrame(columns=['ShockNumber', 'ShockType'] + ['__'.join(t) for t in classification_list3])
 
 i = 0
-for s in range(S):
-    for posneg in ['neg', 'pos']:
-        r2_row = [f"{s}_{posneg}"]  # Initialize row with ShockNumber
-        coef_row = [f"{s}_{posneg}"] # Initialize row with ShockNumber
+for posneg in ['neg', 'pos']:
+    for s in range(S):
+        r2_row = [i, f"{s}_{posneg}"]  # Initialize row with ShockNumber
+        coef_row = [i, f"{s}_{posneg}"] # Initialize row with ShockNumber
         for spec in classification_list3:
             key = (s, posneg, spec[0], spec[1])
             r2_row.append(sim_30_shock_reg_dict[key]['reg_output_jtype'].rsquared)
