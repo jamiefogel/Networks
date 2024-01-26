@@ -9,12 +9,15 @@ import sys
 import torch
 
 
-def torch_mle(mle_sums_data, estimates_file, worker_type_var='', job_type_var='', level=''):
+def torch_mle(mle_sums_data, estimates_file, worker_type_var='', job_type_var='', level='', c_bump=.2, count_bump=.2):
     '''
     - move run_query_sums/mle_load_fulldata_vs outside torch_mle
     - Make torch_mle a function
     - Take arguments  saved_mle_sums, estimates_savefile
     '''
+    # We thought that what matters is c_bump*count_bump, not each value individually. But when we changed this to c_bump=1 and count_bump=.01 torch couldn't solve the model. I don't understand what's going on but haven't dug very deep. 
+    #omega_bump = .1
+    
     
     # Somehow Torch hasnt defined pi
     torch.pi = torch.tensor(np.pi)
@@ -50,10 +53,6 @@ def torch_mle(mle_sums_data, estimates_file, worker_type_var='', job_type_var=''
     # I checked that at level 0 there are 37,581 non-zero cells and 5,043 zero cells
     # Whenever there are zero matches, sum_logomega_ig=0 as well. This is because we convert nans to 0 in mle_load_fulldata.py
     
-    c_bump     = .2
-    count_bump = .2 # We thought that what matters is c_bump*count_bump, not each value individually. But when we changed this to c_bump=1 and count_bump=.01 torch couldn't solve the model. I don't understand what's going on but haven't dug very deep. 
-    #omega_bump = .1
-    
     mle_data['sum_c_ig'][mle_data['sum_c_ig']==0]            = c_bump
     mle_data['sum_count_ig'][mle_data['sum_count_ig']==0]    = count_bump
     #mle_data['sum_logomega_ig'][mle_data['sum_logomega_ig']==0] = omega_bump
@@ -73,15 +72,20 @@ def torch_mle(mle_sums_data, estimates_file, worker_type_var='', job_type_var=''
         term_earnings = -( mle_data['obs_employ'] * torch.log(sigma_par * torch.sqrt(2*torch.pi)) + mle_data['sum_logomega'] + (1/(2*torch.pow(sigma_par,2))) * \
         (mle_data['sum_logomega_sq'] - 2*(torch.log(phi_par) * mle_data['sum_logomega_ig']).sum() + ( torch.pow(torch.log(phi_par),2) * mle_data['sum_count_ig'][:,1:]).sum()))
         return term_choice + term_earnings
+
+    # This is the problem we're having with ('occ2Xmeso_first_recode', 'gamma')
+    #>>> mle_data['sum_count_ig'][:,1:].shape
+    #torch.Size([1287, 1371])
+    #>>> mle_data['sum_logomega_ig'].shape
+    #torch.Size([1285, 1371])
     
     
     # SGD
     
-    
     nu_hat    = torch.tensor(nu0,    requires_grad=True)
     sigma_hat = sigma0.clone().detach().requires_grad_(True)
     xi_hat    = torch.tensor(xi0,    requires_grad=True)
-    phi_hat   = phi0.clone().detach().requires_grad_(True)
+    phi_hat   = phi0.clone().detach().requires_grad_(True)  
     
     optimizer = torch.optim.Adam([sigma_hat, nu_hat, xi_hat, phi_hat], lr=2e-3)
     

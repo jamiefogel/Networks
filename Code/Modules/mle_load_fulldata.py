@@ -16,7 +16,7 @@ from os.path import expanduser
 
 ### Values to be defined elsewhere
 
-def mle_load_fulldata(mle_data_filename, mle_data_sums_filename, worker_type_var, job_type_var, alphas_earnings_var, alphas_file, mle_firstyear=np.nan, mle_lastyear=np.nan):
+def mle_load_fulldata(mle_data_filename, mle_data_sums_filename, worker_type_var, job_type_var, alphas_earnings_var, alphas_file, mle_firstyear=np.nan, mle_lastyear=np.nan, worker_type_min_count=None, job_type_min_count=None):
     print('Computing sums for ' + worker_type_var + ' and ' + job_type_var)
 
     # Confirm that worker_type_var and job_type_var exist in the data frame before fully loading it
@@ -28,7 +28,7 @@ def mle_load_fulldata(mle_data_filename, mle_data_sums_filename, worker_type_var
     
     data_full = pd.read_csv(mle_data_filename,usecols=['wid_masked', 'jid_masked', 'year', 'sector_IBGE', 'c', 'ln_real_hrly_wage_dec', alphas_earnings_var, 'iota', 'gamma', worker_type_var, job_type_var])
 
-    if np.isnan(mle_firstyear)==False & np.isnan(mle_lastyear)==False:
+    if np.isnan(mle_firstyear)==False and np.isnan(mle_lastyear)==False:
         data_full = data_full.loc[(data_full['year']>=mle_firstyear) & (data_full['year']<=mle_lastyear)]
                 
     if worker_type_var=='1':
@@ -45,10 +45,21 @@ def mle_load_fulldata(mle_data_filename, mle_data_sums_filename, worker_type_var
         data_full['job_type']    = data_full[job_type_var]
    
     data_full.loc[data_full['gamma']==0, 'job_type'] = 0 #Make sure the job type is set to 0 for non-employed
+
+    # Drop small worker and job types. Failing to do this can cause conformability errors later if very small types end up getting dropped by subsequent sample restrictions
+    if worker_type_min_count is not None and job_type_min_count is None:
+        worker_type_counts = data_full.groupby('worker_type')['worker_type'].transform('count')
+        data_full = data_full.loc[worker_type_counts>=worker_type_min_count]
+    if job_type_min_count is not None and worker_type_min_count is not None:
+        job_type_counts = data_full.groupby('job_type')['job_type'].transform('count')
+        data_full = data_full.loc[job_type_counts>=job_type_min_count]
+    if worker_type_min_count is not None and job_type_min_count is not None:
+        worker_type_counts = data_full.groupby('worker_type')['worker_type'].transform('count')
+        job_type_counts = data_full.groupby('job_type')['job_type'].transform('count')
+        data_full = data_full.loc[(worker_type_counts>=worker_type_min_count) & (job_type_counts>=job_type_min_count)]
     
     # JSF: I think we want to keep gamma and iota hard-coded here because we're going to want to keep using this restriction for sample definition, but subsequently we will allow the user to specify worker and job type vars.
-    data_full_levels = data_full.loc[(data_full['gamma']!=-1) & (data_full['iota']!=-1)]
-    data_full_levels = data_full_levels.loc[(data_full['job_type']!=-1) & (data_full['worker_type']!=-1)] #This is sloppy but for now I'm adding this so that we can set occ4_first_recode=-1 for occ4s that appear very rarely
+    data_full_levels = data_full.loc[(data_full['gamma']!=-1) & (data_full['iota']!=-1) & (data_full['job_type']!=-1) & (data_full['worker_type']!=-1)]  #This is sloppy but for now I'm adding this so that we can set occ4_first_recode=-1 for occ4s that appear very rarely
 
     # Compute the alphas in this file since they should be run on exactly the same data
     gs_sum = data_full_levels.groupby(['job_type','sector_IBGE'])[alphas_earnings_var].sum().to_frame().reset_index().rename(columns={alphas_earnings_var:"gs"})
@@ -71,8 +82,7 @@ def mle_load_fulldata(mle_data_filename, mle_data_sums_filename, worker_type_var
     # We're getting some weird warning messages but I don't think they actually matter. See the "False positives" section here: https://www.dataquest.io/blog/settingwithcopywarning/ or see here: https://stackoverflow.com/questions/42105859/pandas-map-to-a-new-column-settingwithcopywarning
     
     # Keep this one hard coded too
-    data_full_logs = data_full.loc[(data_full['gamma']>0)   & (data_full['iota']!=-1)]
-    data_full_logs = data_full_logs.loc[(data_full['job_type']!=-1) & (data_full['worker_type']!=-1)]
+    data_full_logs = data_full.loc[(data_full['gamma']>0) & (data_full['iota']!=-1) & (data_full['job_type']!=-1) & (data_full['worker_type']!=-1)]
     data_full_logs['temp']     = np.log(data_full_logs['ln_real_hrly_wage_dec'])
     data_full_logs['temp2']    = np.square(data_full_logs['temp'])
     data_full_logs['count']    = 1
@@ -156,8 +166,3 @@ def mle_load_fulldata(mle_data_filename, mle_data_sums_filename, worker_type_var
     # Delete objects to preserve memory and prevent confusion
     del data_full, data_full_levels, data_full_logs, data_levels, data_logs, mle_data_sums, sum_c_ig, sum_c_i, sum_c_g, sum_count_ig, sum_count_i, sum_count_g, obs_all, obs_employ, sum_omega_ig, sum_omega, sum_omega_sq_ig, sum_omega_sq, sum_logomega_ig, sum_logomega, sum_logomega_sq_ig, sum_logomega_sq, I, G
 
-    
-
- 
-   
-    

@@ -266,11 +266,17 @@ if run_all==True:
         est_mle_estimates_filename = root + "Data/derived/MLE_estimates/" + filename_stub + "_mle_estimates_"  + suffix + ".p"
         est_psi_and_k_file         = root + "Data/derived/MLE_estimates/" + filename_stub + "_psi_normalized_" + suffix + "_eta_" + str(eta) + ".p"
         est_alphas_file            = root + "Data/derived/MLE_estimates/" + filename_stub + "_alphas_" + suffix + ".p"
-        if run_query_sums == 1:
-            mle_load_fulldata(est_mle_data_filename, est_mle_data_sums_filename, wtype_var, jtype_var, 'real_hrly_wage_dec', est_alphas_file, mle_firstyear=firstyear_sbm, mle_lastyear=lastyear_sbm)
+        if run_query_sums == True:
+            mle_load_fulldata(est_mle_data_filename, est_mle_data_sums_filename, wtype_var, jtype_var, 'real_hrly_wage_dec', est_alphas_file, mle_firstyear=firstyear_sbm, mle_lastyear=lastyear_sbm, worker_type_min_count=1000)
         if run_mle == True:
             if wtype_var != jtype_var:
-                torch_mle(est_mle_data_sums_filename, est_mle_estimates_filename, wtype_var, jtype_var, level)
+                if idx==('occ2Xmeso_first_recode', 'gamma'):
+                    c_bump=.5
+                    count_bump=.5
+                else:
+                    c_bump=.2
+                    count_bump=.2
+                torch_mle(est_mle_data_sums_filename, est_mle_estimates_filename, wtype_var, jtype_var, level, c_bump=c_bump, count_bump=count_bump)
             else: # Can probably be deleted. torch_mle_diagonal is in june2021 but not aug2021
                 from torch_mle_diagonal import torch_mle_diag
                 torch_mle_diag(est_mle_data_sums_filename, est_mle_estimates_filename, wtype_var, jtype_var, level)
@@ -413,6 +419,7 @@ if run_shock_case_study==True:
     print('Starting shock case study')
     exec(open(root + 'Code/shock_case_study.py').read())
     print('Finished shock case study')
+    # XX The shock case study is currently failing, but I think we need to figure out what we're actually trying to do with it before actually fixing the code
 
 
 
