@@ -8,7 +8,7 @@ Created on Tue Oct  5 14:21:15 2021
 
 import seaborn as sns
 
-mle_data_filename      = homedir + "/Networks/RAIS_exports/earnings_panel/panel_rio_2009_2012_w_kmeans.csv"
+
 data_full = pd.read_csv(mle_data_filename)
 
 ##############################################################################

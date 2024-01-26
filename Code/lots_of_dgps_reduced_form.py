@@ -43,14 +43,6 @@ exec(open('solve_model_functions.py').read())
 # 1. Load everything: mle data, mle data sums, mle estimates, psi and k, model parameters (a_s and alphas)
 ########################################################################################################################
 
-#mle_data_filename      = homedir + "/Networks/RAIS_exports/earnings_panel/panel_rio_2009_2012_level_" + str(level) + ".csv"
-mle_data_filename      = homedir + "/Networks/RAIS_exports/earnings_panel/panel_rio_2009_2012_w_kmeans.csv"
-mle_data_sums_filename = sums_dir + "panel_rio_2009_2012_mle_data_sums_iota_gamma_level_" + str(level) + ".p"
-mle_estimates_filename = mle_dir  + "panel_rio_2009_2012_mle_estimates_iota_gamma_level_" + str(level) + ".p"
-psi_and_k_file         = mle_dir  + "panel_rio_2009_2012_psi_normalized_iota_gamma_level_" + str(level) + "_eta_" + str(eta) + ".p"
-alphas_file            = homedir + "/Networks/Code/jmp_version/MLE_estimates/panel_rio_2009_2012_alphas_iota_gamma_level_" + str(level) + "_eta_" + str(eta) + ".p"
-
-
 
 mle_data_sums = pickle.load(open(mle_data_sums_filename, "rb"), encoding='bytes')
 mle_estimates = pickle.load(open(mle_estimates_filename, "rb"), encoding='bytes')
