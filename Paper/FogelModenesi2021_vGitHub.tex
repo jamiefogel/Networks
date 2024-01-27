@@ -514,7 +514,7 @@ Dots on the left axis represent individual jobs $j$ and dots on the right axis r
 	\begin{subfigure}{\textwidth}
 		\caption{}
 		\begin{tikzpicture}
-		\draw (0, 0) node[inner sep=0] {\includegraphics[width=.8\textwidth]{../Results/intro_figs_part3_2.png}};
+		\draw (0, 0) node[inner sep=0] {\includegraphics[width=.8\textwidth]{../Results/intro_figs/intro_figs_part3_2.png}};
 		\draw (-7.5, 2.3) node[inner sep=0] { $\g=1$};
 		\draw (-7.5, 0) node { $\g=2$};
 		\draw (-7.5, -2.3) node {  $\g=3$};
@@ -526,7 +526,7 @@ Dots on the left axis represent individual jobs $j$ and dots on the right axis r
 		\caption{}
 		\centering
 		\begin{tikzpicture}
-		\draw (0, 0) node[inner sep=0] {\includegraphics[width=.8\textwidth]{../Results/intro_figs_part3_1.png}};
+		\draw (0, 0) node[inner sep=0] {\includegraphics[width=.8\textwidth]{../Results/intro_figs/intro_figs_part3_1.png}};
 		\end{tikzpicture}\\
 	\end{subfigure}
 	\flushleft \footnotesize Dots represent individual workers/jobs; lines represent employment contracts. Network drawn according to 
@@ -669,13 +669,13 @@ Our data contain 13,694,535 unique workers, 552,109 unique jobs, and 20,815,674 
 	\begin{subfigure}{\textwidth}
 		\centering
 		\caption{Workers}
-		\includegraphics[width=0.7\linewidth]{../Results/worker_degree_distribution_hist}
+		\includegraphics[width=0.7\linewidth]{../Results/summary_stats/worker_degree_distribution_hist}
 		\label{fig:worker_degree_distribution_hist}
 	\end{subfigure}
 	\begin{subfigure}{\textwidth}
 		\centering
 		\caption{Jobs}
-		\includegraphics[width=0.7\linewidth]{../Results/job_degree_distribution_hist}
+		\includegraphics[width=0.7\linewidth]{../Results/summary_stats/job_degree_distribution_hist}
 		\label{fig:job_degree_distribution_hist}
 	\end{subfigure}
 	\label{fig:degree_distribution_hist}
@@ -693,7 +693,7 @@ Table \ref{table:transitions_table} also shows that job changes are frequently a
 
 \begin{table}[h!] \centering
 	\caption{Occupation/Sector/Market Transition Frequencies}
-	\input{../Results/transitions_table.tex}  %Created on the RAIS server and exported
+	\input{../Results/summary_stats/transitions_table.tex}  %Created on the RAIS server and exported
 	\footnotesize\flushleft \emph{Notes:} This table presents the fraction of job changes that also involve a change in occupation, sector, market, firm, or establishment. The column ``All Job Changes'' computes the probability that a worker changes occupation, industry, sector, market, firm, or establishment conditional on changing jobs. The column ``Firm Change Only'' presents the same quantities restricting to the set of job changes that also involve a change in firm. The column ``No Firm Change'' restricts to job changes that do \emph{not} involve a change in firm. Since the fraction of job changes that involve a firm change is 0.536, values in the column ``All Job Changes'' equal 0.536 $\times$ ``Firm Change Only'' + (1-0.536) $\times$ ``No Firm Change.'' 5-digit sectors refer to narrow industry codes, while there are 15 IBGE sectors, defined in Table \ref{table:IBGE_sectors}, taken from the Brazilian Institute of Geography and Statistics (IBGE). Values computed using the worker earnings panel described in Section \ref{sec:data} using RAIS data from 2009--2012. 
 	\label{table:transitions_table}
 \end{table}
@@ -720,13 +720,13 @@ We provide five such pieces of evidence. First, we provide descriptive examples 
 	\begin{subfigure}{\textwidth}
 		\centering
 		\caption{Number of Workers Per Worker Type ($\i$)}
-		\includegraphics[width=0.7\linewidth]{../Results/iota_size_distribution}
+		\includegraphics[width=0.7\linewidth]{../Results/summary_stats/iota_size_distribution}
 		\label{fig:iota_size_distribution}
 	\end{subfigure}
 	\begin{subfigure}{\textwidth}
 		\centering
 		\caption{Number of Jobs Per Market ($\g$)}
-		\includegraphics[width=0.7\linewidth]{../Results/gamma_size_distribution}
+		\includegraphics[width=0.7\linewidth]{../Results/summary_stats/gamma_size_distribution}
 		\label{fig:gamma_size_distribution}
 	\end{subfigure}
 	\label{fig:iota_gamma_size_distribution}
