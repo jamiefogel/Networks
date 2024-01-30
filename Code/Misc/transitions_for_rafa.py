@@ -300,3 +300,6 @@ fig.savefig(root + 'Results/for_rafa/binsreg__salario_change__move_distance_hs.p
 # Without actual data points
 
 
+# To do:
+# - Scatter plots where each dot is either a market or an occupation or an industry and we are plotting e.g. move distance against education or mean income or something else.
+# - Convert grau_instr to something more meaningful like years of education or a categorical with 4 categories. 
