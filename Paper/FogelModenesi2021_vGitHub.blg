@@ -25,33 +25,32 @@ Warning--empty journal in Autor2013
 Warning--empty journal in Bartik1991
 Warning--empty journal in BonhommeHolzheuLamadonManresaMogstadSetzler2020
 Warning--empty journal in EngbomGonzagaMoserOlivieri2021
-Warning--empty journal in Grigsby2019
 Warning--empty journal in Kantenga2018
 Warning--empty journal in Nimczik2018
 Warning--empty journal in Tan2018
 You've used 52 entries,
             2984 wiz_defined-function locations,
-            982 strings with 13254 characters,
-and the built_in function-call counts, 42479 in all, are:
-= -- 6537
+            982 strings with 13256 characters,
+and the built_in function-call counts, 42540 in all, are:
+= -- 6559
 > -- 2507
-< -- 682
+< -- 684
 + -- 801
 - -- 448
 * -- 2714
-:= -- 9753
+:= -- 9766
 add.period$ -- 53
 call.type$ -- 52
 change.case$ -- 364
 chr.to.int$ -- 51
-cite$ -- 61
+cite$ -- 60
 duplicate$ -- 560
-empty$ -- 1252
+empty$ -- 1253
 format.name$ -- 1228
-if$ -- 10352
+if$ -- 10376
 int.to.chr$ -- 2
 int.to.str$ -- 0
-missing$ -- 44
+missing$ -- 43
 newline$ -- 162
 num.names$ -- 624
 pop$ -- 749
@@ -66,8 +65,8 @@ text.length$ -- 2
 text.prefix$ -- 0
 top$ -- 0
 type$ -- 208
-warning$ -- 9
+warning$ -- 8
 while$ -- 569
 width$ -- 0
-write$ -- 817
+write$ -- 819
 (There were 3 error messages)
