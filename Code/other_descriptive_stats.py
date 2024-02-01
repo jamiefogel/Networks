@@ -26,10 +26,9 @@ print('Done with NMI')
 ####################################################################################
 
 # XX This doesn't work because I didn;t keep grau_instr, id_estab, or cnpj_raiz and jid/wid need to jid_masked/wid_masked.
-balanced = pd.read_csv(mle_data_filename)
-df_raw = balanced.loc[(balanced.year>=2009) & (balanced.year<=2011)][['wid','wid_masked','jid','jid_masked','cbo2002','gamma_level_0','sector_IBGE','clas_cnae20','grau_instr','cnpj_raiz','id_estab']].rename(columns={'gamma_level_0':'gamma','cnpj_raiz':'id_firm'})
+df = pd.read_csv(mle_data_filename)
+df = df.loc[(df.year>=2009) & (df.year<=2011)][['wid_masked','jid_masked','cbo2002','gamma','sector_IBGE','clas_cnae20','grau_instr','cnpj_raiz','id_estab']].rename(columns={'cnpj_raiz':'id_firm'})
 
-df = df_raw 
 df['occ4'] = pd.to_numeric(df['cbo2002'].astype(str).str.slice(0,4), errors='coerce')
 df['occ2'] = pd.to_numeric(df['cbo2002'].astype(str).str.slice(0,2), errors='coerce')
 df['occ1'] = pd.to_numeric(df['cbo2002'].astype(str).str.slice(0,1), errors='coerce')

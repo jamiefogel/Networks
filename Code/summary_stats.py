@@ -1,6 +1,6 @@
 import graph_tool.all as gt
 import matplotlib.pyplot as plt
-
+import seaborn as sns
 
 
 balanced = pd.read_csv(mle_data_filename)
@@ -120,6 +120,76 @@ g_comp = gt.label_largest_component(model.g)
 frac_in_giant_component = g_comp.a.mean()
 sumstats_dict['frac_in_giant_component'] = frac_in_giant_component
 
+
+# It seems like nodes not in the giant component are kind of just randomly assigned but it doesn't matter since 99% of nodes are in the giant component
+temp = pd.DataFrame({'block':model.state.project_level(0).get_blocks().a,'g_comp':gt.label_largest_component(model.g),'worker_node':model.g.vp.kind.a})
+temp.loc[temp.g_comp==0].block.value_counts()
+
+
+
+##############################################################################
+# To what extent are moves between gammas symmetric? Our model predicts that they are
+#  - This code is copied from what was previously trans_mat_symmetry_analysis.py, which in turn has also been called misc_analysis.py and job_ladder_analysis.py
+###############################################################################
+
+df_trans = pd.read_pickle(root + 'Data/derived/predicting_flows/' + modelname + '_pred_flows_df_trans_ins.p')
+gamma_trans_mat = pd.crosstab(df_trans['gamma_prev'], df_trans['gamma'])
+
+a = np.log(np.array(gamma_trans_mat))
+a[a==np.NINF] = -1
+
+sns.heatmap(a)
+
+np.triu(gamma_trans_mat)
+
+
+a[np.triu_indices(a.shape[0])]
+
+
+b = np.array(gamma_trans_mat)
+
+
+# Correlations between vectorized upper diagonal and lower diagonals of gamma transition matrix
+upper = b[np.triu_indices(b.shape[0])]
+lower = np.transpose(b)[np.triu_indices(b.shape[0])]
+
+
+upper_nodiag = b[np.triu_indices(b.shape[0],k=1)]
+lower_nodiag = np.transpose(b)[np.triu_indices(b.shape[0],k=1)]
+
+print("Correlation between upper and lower triangular matrices: ", np.corrcoef(upper,lower)[0,1])
+print("Correlation between upper and lower triangular matrices (excluding diagonal): ", np.corrcoef(upper_nodiag,lower_nodiag)[0,1])
+
+sumstats_dict['Correlation between upper and lower triangular matrices'] = np.corrcoef(upper,lower)[0,1]
+sumstats_dict['Correlation between upper and lower triangular matrices (excluding diagonal)'] = np.corrcoef(upper_nodiag,lower_nodiag)[0,1]
+
+fig, ax = plt.subplots() 
+ax.scatter(upper_nodiag,lower_nodiag, s=.1)
+ax.set_xlim(0,1000)
+ax.set_ylim(0,1000)
+
+
+c = np.transpose(np.transpose(b)/np.sum(b,axis=1))
+sns.heatmap(c)
+
+upper = c[np.triu_indices(c.shape[0])]
+lower = np.transpose(c)[np.triu_indices(c.shape[0])]
+
+upper_nodiag = c[np.triu_indices(c.shape[0],k=1)]
+lower_nodiag = np.transpose(c)[np.triu_indices(c.shape[0],k=1)]
+
+
+print("Correlation between normalized upper and lower triangular matrices: ", np.corrcoef(upper,lower)[0,1])
+print("Correlation between normalized upper and lower triangular matrices (excluding diagonal): ", np.corrcoef(upper_nodiag,lower_nodiag)[0,1])
+
+sumstats_dict['Correlation between normalized upper and lower triangular matrices'] = np.corrcoef(upper,lower)[0,1]
+sumstats_dict['Correlation between normalized upper and lower triangular matrices (excluding diagonal)'] = np.corrcoef(upper_nodiag,lower_nodiag)[0,1]
+
+
+###############################################################################
+# Write contents of sumstats_dict to a csv
+###############################################################################
+
 # Open a file for writing
 with open(root + 'Results/summary_stats/sumstats.csv', 'w', newline='') as csvfile:
     # Create a CSV writer object
@@ -130,12 +200,4 @@ with open(root + 'Results/summary_stats/sumstats.csv', 'w', newline='') as csvfi
     for key, value in sumstats_dict.items():
         writer.writerow([key, value])
 
-
-# It seems like nodes not in the giant component are kind of just randomly assigned but it doesn't matter since 99% of nodes are in the giant component
-temp = pd.DataFrame({'block':model.state.project_level(0).get_blocks().a,'g_comp':gt.label_largest_component(model.g),'worker_node':model.g.vp.kind.a})
-temp.loc[temp.g_comp==0].block.value_counts()
-
-
-
-
-
+pickle.dump(sumstats_dict, open(root + 'Results/summary_stats/sumstats_dict.p', "wb"))
