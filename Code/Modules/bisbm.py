@@ -33,9 +33,6 @@ class bisbm():
         self.P = np.matrix([])
         self.num_job_blocks = []
         self.num_worker_blocks = []
-        self.alphas = pd.DataFrame()
-
-
 
 
     #################################################################################
@@ -269,7 +266,7 @@ class bisbm():
 
         self.iota_mean_earnings=iota_mean_earnings
 
-#model_rio.compute_alphas(level=2, earnings_file='./data/edges_rio_occ4_indv_data_10.csv', earnings_var='salario', output='./data/rio_alphas_level_2.csv')
+
 
 
     def mcmc_sweeps(self, savefile, tempsavedir='./', numiter=1000, seed=734):
