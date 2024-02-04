@@ -22,6 +22,7 @@ from shapely.geometry import MultiPoint
 from scipy.stats import mstats
 from binsreg import binsregselect, binsreg, binsqreg, binsglm, binstest, binspwc
 from sklearn.linear_model import LinearRegression
+from scipy.stats import linregress
 
 homedir = os.path.expanduser('~')
 root = homedir + '/labormkt/labormkt_rafaelpereira/NetworksGit/'
@@ -36,13 +37,18 @@ from pull_one_year import pull_one_year
 
 
 
-def binned_scatter_plot(X, y, num_bins, plot_actual_data=False, add_linear_fit=False):
+def binned_scatter_plot(X, y, num_bins, ax=None, plot_actual_data=False, add_linear_fit=False, print_correlation=False):
+    valid_indices = ~np.isnan(X) & ~np.isnan(y)
     # Create bins for the independent variable
     X_binned = pd.qcut(X, q=num_bins, duplicates='drop') #, labels=[f'bin_{i}' for i in range(num_bins)]
     # Create a DataFrame with the binned data
     data = pd.DataFrame({'X': X, 'X_binned': X_binned, 'y': y})
     # Create a figure and axes
-    fig, ax = plt.subplots()
+    if ax is None:
+        return_ax = True
+        fig, ax = plt.subplots()
+    else:
+        return_ax = False
     # Plot the actual data points
     if plot_actual_data:
         ax.scatter(X, y, label='Actual data', alpha=0.5)
@@ -50,10 +56,21 @@ def binned_scatter_plot(X, y, num_bins, plot_actual_data=False, add_linear_fit=F
     bin_centers = data.groupby('X_binned').mean()['X']
     bin_means = data.groupby('X_binned').mean()['y']
     ax.scatter(bin_centers, bin_means, color='red', marker='o', label='Bin Mean')
+    # Add linear fit for the underlying data
+    if add_linear_fit:
+        slope, intercept, r_value, p_value, std_err = linregress(X[valid_indices], y[valid_indices])
+        ax.plot(X[valid_indices], intercept + slope * X[valid_indices], 'g-', label=f'Linear Fit: slope={slope:.3f}')
+        ax.text(0.05, 0.95, f'Slope: {slope:.3f}', transform=ax.transAxes)
+    # Print the correlation coefficient
+    if print_correlation:
+        correlation_matrix = np.corrcoef(X[valid_indices], y[valid_indices])
+        correlation_coefficient = correlation_matrix[0, 1]
+        ax.text(0.05, 0.90, f'Corr: {correlation_coefficient:.3f}', transform=ax.transAxes, fontsize=9)
     ax.set_xlabel('X')
     ax.set_ylabel('y')
     ax.legend()
-    return fig, ax
+    if return_ax is True:
+        return fig, ax
 
 
 
@@ -182,6 +199,8 @@ df_person = df_person.merge( df.groupby('wid')[['new_job_ever']].max(), on='wid'
 
 df_trans['change_city'] = (df_trans['codemun']!=df_trans['codemun_next']) & (df_trans['codemun'].notna())
 
+df_trans.to_pickle(root + 'Results/for_rafa/df_trans.p')
+
 #########
 # Change city rates and move distances by education
 moves_by_educ = pd.merge(df_trans.groupby('grau_instr')[['change_city','move_distance']].mean(),df_trans.groupby('grau_instr')['change_city'].size()/len(df_trans) , left_index=True, right_index=True).rename(columns={'change_city_x':'Change City Rate','change_city_y':'Share of Movers', 'move_distance':'Average Move Distance (km)'})
@@ -271,7 +290,7 @@ ax.set_ylabel('Move Distance')
 ax.set_title('College graduates')
 # Save the plot to a PDF file                                                                 
 fig.savefig(root + 'Results/for_rafa/binsreg__move_distance__salario_change_college.pdf', format='pdf')        
-    
+ 
 fig, ax = binned_scatter_plot(df_trans.loc[df_trans.grau_instr==9,'move_distance'], df_trans.loc[df_trans.grau_instr==9,'salario_change'], 20, plot_actual_data=False, add_linear_fit=True)
 ax.set_xlabel('Move Distance')
 ax.set_ylabel('Salary Change')
@@ -295,9 +314,70 @@ ax.set_ylabel('Salary Change')
 ax.set_title('High School Grads')
 # Save the plot to a PDF file                                                                 
 fig.savefig(root + 'Results/for_rafa/binsreg__salario_change__move_distance_hs.pdf', format='pdf')        
-    
-    
-# Without actual data points
+
+
+######################################################################################
+# Separating within-city and across-city moves
+
+# Create a figure with two subplots (one above the other)
+fig, axs = plt.subplots(2, 1, figsize=(8, 10))  # Adjust figsize as needed
+
+# Plot the first chart in the first subplot
+binned_scatter_plot(df_trans.loc[df_trans.change_city==0, 'salario_change'], 
+                    df_trans.loc[df_trans.change_city==0, 'move_distance'], 
+                    20, ax=axs[0], plot_actual_data=False, add_linear_fit=False, print_correlation=True) # , ax=ax1
+
+axs[0].set_xlabel('Salary Change')
+axs[0].set_ylabel('Move Distance')
+axs[0].set_title('Within-City Moves')
+
+# Plot the second chart in the second subplot
+binned_scatter_plot(df_trans.loc[df_trans.change_city==1, 'salario_change'], 
+                    df_trans.loc[df_trans.change_city==1, 'move_distance'], 
+                    20, ax=axs[1], plot_actual_data=False, add_linear_fit=False, print_correlation=True) # , ax=ax2
+
+axs[1].set_xlabel('Salary Change')
+axs[1].set_ylabel('Move Distance')
+axs[1].set_title('Across-City Moves')
+
+# Adjust layout
+plt.tight_layout()
+# Save the plot to a PDF file                                                                 
+fig.savefig(root + 'Results/for_rafa/binsreg__move_distance__salario_change__by_within_city.pdf', format='pdf')        
+ 
+
+by_occupation = df_trans.groupby('cbo2002')[['salario_change','move_distance']].mean()
+by_industry = df_trans.groupby('clas_cnae20')[['salario_change','move_distance']].mean()
+
+# Occupation
+fig, ax = plt.subplots()
+ax.scatter(by_occupation.salario_change, by_occupation.move_distance, alpha=0.5)
+ax.set_xlabel('Salary Change')
+ax.set_ylabel('Move Distance')
+ax.set_title('Move Distance vs. Salary Change by Occupation')
+fig.savefig(root + 'Results/for_rafa/scatter_salario_change__move_distance__by_occupation.pdf', format='pdf')        
+
+fig, ax = binned_scatter_plot(by_occupation.salario_change, by_occupation.move_distance, 20, plot_actual_data=False, add_linear_fit=False, print_correlation=True)
+ax.set_xlabel('Salary Change')
+ax.set_ylabel('Move Distance')
+ax.set_title('Move Distance vs. Salary Change by Occupation (20 Bins)')
+fig.savefig(root + 'Results/for_rafa/binsreg__salario_change__move_distance__by_occupation.pdf', format='pdf')        
+
+# Industry
+fig, ax = plt.subplots()
+ax.scatter(by_industry.salario_change, by_industry.move_distance, alpha=0.5)
+ax.set_xlabel('Salary Change')
+ax.set_ylabel('Move Distance')
+ax.set_title('Move Distance vs. Salary Change by Industry')
+fig.savefig(root + 'Results/for_rafa/scatter_salario_change__move_distance__by_industry.pdf', format='pdf')        
+
+
+fig, ax = binned_scatter_plot(by_industry.salario_change, by_industry.move_distance, 20, plot_actual_data=False, add_linear_fit=False, print_correlation=True)
+ax.set_xlabel('Salary Change')
+ax.set_ylabel('Move Distance')
+ax.set_title('Move Distance vs. Salary Change by Industry (20 bins)')
+fig.savefig(root + 'Results/for_rafa/binsreg__salario_change__move_distance__by_industry.pdf', format='pdf')        
+
 
 
 # To do:
