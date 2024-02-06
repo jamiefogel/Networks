@@ -10,3 +10,7 @@ iota_sizes_by_worker_median,43990.0
 gamma_sizes_by_job_mean,1096.8197855858173
 gamma_sizes_by_job_median,840.0
 frac_in_giant_component,0.9896892910358397
+Correlation between upper and lower triangular matrices,0.997396276580741
+Correlation between upper and lower triangular matrices (excluding diagonal),0.8908613986960177
+Correlation between normalized upper and lower triangular matrices,0.9797243884772465
+Correlation between normalized upper and lower triangular matrices (excluding diagonal),0.6609935369572962
