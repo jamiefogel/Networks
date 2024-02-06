@@ -14,10 +14,10 @@ import pandas as pd
 import numpy as np
 import torch
 
-def dgp(mle_data_filename, mle_data_sums, phi, sigma, equi, firstyear, lastyear, wtypes_to_impute=['occ2Xmeso_first_recode'], jtypes_to_impute=['occ2Xmeso_recode'], nrows=None, replaceyear=None):
+def dgp(mle_data_filename, mle_data_sums, phi, sigma, equi, firstyear, lastyear, sector_var='sector_IBGE', wtypes_to_impute=['occ2Xmeso_first_recode'], jtypes_to_impute=['occ2Xmeso_recode'], nrows=None, replaceyear=None):
     
-    real_data = pd.read_csv(mle_data_filename, usecols=['wid_masked','year','iota','gamma','c', 'sector_IBGE', 'ln_real_hrly_wage_dec'] + wtypes_to_impute + jtypes_to_impute, nrows=nrows)
-    #real_data = pd.read_csv(mle_data_filename, usecols=['wid_masked','year','iota','gamma','c','occ4_first_recode', 'sector_IBGE', 'ln_real_hrly_wage_dec'])
+    real_data = pd.read_csv(mle_data_filename, usecols=['wid_masked','year','iota','gamma','c', sector_var, 'ln_real_hrly_wage_dec'] + wtypes_to_impute + jtypes_to_impute, nrows=nrows)
+    #real_data = pd.read_csv(mle_data_filename, usecols=['wid_masked','year','iota','gamma','c','occ4_first_recode', sector_var, 'ln_real_hrly_wage_dec'])
     real_data = real_data[(real_data['gamma']!=-1) & (real_data['iota']!=-1)]
     real_data = real_data.loc[(real_data.year>=firstyear) & (real_data.year<=lastyear)]
     
@@ -31,11 +31,11 @@ def dgp(mle_data_filename, mle_data_sums, phi, sigma, equi, firstyear, lastyear,
     
     
     
-    iotas_and_occs = real_data.drop(columns = ['gamma', 'sector_IBGE'] + jtypes_to_impute).sort_values(by=['iota','wid_masked','year']).reset_index().drop(columns='index')
+    iotas_and_occs = real_data.drop(columns = ['gamma', sector_var] + jtypes_to_impute).sort_values(by=['iota','wid_masked','year']).reset_index().drop(columns='index')
     
     iotas_and_occs['gamma'] = np.nan
     iotas_and_occs['ln_real_hrly_wage_dec'] = np.nan
-    iotas_and_occs['sector_IBGE'] = np.nan
+    iotas_and_occs[sector_var] = np.nan
     
     iota_counts = iotas_and_occs.index.to_series().groupby(iotas_and_occs['iota']).agg(['count']).reset_index()
     
@@ -55,7 +55,7 @@ def dgp(mle_data_filename, mle_data_sums, phi, sigma, equi, firstyear, lastyear,
     # Draw other job classifications
 
     jtypes_dict = {}
-    for jtype in ['sector_IBGE'] + jtypes_to_impute:
+    for jtype in [sector_var] + jtypes_to_impute:
         N = int(real_data[jtype].nunique())
         jtype_mode = int(real_data[jtype].mode())
         

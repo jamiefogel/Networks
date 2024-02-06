@@ -19,11 +19,23 @@ homedir = os.path.expanduser('~')
 #a_s_new/a_s
 #Out[41]: tensor([[1.0000, 0.7991, 0.9027, 1.1658, 1.1191, 0.9558, 0.9907, 1.0555, 1.0266, 1.2481, 1.1903, 1.0655, 1.0227, 1.0735, 1.1011]], dtype=torch.float64)
 
-sector_data = pd.read_csv(root + "Data/raw/IBGE/Conta_da_producao_2002_2017_xls/sectors.csv")
+# This is the old version that did Rio only
+#sector_data = pd.read_csv(root + "Data/raw/IBGE/Conta_da_producao_2002_2017_xls/sectors.csv")
+#sector_data = sector_data.loc[(sector_data['year']>2002)]
+
+
+states = [20, 22, 23]
+dfs = []
+for state in states:
+    df = pd.read_csv(f"{sector_data_filepath}/sectors_{state}.csv")
+    df['state'] = state
+    dfs.append(df)
+
+sector_data = pd.concat(dfs, ignore_index=True)    
 sector_data = sector_data.loc[(sector_data['year']>2002)]
 
-y_ts = sector_data.pivot_table(index=['year'], columns=['s'], values=['y_s'])
-p_ts = sector_data.pivot_table(index=['year'], columns=['s'], values=['p_s'])
+y_ts = sector_data.pivot_table(index=['year'], columns=['state','s'], values=['y_s'])
+p_ts = sector_data.pivot_table(index=['year'], columns=['state','s'], values=['p_s'])
 
 if S != y_ts.shape[1]:
     ValueError('Number of sectors do not agree.')
@@ -31,13 +43,14 @@ if S != y_ts.shape[1]:
 T = y_ts.shape[0]
 
 # Choose the sector to normalize to 1
-a_base = 1
+sector_base = 1
+state_base = 20
 
 # This normalizes a_1 to 1 in the pre-period but allows it to grow to reflect overall economic growth
-production = p_ts.loc[pre,('p_s',  a_base)]**(1/eta) * y_ts.loc[pre,('y_s',  a_base)]
+production = p_ts.loc[pre,('p_s', state_base, sector_base)]**(1/eta) * y_ts.loc[pre,('y_s', state_base, sector_base)]
 
 a_ts = (p_ts.values**(1/eta) * y_ts.values) / production
-
+# a = pd.DataFrame(a_ts, index=p_ts.index, columns=p_ts.columns.get_level_values(1))
 a_s = torch.tensor(a_ts[p_ts.index == pre,])
 
 # 1   "Agriculture, livestock, forestry, fisheries and aquaculture"
@@ -71,21 +84,6 @@ sector_labels = ["Agriculture, livestock, forestry, fisheries and aquaculture",
                   "Public admin, defense, educ and health and soc security",
                   "Private health and education",
                   "Arts, culture, sports and recreation and other svcs"]
-
-
-VA_df = pd.DataFrame(columns=['year', 'value_added', 'sector'])
-for s in range(S):
-    VA_df_temp = pd.read_excel(root + "Data/raw/IBGE/Conta_da_producao_2002_2017_xls/Tabela22.xls", sheet_name='Tabela22.2', usecols="A,F", skiprows=50, nrows=15, header=None, names=['year','value_added'])
-    VA_df_temp['sector'] = s
-    VA_df = VA_df.append(VA_df_temp)
-
-
-
-
-# If we are doing the Olympics shock
-#a_s_rio_shock = torch.tensor(a_ts[p_ts.index == post,])
-
-covid_sectors = [8,15]
 
 # https://fred.stlouisfed.org/series/LABSHPBRA156NRUG
 #x_s = .56

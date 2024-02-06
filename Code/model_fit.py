@@ -49,12 +49,13 @@ for idx in classification_list: #
     fit_psi_hat = pickle.load(open(fit_psi_and_k_file, "rb"), encoding='bytes')['psi_hat']
 
     fit_alphags=load_alphas(fit_alphas_file)
+    alphags = alphags.repeat(1, num_states) # XX Added this on 2/1/2024. Still will need to do more work to fully integrate. 
     if jtype_var == 'sector_IBGE':
         fit_b_gs = torch.diag(x_s * torch.ones(S))
     else:
         fit_b_gs = fit_alphags * x_s
 
-
+    # a_ts and p_ts are defined in load_model_parameters.py
     rvals =  model_fit(fit_mle_data_filename, fit_mle_data_sums, fit_mle_estimates, fit_psi_hat, S, eta, level, fit_b_gs, wtype_var, jtype_var, a_ts, p_ts, 2009, 2014, figuredir)
     fit_returnvals.append(rvals)
 

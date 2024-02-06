@@ -65,6 +65,7 @@ run_create_earnings_panel = False
 maxrows=None
 modelname = '3states_2009to2011'
 #modelname = 'synthetic_data_3states_2009to2012'
+filename_stub = "panel_"+modelname
 rais_filename_stub =  '~/rais/RAIS/csv/brasil' 
 #rais_filename_stub = root + './Data/raw/synthetic_data_'
 
@@ -90,7 +91,8 @@ pre = 2009
 post = 2014
 eta = 2
 year = pre
-S = 15
+S = 45
+num_states = 3 # This is relevant for knowing how many repetitions of the alphags matrix to make. One for each state. 
 
 
 xi_outopt_scalar = 0
@@ -103,19 +105,20 @@ np.set_printoptions(linewidth=200)
 np.set_printoptions(suppress=True)
 
 
-run_all = True
-run_mle = True
-run_query_sums = True
-run_normalization = True
+run_all = False
+run_mle = False
+run_query_sums = False
+run_normalization = False
 solve_GE_silently = True
 a_s_variation = True
 
-run_occ_counts = True
-run_shock_case_study=True
+run_intro_figs = False
+run_occ_counts = False
+run_shock_case_study=False
 run_reduced_form=True
-run_model_fit=True
-run_concentration_figures=True
-run_correlograms=True
+run_model_fit=False
+run_concentration_figures=False
+run_correlograms=False
 run_predictions=False
 run_gamma_summary_stats=False
 
@@ -134,7 +137,7 @@ classification_list = [('iota','gamma'), ('occ2_first_recode','sector_IBGE'), ('
 
 
 
-
+\
 ################################################################
 ## PULL RAW DATA FROM RAIS, RUN SBM, CREATE EARNINGS PANEL (from original IPEA/do_all_ipea.py)
 ################################################################
@@ -163,7 +166,7 @@ if run_pull==True:
     print('Starting pull_one_year() at ', datetime.now())
     for year in range(firstyear_panel,lastyear_panel+1):
         print(year, ' ', datetime.now())
-        pull_one_year(year, 'cbo2002', savefile='./Data/derived/raw_data_sbm_' + modelname + '_' + str(year) + '.p',state_codes=state_codes, age_lower=25, age_upper=55, othervars=['data_adm','data_deslig','tipo_salario','rem_dez_r','horas_contr','clas_cnae20'], parse_dates=['data_adm','data_deslig'], nrows=maxrows, filename=rais_filename_stub + str(year) + '.csv')
+        pull_one_year(year, 'cbo2002', savefile='./Data/derived/raw_data_sbm_' + modelname + '_' + str(year) + '.p',state_codes=state_codes, age_lower=25, age_upper=55, othervars=['data_adm','data_deslig','tipo_salario','rem_dez_r','horas_contr','clas_cnae20','cnpj_raiz','grau_instr'], parse_dates=['data_adm','data_deslig'], nrows=maxrows, filename=rais_filename_stub + str(year) + '.csv')
         
 ################################################################################################
 # Append raw data for SBM
@@ -225,13 +228,14 @@ if run_create_earnings_panel==True:
 #  Create intro figs
 #--------------------------
 
-exec(open(root + 'Code/intro_figs.py').read())
+if run_intro_figs==True:
+    exec(open(root + 'Code/intro_figs.py').read())
 
 
 #--------------------------
 #  LOAD DATA AND RUN MLE
 #--------------------------
-filename_stub = "panel_"+modelname
+
 # Define filenames
 if 1==1:
     mle_data_filename      = root + "Data/derived/earnings_panel/" + filename_stub + "_level_0.csv"
@@ -252,6 +256,8 @@ if 1==1:
 #--------------------------
 # LOAD sector-level production and other related info
 #--------------------------
+sector_data_filepath = root + "Data/raw/IBGE/Conta_da_producao_2002_2017_xls"
+exec(open(root + 'Code/process_ibge_data.py').read())
 exec(open(root + 'Code/load_model_parameters.py').read())
 
 
@@ -378,37 +384,6 @@ if run_model_fit==True:
     exec(open(root + 'Code/model_fit.py').read())
     print('Finished model fit')
 
-''' 
-
-model_fit.py failed on occ4_first_recode sector_IBGE
-
-OUTPUT BELOW:
-
----------------------------------------------
-occ4_first_recode sector_IBGE
----------------------------------------------
- 
-CONVERGED!
- 
-CONVERGED!
-/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/Code/Modules/model_fit_func.py:54: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
-  MSE = (torch.sum( wgt * (torch.tensor(x-y)**2))/torch.sum(wgt)).item()
-MSE 0.0169806987330254
-/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/Code/Modules/model_fit_func.py:54: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
-  MSE = (torch.sum( wgt * (torch.tensor(x-y)**2))/torch.sum(wgt)).item()
-MSE 0.0169806987330254
-/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/Code/Modules/model_fit_func.py:54: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
-  MSE = (torch.sum( wgt * (torch.tensor(x-y)**2))/torch.sum(wgt)).item()
-MSE 0.0169806987330254
-Traceback (most recent call last):
-  File "<stdin>", line 1, in <module>
-  File "<string>", line 58, in <module>
-  File "/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/Code/Modules/model_fit_func.py", line 290, in model_fit
-    make_scatter(E_phi_no_N_pre, ln_wage_no_N_iota_pre, 'E_phi_no_N_pre', 'ln_wage_no_N_iota_pre', xlabel='Model', ylabel='Actual', xlim=(1.5,4.5), ylim=(1.5,4.5), title=r'$\Phi$ versus actual log wages; 2009, level ' + str(level), filename=figuredir + '/' + 'model_fit_cross_section_pre_level_' + worker_type_var + "_" + job_type_var + "_" + "level_" + str(level) + '_eta_' + str(eta) + '.png', printvars=False)
-  File "/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/Code/Modules/model_fit_func.py", line 54, in make_scatter
-    MSE = (torch.sum( wgt * (torch.tensor(x-y)**2))/torch.sum(wgt)).item()
-RuntimeError: The size of tensor a (573) must match the size of tensor b (570) at non-singleton dimension 0
-'''
 
 if run_reduced_form==True:
     print('Starting reduced form')
@@ -419,7 +394,8 @@ if run_shock_case_study==True:
     print('Starting shock case study')
     exec(open(root + 'Code/shock_case_study.py').read())
     print('Finished shock case study')
-    # XX The shock case study is currently failing, but I think we need to figure out what we're actually trying to do with it before actually fixing the code
+    # XX The shock case study is currently failing, but I think we need to figure out what we're actually trying to do with it before actually fixing the code. The error is below. 
+    # FileNotFoundError: [Errno 2] No such file or directory: '/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/Data/dgp/dgp_equi_AccomFood.p'
 
 
 
@@ -439,12 +415,14 @@ if run_shock_case_study==True:
 #  Miscellaneous
 #--------------------------
 
-exec(open(root + 'Code/trans_mat_symmetry_analysis.py').read())  # Previously called misc_analysis
-exec(open(root + 'Code/classification_error_analysis.py').read())
 # XX These two should probably be combined. I think I should put everything that actually makes it into the paper into summary_stats.py and everything else in other_descriptive_stats.py
 exec(open(root + 'Code/summary_stats.py').read())
 # Stuff in this script doesn't make it into the final paper except for some ocupation transition rate stats that I think we should cut. Need to make some edits to the code before it will run so commenting it out for now. 
-#exec(open(root + 'Code/other_descriptive_stats.py').read())
+exec(open(root + 'Code/other_descriptive_stats.py').read())
+
+
+exec(open(root + 'Code/classification_error_analysis.py').read())
+
 #exec(open(root + 'Code/akm_exercise.py').read())
 
 #--------------------------

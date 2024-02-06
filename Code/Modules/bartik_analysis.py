@@ -35,7 +35,7 @@ import matplotlib.pyplot as plt
 #wtype = 'occ2Xmeso_first_recode'
 #jtype = 'gamma'
 
-def bartik_analysis(mle_data_filename, wtype, jtype, firstyear, lastyear, figuredir='', equi_shock=None, equi_pre=None, y_ts=None, shock_source='model', savefile_stub='', print_regs=True):
+def bartik_analysis(mle_data_filename, wtype, jtype, sector_var, firstyear, lastyear, figuredir='', equi_shock=None, equi_pre=None, y_ts=None, shock_source='model', savefile_stub='', print_regs=True):
         
     upperlim = 800 # Drop very large wages
     shock_type = savefile_stub.replace('fake_data_', '')
@@ -85,7 +85,7 @@ def bartik_analysis(mle_data_filename, wtype, jtype, firstyear, lastyear, figure
     
     # Worker type exposure measures (edited to not hard code the worker type variable)
     # XX we also shouldn't hard code separate measures for sector vs gamma since in this case they're both just different ways of classifying jobs. I think I need to replace the pairs of lines below with single lines that reference 'jtype' instead of 'gamma' or 'sector'
-    crosstab_wtype_sector = pd.crosstab(index = data_full.loc[data_full.year==firstyear                        ,wtype], columns = data_full.loc[data_full.year==firstyear, 'sector_IBGE'])
+    crosstab_wtype_sector = pd.crosstab(index = data_full.loc[data_full.year==firstyear                        ,wtype], columns = data_full.loc[data_full.year==firstyear, sector_var])
     # XX Need to think about if I need to make the cut data_full[jtype]>0 for jtypes other than gamma
     crosstab_wtype_jtype  = pd.crosstab(index = data_full.loc[(data_full.year==firstyear) & (data_full[jtype]>0),wtype], columns = data_full.loc[(data_full.year==firstyear) & (data_full[jtype]>0), jtype])   # Drop non-employment from these shares
     sector_shares_wtype = crosstab_wtype_sector.div(crosstab_wtype_sector.sum(axis=1),axis=0)
@@ -101,7 +101,7 @@ def bartik_analysis(mle_data_filename, wtype, jtype, firstyear, lastyear, figure
     # Reshape to wide
     data_full['employed'] = ((data_full[jtype]>0)*1).astype(float)
     data_full['year'] = data_full.year.astype(str)
-    data_full = data_full.pivot(index='wid_masked', columns='year', values=['employed','real_hrly_wage_dec','ln_real_hrly_wage_dec',wtype,'sector_IBGE',jtype])
+    data_full = data_full.pivot(index='wid_masked', columns='year', values=['employed','real_hrly_wage_dec','ln_real_hrly_wage_dec',wtype,sector_var,jtype])
     
     data_full.columns = ['_'.join(col) for col in data_full.columns.values]
     data_full = data_full.drop(columns=[wtype + '_' + str(lastyear)]).rename(columns={wtype + '_' + str(firstyear) :wtype})

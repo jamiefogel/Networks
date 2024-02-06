@@ -39,7 +39,6 @@ firstyear=2009
 lastyear=2012
 
 
-
 ########################################################################################################################
 # 1. Load everything: mle data, mle data sums, mle estimates, psi and k, model parameters (a_s and alphas)
 ########################################################################################################################
@@ -63,6 +62,7 @@ mle_estimates = pickle.load(open(mle_estimates_filename, "rb"), encoding='bytes'
 psi_hat = pickle.load(open(psi_and_k_file, "rb"), encoding='bytes')['psi_hat']
 
 alphags = load_alphas(alphas_file)
+alphags = alphags.repeat(1, num_states)
 b_gs = alphags * x_s
 
 a_s_pre = torch.tensor(a_ts[p_ts.index == firstyear,])
@@ -198,7 +198,7 @@ if 1==1:
 
 print('Location '+str(1))
 
-fake_data_pre       = dgp(mle_data_filename, mle_data_sums, phi_pre,       mle_estimates['sigma_hat'], equi_pre,       2009, 2009, wtypes_to_impute=['occ2Xmeso_first_recode','occ4_first_recode'], jtypes_to_impute=['occ2Xmeso_recode','occ4_recode'])
+fake_data_pre       = dgp(mle_data_filename, mle_data_sums, phi_pre,       mle_estimates['sigma_hat'], equi_pre,       2009, 2009, wtypes_to_impute=['occ2Xmeso_first_recode','occ4_first_recode'], jtypes_to_impute=['occ2Xmeso_recode','occ4_recode'], sector_var='sector_IBGE_state')
 
 
 # The version we used for the current figures didn't get saved. This is a new version of fake_data_free
@@ -209,10 +209,10 @@ fake_data_pre = pd.read_csv(fake_data_pre_filename)
 
 print('Location '+str(2))
 
-fake_data_pre_rio   = dgp(mle_data_filename, mle_data_sums, phi_pre,       mle_estimates['sigma_hat'], equi_pre,     2009, 2012)
-fake_data_rio       = dgp(mle_data_filename, mle_data_sums, phi_rio,       mle_estimates['sigma_hat'], equi_rio,     2014, 2014)
+fake_data_pre_rio   = dgp(mle_data_filename, mle_data_sums, phi_pre,       mle_estimates['sigma_hat'], equi_pre,     2009, 2012, sector_var='sector_IBGE_state')
+fake_data_rio       = dgp(mle_data_filename, mle_data_sums, phi_rio,       mle_estimates['sigma_hat'], equi_rio,     2014, 2014, sector_var='sector_IBGE_state')
 '''
-fake_data_xxx       = dgp(mle_data_filename, mle_data_sums, phi_xxx,       mle_estimates['sigma_hat'], equi_xxx,     2014, 2014)
+fake_data_xxx       = dgp(mle_data_filename, mle_data_sums, phi_xxx,       mle_estimates['sigma_hat'], equi_xxx,     2014, 2014, sector_var='sector_IBGE_state')
 '''
 
 print('Location '+str(3))
@@ -270,7 +270,7 @@ classification_list3 = [('iota','gamma'), ('iota','occ2Xmeso_recode'), ('occ2Xme
 for idx in classification_list2: 
     print(idx[0])
     print(idx[1])
-    (res1, res2, data) = bartik_analysis(mle_data_filename, idx[0], idx[1], 2009, 2014, y_ts=y_ts, shock_source='data', figuredir=figuredir, savefile_stub='real_data')
+    (res1, res2, data) = bartik_analysis(mle_data_filename, idx[0], idx[1], 'sector_IBGE_state', 2009, 2014, y_ts=y_ts, shock_source='data', figuredir=figuredir, savefile_stub='real_data')
     dict = {'wtype':idx[0], 'jtype':idx[1], 'reg_output_nojtype': res1, 'reg_output_jtype': res2}
     reg_dict[idx] = dict
 
@@ -326,7 +326,7 @@ with open(figuredir + f'reduced_form/{modelname}_real_data_rio_shock.tex', "w") 
 # Let's loop over sectors and do a positive and a negative shock for each
 ##############################################################################################################################
 ##############################################################################################################################
-#    (res1, res2, data) = bartik_analysis(mle_data_filename, idx[0], idx[1], 2009, 2014, y_ts=y_ts, shock_source='data', figuredir=figuredir, savefile_stub='real_data')
+#    (res1, res2, data) = bartik_analysis(mle_data_filename, idx[0], idx[1], 'sector_IBGE_state', 2009, 2014, y_ts=y_ts, shock_source='data', figuredir=figuredir, savefile_stub='real_data')
 
 print('Location '+str(8))
 
@@ -359,7 +359,7 @@ for s in range(S):
                 silent = solve_GE_silently
                 )
     phi_shock_loop = equi_neg['w_g'] * psi_hat
-    fake_data = dgp(mle_data_filename, mle_data_sums, phi_shock_loop,  mle_estimates['sigma_hat'], equi_neg,  2013, 2013, replaceyear='2016')
+    fake_data = dgp(mle_data_filename, mle_data_sums, phi_shock_loop,  mle_estimates['sigma_hat'], equi_neg,  2013, 2013, replaceyear='2016', sector_var='sector_IBGE_state')
     fake_data_filename = root + "Data/derived/dgp/fake_data_temp.csv"
     fake_data = fake_data.append(fake_data_pre)
     fake_data.sort_values(by=['wid_masked','year'], inplace=True)
@@ -367,7 +367,7 @@ for s in range(S):
     for idx in classification_list3:
         if idx[1]!='occ4_recode':
             print(f'Running sector {s} positive shock for wtype={idx[0]} and jtype={idx[1]}')
-            (res1, res2, data) = bartik_analysis(fake_data_filename, idx[0], idx[1], 2009, 2016, y_ts=y_ts, shock_source='data', savefile_stub='fake_data_sector' +str(s+1) + 'neg')
+            (res1, res2, data) = bartik_analysis(fake_data_filename, idx[0], idx[1], 'sector_IBGE_state', 2009, 2016, y_ts=y_ts, shock_source='data', savefile_stub='fake_data_sector' +str(s+1) + 'neg')
             sim_30_shock_reg_dict[(s, 'neg', idx[0], idx[1])] = {'sector':s+1,'positive_or_negative':'negative','wtype':idx[0], 'jtype':idx[1], 'reg_output_nojtype': res1, 'reg_output_jtype': res2}
     del fake_data
     ########################
@@ -396,7 +396,7 @@ for s in range(S):
                 silent = solve_GE_silently
                 )
     phi_shock_loop = equi_pos['w_g'] * psi_hat
-    fake_data = dgp(mle_data_filename, mle_data_sums, phi_shock_loop,  mle_estimates['sigma_hat'], equi_pos,  2013, 2013, replaceyear='2016')
+    fake_data = dgp(mle_data_filename, mle_data_sums, phi_shock_loop,  mle_estimates['sigma_hat'], equi_pos,  2013, 2013, replaceyear='2016', sector_var='sector_IBGE_state')
     fake_data_filename = root + "Data/derived/dgp/fake_data_temp.csv"
     fake_data = fake_data.append(fake_data_pre)
     fake_data.sort_values(by=['wid_masked','year'], inplace=True)
@@ -405,7 +405,7 @@ for s in range(S):
         if idx[1]!='occ4_recode':   # occ4_recode is causing this to crash for some reason and it's not important so dropping it
             print(f'Running sector {s} positive shock for wtype={idx[0]} and jtype={idx[1]}')
             # Run the Bartik analysis for specified worker type, job type, negatively shocked sector
-            (res1, res2, data) = bartik_analysis(fake_data_filename, idx[0], idx[1], 2009, 2016, y_ts=y_ts, shock_source='data', savefile_stub='fake_data_sector' +str(s+1) + 'pos')
+            (res1, res2, data) = bartik_analysis(fake_data_filename, idx[0], idx[1], 'sector_IBGE_state', 2009, 2016, y_ts=y_ts, shock_source='data', savefile_stub='fake_data_sector' +str(s+1) + 'pos')
             sim_30_shock_reg_dict[(s, 'pos', idx[0], idx[1])] = {'sector':s+1,'positive_or_negative':'positive','wtype':idx[0], 'jtype':idx[1], 'reg_output_nojtype': res1, 'reg_output_jtype': res2}
     del fake_data
 

@@ -17,6 +17,7 @@ import torch
 # Load alphas  
 ################################################################################
 
+# Note: the alphas are compute in mle_load_fulldata.py
 def load_alphas(alphas_file):
     param = pd.read_pickle(alphas_file)
     
