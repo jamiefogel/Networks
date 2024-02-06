@@ -131,7 +131,8 @@ for year in range(firstyear, lastyear+1):
     raw['start_date'] = pd.to_datetime(raw['data_adm'], errors='coerce')
     raw['end_date'] = pd.to_datetime(raw['data_deslig'], errors='coerce')
     raw.drop(columns=['data_adm','data_deslig'], inplace=True)
-    raw['jid'] = raw['id_estab'] + '_' + raw['cbo2002']
+    raw['occ4']= raw['cbo2002'].str[0:4]
+    raw['jid'] = raw['id_estab'] + '_' + raw['occ4']
     raw.rename(columns={'pis':'wid'}, inplace=True)
     raw['year'] = int(year)
     raw_dfs[year] = raw
@@ -346,40 +347,21 @@ plt.tight_layout()
 fig.savefig(root + 'Results/for_rafa/binsreg__move_distance__salario_change__by_within_city.pdf', format='pdf')        
  
 
-by_occupation = df_trans.groupby('cbo2002')[['salario_change','move_distance']].mean()
-by_industry = df_trans.groupby('clas_cnae20')[['salario_change','move_distance']].mean()
+varname_dict={'occupation':'cbo2002','industry':'clas_cnae20','market':'gamma'}
+for group in ['market','occupation','industry']:
+    collapsed = df_trans.groupby(varname_dict[group])[['salario_change','move_distance']].mean()
+    # Scatter
+    fig, ax = plt.subplots()
+    ax.scatter(collapsed.salario_change, collapsed.move_distance, alpha=0.5)
+    ax.set_xlabel('Salary Change')
+    ax.set_ylabel('Move Distance')
+    ax.set_title(f'Move Distance vs. Salary Change by {group.capitalize()}')
+    fig.savefig(root + f'Results/for_rafa/scatter_salario_change__move_distance__by_{group}.pdf', format='pdf')
+    # Binscatter
+    fig, ax = binned_scatter_plot(collapsed.salario_change, collapsed.move_distance, 20, plot_actual_data=False, add_linear_fit=False, print_correlation=True)
+    ax.set_xlabel('Salary Change')
+    ax.set_ylabel('Move Distance')
+    ax.set_title(f'Move Distance vs. Salary Change by {group.capitalize()} (20 Bins)')
+    fig.savefig(root + f'Results/for_rafa/binsreg__salario_change__move_distance__by_{group}.pdf', format='pdf')        
+    
 
-# Occupation
-fig, ax = plt.subplots()
-ax.scatter(by_occupation.salario_change, by_occupation.move_distance, alpha=0.5)
-ax.set_xlabel('Salary Change')
-ax.set_ylabel('Move Distance')
-ax.set_title('Move Distance vs. Salary Change by Occupation')
-fig.savefig(root + 'Results/for_rafa/scatter_salario_change__move_distance__by_occupation.pdf', format='pdf')        
-
-fig, ax = binned_scatter_plot(by_occupation.salario_change, by_occupation.move_distance, 20, plot_actual_data=False, add_linear_fit=False, print_correlation=True)
-ax.set_xlabel('Salary Change')
-ax.set_ylabel('Move Distance')
-ax.set_title('Move Distance vs. Salary Change by Occupation (20 Bins)')
-fig.savefig(root + 'Results/for_rafa/binsreg__salario_change__move_distance__by_occupation.pdf', format='pdf')        
-
-# Industry
-fig, ax = plt.subplots()
-ax.scatter(by_industry.salario_change, by_industry.move_distance, alpha=0.5)
-ax.set_xlabel('Salary Change')
-ax.set_ylabel('Move Distance')
-ax.set_title('Move Distance vs. Salary Change by Industry')
-fig.savefig(root + 'Results/for_rafa/scatter_salario_change__move_distance__by_industry.pdf', format='pdf')        
-
-
-fig, ax = binned_scatter_plot(by_industry.salario_change, by_industry.move_distance, 20, plot_actual_data=False, add_linear_fit=False, print_correlation=True)
-ax.set_xlabel('Salary Change')
-ax.set_ylabel('Move Distance')
-ax.set_title('Move Distance vs. Salary Change by Industry (20 bins)')
-fig.savefig(root + 'Results/for_rafa/binsreg__salario_change__move_distance__by_industry.pdf', format='pdf')        
-
-
-
-# To do:
-# - Scatter plots where each dot is either a market or an occupation or an industry and we are plotting e.g. move distance against education or mean income or something else.
-# - Convert grau_instr to something more meaningful like years of education or a categorical with 4 categories. 

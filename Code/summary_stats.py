@@ -1,9 +1,8 @@
 import graph_tool.all as gt
 import matplotlib.pyplot as plt
 import seaborn as sns
+import csv
 
-
-balanced = pd.read_csv(mle_data_filename)
 model = pickle.load(open('./Data/derived/sbm_output/model_'+modelname+'.p', "rb" ) )
 
 sumstats_dict = {}
