@@ -23,3 +23,5 @@ Code/MarketPower/nested_logit.p
 
 Code/Misc/stats_for_jamie_fixed.p
 *.cpython-36.pyc
+Results/for_rafa/results_dict.p
+Results/for_rafa/df_trans.p
