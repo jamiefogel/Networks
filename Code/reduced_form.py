@@ -36,8 +36,6 @@ np.random.seed(20210316)
 #sums_dir= root + "Data/mle_data_sums/"
 
 firstyear=2009
-lastyear=2012
-
 
 ########################################################################################################################
 # 1. Load everything: mle data, mle data sums, mle estimates, psi and k, model parameters (a_s and alphas)

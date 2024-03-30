@@ -137,7 +137,7 @@ classification_list = [('iota','gamma'), ('occ2_first_recode','sector_IBGE'), ('
 
 
 
-\
+
 ################################################################
 ## PULL RAW DATA FROM RAIS, RUN SBM, CREATE EARNINGS PANEL (from original IPEA/do_all_ipea.py)
 ################################################################
@@ -204,8 +204,9 @@ if run_sbm==True:
 
     
 if run_sbm_mcmc==True:
+    model = pickle.load(open('./Data/derived/sbm_output/model_'+modelname+'.p', "rb" ))
     model.mcmc_sweeps('./Data/derived/sbm_output/model_'+modelname+'_mcmc.p', tempsavedir='./Data/derived/sbm_output/', numiter=1000, seed=734)
-    pickle.dump( model, open('./Data/derived/sbm_output/model_'+modelname+'.p', "wb" ), protocol=4 )
+    pickle.dump( model, open('./Data/derived/sbm_output/model_'+modelname+'_MCMC.p', "wb" ), protocol=4 )
 
 
 ################################################################################################

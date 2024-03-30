@@ -22,3 +22,4 @@ Results/meso_maps/*.png
 Code/MarketPower/nested_logit.p
 
 Code/Misc/stats_for_jamie_fixed.p
+*.cpython-36.pyc

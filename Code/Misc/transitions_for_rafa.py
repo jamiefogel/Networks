@@ -347,7 +347,7 @@ plt.tight_layout()
 fig.savefig(root + 'Results/for_rafa/binsreg__move_distance__salario_change__by_within_city.pdf', format='pdf')        
  
 
-varname_dict={'occupation':'cbo2002','industry':'clas_cnae20','market':'gamma'}
+varname_dict={'occupation':'cbo2002','industry':'clas_cnae20','market':'gamma', 'worker-type':'iota'}
 for group in ['market','occupation','industry']:
     collapsed = df_trans.groupby(varname_dict[group])[['salario_change','move_distance']].mean()
     # Scatter

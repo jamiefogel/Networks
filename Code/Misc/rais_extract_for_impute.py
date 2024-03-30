@@ -24,11 +24,12 @@ state_codes = [31, 33, 35]
 
 incomevars = ['salario', 'rem_dez_r', 'rem_med_r', 'vl_rem_01', 'vl_rem_02', 'vl_rem_03', 'vl_rem_04', 'vl_rem_05', 'vl_rem_06', 'vl_rem_07', 'vl_rem_08', 'vl_rem_09', 'vl_rem_10', 'vl_rem_11', 'vl_rem_12']
 
-usecols=['pis', 'id_estab', 'cnpj_raiz', 'uf', 'grau_instr','codemun','cbo2002','clas_cnae20','genero','grau_instr','idade','nacionalidad','raca_cor','salario','tipo_vinculo']  # + incomevars For now, the monthly incme vars probably just use up disk space and don't add much because in Census we will at best have quarterly earnings through LEHD
+usecols=['pis', 'id_estab', 'cnpj_raiz', 'uf','codemun','cbo2002','clas_cnae20','genero','grau_instr','idade','nacionalidad','raca_cor','salario','tipo_vinculo']  # + incomevars For now, the monthly incme vars probably just use up disk space and don't add much because in Census we will at best have quarterly earnings through LEHD
+
 
 nrows = 10000
 dfs = []
-# Starting with 2006 because it's the first year we have clas_cna20
+# Starting with 2006 because it's the first year we have clas_cnae20
 for year in range(2006,2022):
     print(year)
     now = datetime.now()
