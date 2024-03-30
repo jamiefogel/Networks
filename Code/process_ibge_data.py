@@ -57,6 +57,16 @@ df_MG = df_MG.drop(columns=['p_s']).pivot(index='year', columns='s', values=['y_
 df_RJ = df_RJ.drop(columns=['p_s']).pivot(index='year', columns='s', values=['y_s']).pct_change()
 df_SP = df_SP.drop(columns=['p_s']).pivot(index='year', columns='s', values=['y_s']).pct_change()
 
+# Calculate percent changes for each state and sector
+
+df_MG['y_s_pct_change'] = df_MG['y_s'].pct_change()
+df_RJ['y_s_pct_change'] = df_RJ['y_s'].pct_change()
+df_SP['y_s_pct_change'] = df_SP['y_s'].pct_change()
+
+# Calculate normalized y_s for each state and sector
+df_MG['y_s_norm'] = df_MG['y_s'] / df_MG['y_s'].iloc[0]
+df_RJ['y_s_norm'] = df_RJ['y_s'] / df_RJ['y_s'].iloc[0]
+df_SP['y_s_norm'] = df_SP['y_s'] / df_SP['y_s'].iloc[0]
 
 
 
@@ -80,18 +90,20 @@ sector_labels_abbr = ["Agriculture, livestock, forestry, fisheries and aquacultu
 
 # Plotting the time series of percent changes for s=5 for all MG, RJ, and SP
 # It appears that sector-level output is pretty similar across states
+import matplotlib.pyplot as plt
+
 for s in range(1,16):
     plt.figure(figsize=(14, 7))
-    plt.plot(df_MG.xs(s, axis=1, level='s'), label='MG')
-    plt.plot(df_RJ.xs(s, axis=1, level='s'), label='RJ')
-    plt.plot(df_SP.xs(s, axis=1, level='s'), label='SP')
+    plt.plot(df_MG.index, df_MG.xs(s, axis=1, level='s')['y_s_pct_change'], label='MG')
+    plt.plot(df_RJ.index, df_RJ.xs(s, axis=1, level='s')['y_s_pct_change'], label='RJ')
+    plt.plot(df_SP.index, df_SP.xs(s, axis=1, level='s')['y_s_pct_change'], label='SP')
     plt.title(f'Percent Change of y_s for s={s} Across Years')
     plt.xlabel('Year')
     plt.ylabel('Percent Change')
     plt.legend()
     plt.grid(True)
     plt.show()
-    plt.savefig(root + f'Results/comparing_sector_output_by_state_{s}.pdf', format='pdf')
+    plt.savefig(root + f'Results/comparing_sector_output_by_state_{s}.pdf')
 
 
 ## There doesn~t appear to be a meaningful increase in construction output in Rio relative to other sectors
@@ -99,12 +111,26 @@ for s in range(1,16):
 plt.figure(figsize=(14, 7))
 # Plot all sectors in grey
 for s in range(1,16):    
-    plt.plot(df_RJ.index, df_RJ.xs(s, axis=1, level='s'), color='grey', alpha=0.5)
+    plt.plot(df_RJ.index, df_RJ.xs(s, axis=1, level='s')['y_s_pct_change'], color='grey', alpha=0.5)
 # Highlight sector 5 in color
-plt.plot(df_RJ.index, df_RJ.xs(5, axis=1, level='s'), color='blue', label='Sector 5 - Construction', linewidth=2.5)
+plt.plot(df_RJ.index, df_RJ.xs(5, axis=1, level='s')['y_s_pct_change'], color='blue', label='Sector 5 - Construction', linewidth=2.5)
 plt.title('Percent Change of y_s for All Sectors in RJ')
 plt.xlabel('Year')
 plt.ylabel('Percent Change')
 plt.legend()
 plt.grid(True)    
 plt.savefig(root + f'Results/comparing_construction_to_other_sectors_output_RJ.pdf', format='pdf')
+
+# Plotting the time series of normalized y_s values for all MG, RJ, and SP
+for s in range(1, 16):
+    plt.figure(figsize=(14, 7))
+    plt.plot(df_MG.index, df_MG.xs(s, axis=1, level='s')['y_s_norm'], label='MG')
+    plt.plot(df_RJ.index, df_RJ.xs(s, axis=1, level='s')['y_s_norm'], label='RJ')
+    plt.plot(df_SP.index, df_SP.xs(s, axis=1, level='s')['y_s_norm'], label='SP')
+    plt.title(f'Normalized y_s for s={s} Across Years')
+    plt.xlabel('Year')
+    plt.ylabel('Normalized y_s')
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+    plt.savefig(root + f'Results/comparing_sector_output_by_state_normalized_{s}.pdf')
