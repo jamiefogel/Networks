@@ -49,3 +49,62 @@ for i in range(1, 34):
 
 
 
+df_MG = pd.read_csv(f"{sector_data_filepath}/sectors_20.csv")
+df_RJ = pd.read_csv(f"{sector_data_filepath}/sectors_22.csv")
+df_SP = pd.read_csv(f"{sector_data_filepath}/sectors_23.csv")
+
+df_MG = df_MG.drop(columns=['p_s']).pivot(index='year', columns='s', values=['y_s']).pct_change()
+df_RJ = df_RJ.drop(columns=['p_s']).pivot(index='year', columns='s', values=['y_s']).pct_change()
+df_SP = df_SP.drop(columns=['p_s']).pivot(index='year', columns='s', values=['y_s']).pct_change()
+
+
+
+
+sector_labels_abbr = ["Agriculture, livestock, forestry, fisheries and aquaculture",
+                  "Extractive industries",
+                  "Manufacturing industries",
+                  "Utilities",
+                  "Construction",
+                  "Retail, Wholesale and Vehicle Repair",
+                  "Transport, storage and mail",
+                  "Accommodation and food",
+                  "Information and communication",
+                  "Financial, insurance and related services",
+                  "Real estate activities",
+                  "Professional, scientific and technical svcs",
+                  "Public admin, defense, educ, health and soc security",
+                  "Private health and education",
+                  "Arts, culture, sports and recreation and other svcs"]
+
+
+
+# Plotting the time series of percent changes for s=5 for all MG, RJ, and SP
+# It appears that sector-level output is pretty similar across states
+for s in range(1,16):
+    plt.figure(figsize=(14, 7))
+    plt.plot(df_MG.xs(s, axis=1, level='s'), label='MG')
+    plt.plot(df_RJ.xs(s, axis=1, level='s'), label='RJ')
+    plt.plot(df_SP.xs(s, axis=1, level='s'), label='SP')
+    plt.title(f'Percent Change of y_s for s={s} Across Years')
+    plt.xlabel('Year')
+    plt.ylabel('Percent Change')
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+    plt.savefig(root + f'Results/comparing_sector_output_by_state_{s}.pdf', format='pdf')
+
+
+## There doesn~t appear to be a meaningful increase in construction output in Rio relative to other sectors
+# Create the plot
+plt.figure(figsize=(14, 7))
+# Plot all sectors in grey
+for s in range(1,16):    
+    plt.plot(df_RJ.index, df_RJ.xs(s, axis=1, level='s'), color='grey', alpha=0.5)
+# Highlight sector 5 in color
+plt.plot(df_RJ.index, df_RJ.xs(5, axis=1, level='s'), color='blue', label='Sector 5 - Construction', linewidth=2.5)
+plt.title('Percent Change of y_s for All Sectors in RJ')
+plt.xlabel('Year')
+plt.ylabel('Percent Change')
+plt.legend()
+plt.grid(True)    
+plt.savefig(root + f'Results/comparing_construction_to_other_sectors_output_RJ.pdf', format='pdf')
