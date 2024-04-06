@@ -15,7 +15,7 @@ set more off
 
 capture log close
 
-global root "C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\"
+global root "\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\DixCarneiro_Kovak_2017"
 
 global data "F:\RAIS\Data_Brazil\RAIS_Stata2\"
 global data2 "${root}Data_Other\"

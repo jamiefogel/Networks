@@ -6,9 +6,9 @@ clear
 * Run code 0b_Panel1986_2010 in order to construct the panel with the
 * individuals selected in this code
 
-global root "C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\"
+global root "\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\DixCarneiro_Kovak_2017"
 
-global rais "F:\RAIS\Data_Brazil\RAIS_Stata2\"
+global rais "\\storage6\bases\DADOS\RESTRITO\RAIS\Stata\"
 global result "${root}ProcessedData_RAIS\Panel_1986_2010\"
 
 cap log close
@@ -53,10 +53,10 @@ erase ${result}pis86.dta
 sort pis
 duplicates drop
 
-/*1° passo - qualquer PIS com tamanho diferente de 11 é eliminado*/	
+/*1ï¿½ passo - qualquer PIS com tamanho diferente de 11 ï¿½ eliminado*/	
 drop if length(trim(pis)) ~= 11 
 
-/*programa para verificação da consistência do PIS - fórmula encotrada na internet e muito consistente*/
+/*programa para verificaï¿½ï¿½o da consistï¿½ncia do PIS - fï¿½rmula encotrada na internet e muito consistente*/
 gen dig1    = substr(pis,1,1)
 gen dig2    = substr(pis,2,1)
 gen dig3    = substr(pis,3,1)

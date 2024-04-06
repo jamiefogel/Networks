@@ -9,11 +9,10 @@
 clear
 
 set more off
+global root "\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\DixCarneiro_Kovak_2017"
 
-global root "C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\"
-
-global data1 "F:\RAIS\Data_Brazil\RAIS_Stata\"
-global data2 "${root}Data_Other\"
+global data1  "\\storage6\bases\DADOS\RESTRITO\RAIS\Stata\"
+global data2  "${root}Data_Other\"
 global result "${root}ProcessedData_RAIS\JobDestruction_JobCreation\"
 
 log using ${result}PanelOfPlantMMCpairs, replace

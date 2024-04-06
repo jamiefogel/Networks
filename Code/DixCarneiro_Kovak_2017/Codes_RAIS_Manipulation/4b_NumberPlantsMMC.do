@@ -5,8 +5,7 @@ clear
 
 set more off
 
-global root "C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\"
-
+global root "\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\DixCarneiro_Kovak_2017"
 global data   "${root}ProcessedData_RAIS\Plants\PanelOfPlants\"
 global result "${root}ProcessedData_RAIS\Plants\"
 

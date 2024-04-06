@@ -11,7 +11,17 @@
 ******************************************************************************
 
 * Update this line to point to the /ReplicationFiles/ folder
-global root "XXXXX/ReplicationFiles/"
+local os "`c(os)'"
+if "`os'" == "MacOSX" {
+    global root "/Users/jfogel/NetworksGit/Code/DixCarneiro_Kovak_2017"
+}
+else if "`os'" == "Windows" {
+    global root "\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\DixCarneiro_Kovak_2017"
+}
+else {
+    di "Unsupported operating system"
+    exit
+}
 
 cd "${root}"
 
