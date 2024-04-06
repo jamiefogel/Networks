@@ -1,0 +1,591 @@
+-------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  /Users/briankovak/Dropbox/DixCarneiroKovakRodriguez/ReplicationFiles/Codes_Other/mmc
+> _rer.txt
+  log type:  text
+ opened on:   3 May 2017, 13:31:44
+
+. 
+. *******************************************
+. * Calculate real exchange rates by country and year using Penn World Tables data
+. 
+. use ../Data_Other/pwt71, clear
+
+. 
+. keep isocode year xrat ppp
+
+. gen br_xrat_tmp = xrat if isocode == "BRA"
+(11529 missing values generated)
+
+. bysort year: egen br_xrat = mean(br_xrat_tmp) // Brazil xrat in the relevant year
+
+. drop br_xrat_tmp
+
+. gen br_ppp_tmp = ppp if isocode == "BRA"
+(11529 missing values generated)
+
+. bysort year: egen br_ppp = mean(br_ppp_tmp) // Brazil ppp in the relevant year
+
+. drop br_ppp_tmp
+
+. 
+. drop if isocode == "BRA"
+(61 observations deleted)
+
+. 
+. gen rer = (br_xrat / br_ppp) / (xrat / ppp)
+(2630 missing values generated)
+
+. sum rer
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+         rer |      8899    1348.934    127122.5   .0698802   1.20e+07
+
+. gen ner = (br_xrat) / (xrat)
+(1322 missing values generated)
+
+. sum ner
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+         ner |     10207    168373.5    1.15e+07   1.84e-17   1.07e+09
+
+. 
+. sort isocode year
+
+. save country_year_rer, replace
+(note: file country_year_rer.dta not found)
+file country_year_rer.dta saved
+
+. 
+. *******************************************
+. * Use 1989 Comtrade trade data to calculate trade shares across industries
+. * for each country
+. 
+. use ../Data_Other/comtrade_partner_imports_1989.dta
+
+. merge 1:1 partnercode hs1992 using ../Data_Other/comtrade_partner_exports_1989
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                        56,096
+        from master                    18,173  (_merge==1)
+        from using                     37,923  (_merge==2)
+
+    matched                             7,063  (_merge==3)
+    -----------------------------------------
+
+. * unmatched codes imply zero trade flows
+. replace imports = 0 if imports >= .
+(37923 real changes made)
+
+. replace exports = 0 if exports >= .
+(18173 real changes made)
+
+. drop _merge
+
+. 
+. ** Collapse trade data to Industry level
+. sort hs1992
+
+. merge m:1 hs1992 using ../Data_Other/hs1992_to_industry
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           379
+        from master                         0  (_merge==1)
+        from using                        379  (_merge==2)
+
+    matched                            63,159  (_merge==3)
+    -----------------------------------------
+
+. tab hs1992 if _merge == 1 // should be none
+no observations
+
+. keep if _merge == 3
+(379 observations deleted)
+
+. drop _merge
+
+. 
+. * drop petroleum trade
+. drop if inlist(floor(hs1992/100),2709,2710,2711)
+(170 observations deleted)
+
+. 
+. * collapse to industry x comtrade country code
+. collapse (sum) imports exports, by(partnercode industry)
+
+. drop if industry >= .
+(121 observations deleted)
+
+. 
+. * Restrict to PWT countries 
+. sort partnercode
+
+. merge m:1 partnercode using ../Data_Other/country_concord
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           473
+        from master                       438  (_merge==1)
+        from using                         35  (_merge==2)
+
+    matched                             2,490  (_merge==3)
+    -----------------------------------------
+
+. tab partnercode if _merge == 1 // countries in comtrade that don't appear in PWT
+
+    Partner |
+       Code |      Freq.     Percent        Cum.
+------------+-----------------------------------
+          4 |          6        1.37        1.37
+         20 |          3        0.68        2.05
+         58 |         32        7.31        9.36
+         90 |          2        0.46        9.82
+         92 |          9        2.05       11.87
+         96 |          1        0.23       12.10
+        136 |          9        2.05       14.16
+        230 |         10        2.28       16.44
+        234 |          1        0.23       16.67
+        254 |         20        4.57       21.23
+        258 |          6        1.37       22.60
+        278 |         22        5.02       27.63
+        280 |         39        8.90       36.53
+        292 |          2        0.46       36.99
+        312 |         14        3.20       40.18
+        408 |          7        1.60       41.78
+        434 |         16        3.65       45.43
+        474 |         18        4.11       49.54
+        490 |         29        6.62       56.16
+        500 |          3        0.68       56.85
+        530 |         23        5.25       62.10
+        540 |          4        0.91       63.01
+        548 |          3        0.68       63.70
+        574 |          2        0.46       64.16
+        582 |          2        0.46       64.61
+        660 |         21        4.79       69.41
+        711 |         31        7.08       76.48
+        720 |          8        1.83       78.31
+        736 |          9        2.05       80.37
+        796 |          1        0.23       80.59
+        810 |         18        4.11       84.70
+        849 |          2        0.46       85.16
+        886 |          7        1.60       86.76
+        890 |         23        5.25       92.01
+        899 |         35        7.99      100.00
+------------+-----------------------------------
+      Total |        438      100.00
+
+. tab isocode if _merge == 2 // countries in PWT but not comtrade (including Brazil)
+
+    isocode |      Freq.     Percent        Cum.
+------------+-----------------------------------
+        ARM |          1        2.86        2.86
+        AZE |          1        2.86        5.71
+        BEL |          1        2.86        8.57
+        BLR |          1        2.86       11.43
+        BRA |          1        2.86       14.29
+        BWA |          1        2.86       17.14
+        CZE |          1        2.86       20.00
+        ERI |          1        2.86       22.86
+        EST |          1        2.86       25.71
+        ETH |          1        2.86       28.57
+        GEO |          1        2.86       31.43
+        GER |          1        2.86       34.29
+        HRV |          1        2.86       37.14
+        KAZ |          1        2.86       40.00
+        KGZ |          1        2.86       42.86
+        KHM |          1        2.86       45.71
+        LSO |          1        2.86       48.57
+        LTU |          1        2.86       51.43
+        LUX |          1        2.86       54.29
+        LVA |          1        2.86       57.14
+        MDA |          1        2.86       60.00
+        MKD |          1        2.86       62.86
+        MNG |          1        2.86       65.71
+        NAM |          1        2.86       68.57
+        RUS |          1        2.86       71.43
+        SDN |          1        2.86       74.29
+        SVK |          1        2.86       77.14
+        SVN |          1        2.86       80.00
+        SWZ |          1        2.86       82.86
+        TJK |          1        2.86       85.71
+        TKM |          1        2.86       88.57
+        UKR |          1        2.86       91.43
+        UZB |          1        2.86       94.29
+        YEM |          1        2.86       97.14
+        ZAF |          1        2.86      100.00
+------------+-----------------------------------
+      Total |         35      100.00
+
+. keep if _merge == 3
+(473 observations deleted)
+
+. drop _merge
+
+. keep isocode industry imports exports
+
+. order isocode industry imports exports
+
+. drop if inlist(isocode,"BUR","CSK","REU") // drop 3 countries without exchange rates
+(31 observations deleted)
+
+. 
+. * Calculate shares
+. gen trade = imports + exports
+
+. bysort industry: egen tottrade = sum(trade)
+
+. by industry: egen totimports = sum(imports)
+
+. by industry: egen totexports = sum(exports)
+
+. gen tradesh = trade / tottrade
+
+. replace tradesh = 0 if tradesh >= .
+(0 real changes made)
+
+. gen importsh = imports / totimports
+(24 missing values generated)
+
+. replace importsh = 0 if importsh >= .
+(24 real changes made)
+
+. gen exportsh = exports / totexports
+(3 missing values generated)
+
+. replace exportsh = 0 if exportsh >= .
+(3 real changes made)
+
+. 
+. keep isocode industry tradesh importsh exportsh
+
+. order isocode industry tradesh importsh exportsh
+
+. sort isocode industry 
+
+. 
+. *******************************************
+. * Industry-level real exchange rates as trade-weighted averages across trading
+. * partner countries
+. 
+. *  format weights to match exchange rates
+. expand 25 // RER data from PWT go through 2010
+(59016 observations created)
+
+. bysort isocode industry: gen year = _n + 1986-1
+
+. 
+. * merge in yearly RER's
+. merge m:1 isocode year using country_year_rer
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                         8,129
+        from master                         0  (_merge==1)
+        from using                      8,129  (_merge==2)
+
+    matched                            61,475  (_merge==3)
+    -----------------------------------------
+
+. list isocode year if _merge == 1 // should be none
+
+. keep if _merge == 3 // all weights match up with exchange rate info
+(8129 observations deleted)
+
+. drop _merge
+
+. 
+. * generate sum elements
+. gen rer_trade_element = tradesh * rer
+
+. gen rer_import_element = importsh * rer
+
+. gen rer_export_element = exportsh * rer
+
+. gen ner_trade_element = tradesh * ner
+
+. gen ner_import_element = importsh * ner
+
+. gen ner_export_element = exportsh * ner
+
+. 
+. * collapse to sum across destinations for industry x year results
+. collapse (sum) rer_trade_element rer_import_element rer_export_element ///
+>                ner_trade_element ner_import_element ner_export_element, ///
+>                            by(industry year)
+
+. 
+. foreach v1 in rer ner {
+  2.   foreach v2 in trade import export {
+  3.     rename `v1'_`v2'_element `v1'_`v2'
+  4.   }
+  5. }                          
+
+.                    
+. sort industry year
+
+. erase country_year_rer.dta
+
+. 
+. *******************************************
+. * Region-level real exchange rates as weighted averages across industries
+. 
+. * change in log exchange rates
+. reshape wide rer* ner*, i(industry) j(year)
+(note: j = 1986 1987 1988 1989 1990 1991 1992 1993 1994 1995 1996 1997 1998 1999 2000 2001 2002 2
+> 003 2004 2005 2006 2007 2008 2009 2010)
+
+Data                               long   ->   wide
+-----------------------------------------------------------------------------
+Number of obs.                     1025   ->      41
+Number of variables                   8   ->     151
+j variable (25 values)             year   ->   (dropped)
+xij variables:
+                              rer_trade   ->   rer_trade1986 rer_trade1987 ... rer_trade2010
+                             rer_import   ->   rer_import1986 rer_import1987 ... rer_import2010
+                             rer_export   ->   rer_export1986 rer_export1987 ... rer_export2010
+                              ner_trade   ->   ner_trade1986 ner_trade1987 ... ner_trade2010
+                             ner_import   ->   ner_import1986 ner_import1987 ... ner_import2010
+                             ner_export   ->   ner_export1986 ner_export1987 ... ner_export2010
+-----------------------------------------------------------------------------
+
+. forvalues t = 1991/2010 {
+  2.   foreach v1 in trade import export {
+  3.     foreach v2 in rer ner {
+  4.           gen dln_`v2'_`v1'_`t' = ln(`v2'_`v1'`t') - ln(`v2'_`v1'1990)
+  5.         }
+  6.   }
+  7. }
+(2 missing values generated)
+(2 missing values generated)
+(1 missing value generated)
+(1 missing value generated)
+(2 missing values generated)
+(2 missing values generated)
+(1 missing value generated)
+(1 missing value generated)
+(2 missing values generated)
+(2 missing values generated)
+(1 missing value generated)
+(1 missing value generated)
+(2 missing values generated)
+(2 missing values generated)
+(1 missing value generated)
+(1 missing value generated)
+(2 missing values generated)
+(2 missing values generated)
+(1 missing value generated)
+(1 missing value generated)
+(2 missing values generated)
+(2 missing values generated)
+(1 missing value generated)
+(1 missing value generated)
+(2 missing values generated)
+(2 missing values generated)
+(1 missing value generated)
+(1 missing value generated)
+(2 missing values generated)
+(2 missing values generated)
+(1 missing value generated)
+(1 missing value generated)
+(2 missing values generated)
+(2 missing values generated)
+(1 missing value generated)
+(1 missing value generated)
+(2 missing values generated)
+(2 missing values generated)
+(1 missing value generated)
+(1 missing value generated)
+(2 missing values generated)
+(2 missing values generated)
+(1 missing value generated)
+(1 missing value generated)
+(2 missing values generated)
+(2 missing values generated)
+(1 missing value generated)
+(1 missing value generated)
+(2 missing values generated)
+(2 missing values generated)
+(1 missing value generated)
+(1 missing value generated)
+(2 missing values generated)
+(2 missing values generated)
+(1 missing value generated)
+(1 missing value generated)
+(2 missing values generated)
+(2 missing values generated)
+(1 missing value generated)
+(1 missing value generated)
+(2 missing values generated)
+(2 missing values generated)
+(1 missing value generated)
+(1 missing value generated)
+(2 missing values generated)
+(2 missing values generated)
+(1 missing value generated)
+(1 missing value generated)
+(2 missing values generated)
+(2 missing values generated)
+(1 missing value generated)
+(1 missing value generated)
+(2 missing values generated)
+(2 missing values generated)
+(1 missing value generated)
+(1 missing value generated)
+(2 missing values generated)
+(2 missing values generated)
+(1 missing value generated)
+(1 missing value generated)
+
+. keep industry dln*
+
+. sort industry
+
+. save dln_rer_industry, replace
+(note: file dln_rer_industry.dta not found)
+file dln_rer_industry.dta saved
+
+. 
+. * weights (all workers, traded, without theta adjustment)
+. use ../Data/beta_industry, clear
+
+. keep mmc industry beta_t_notheta
+
+. 
+. * combine rer shocks and weights
+. sort industry
+
+. merge m:1 industry using dln_rer_industry
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                         1,944
+        from master                     1,944  (_merge==1)
+        from using                          0  (_merge==2)
+
+    matched                            19,926  (_merge==3)
+    -----------------------------------------
+
+. keep if _merge == 3
+(1944 observations deleted)
+
+. erase dln_rer_industry.dta
+
+. 
+. * calculate weighted averages by mmc
+. forvalues t = 1991/2010 {
+  2.   foreach v1 in trade import export {
+  3.     foreach v2 in rer ner {
+  4.           gen element_`v2'_`v1'_`t' = beta_t_notheta * dln_`v2'_`v1'_`t'
+  5.         }
+  6.   }
+  7. }
+(972 missing values generated)
+(972 missing values generated)
+(486 missing values generated)
+(486 missing values generated)
+(972 missing values generated)
+(972 missing values generated)
+(486 missing values generated)
+(486 missing values generated)
+(972 missing values generated)
+(972 missing values generated)
+(486 missing values generated)
+(486 missing values generated)
+(972 missing values generated)
+(972 missing values generated)
+(486 missing values generated)
+(486 missing values generated)
+(972 missing values generated)
+(972 missing values generated)
+(486 missing values generated)
+(486 missing values generated)
+(972 missing values generated)
+(972 missing values generated)
+(486 missing values generated)
+(486 missing values generated)
+(972 missing values generated)
+(972 missing values generated)
+(486 missing values generated)
+(486 missing values generated)
+(972 missing values generated)
+(972 missing values generated)
+(486 missing values generated)
+(486 missing values generated)
+(972 missing values generated)
+(972 missing values generated)
+(486 missing values generated)
+(486 missing values generated)
+(972 missing values generated)
+(972 missing values generated)
+(486 missing values generated)
+(486 missing values generated)
+(972 missing values generated)
+(972 missing values generated)
+(486 missing values generated)
+(486 missing values generated)
+(972 missing values generated)
+(972 missing values generated)
+(486 missing values generated)
+(486 missing values generated)
+(972 missing values generated)
+(972 missing values generated)
+(486 missing values generated)
+(486 missing values generated)
+(972 missing values generated)
+(972 missing values generated)
+(486 missing values generated)
+(486 missing values generated)
+(972 missing values generated)
+(972 missing values generated)
+(486 missing values generated)
+(486 missing values generated)
+(972 missing values generated)
+(972 missing values generated)
+(486 missing values generated)
+(486 missing values generated)
+(972 missing values generated)
+(972 missing values generated)
+(486 missing values generated)
+(486 missing values generated)
+(972 missing values generated)
+(972 missing values generated)
+(486 missing values generated)
+(486 missing values generated)
+(972 missing values generated)
+(972 missing values generated)
+(486 missing values generated)
+(486 missing values generated)
+(972 missing values generated)
+(972 missing values generated)
+(486 missing values generated)
+(486 missing values generated)
+
+. collapse (sum) element*, by(mmc)
+
+. 
+. forvalues t = 1991/2010 {
+  2.   foreach v1 in trade import export {
+  3.     foreach v2 in rer ner {
+  4.       rename element_`v2'_`v1'_`t' `v2'_`v1'_`t'
+  5.         }
+  6.   }
+  7. }
+
+. sort mmc
+
+. save ../Data/mmc_rer, replace
+file ../Data/mmc_rer.dta saved
+
+. 
+. 
+. log close
+      name:  <unnamed>
+       log:  /Users/briankovak/Dropbox/DixCarneiroKovakRodriguez/ReplicationFiles/Codes_Other/mmc
+> _rer.txt
+  log type:  text
+ closed on:   3 May 2017, 13:31:46
+-------------------------------------------------------------------------------------------------

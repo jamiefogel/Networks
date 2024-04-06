@@ -1,0 +1,1185 @@
+-------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  /Users/briankovak/Dropbox/DixCarneiroKovakRodriguez/ReplicationFiles/Codes_Other/col
+> ombia_worldmb_adh_shocks.txt
+  log type:  text
+ opened on:   3 May 2017, 13:31:35
+
+. 
+. ****************************************
+. * Aggregate Comtrade trade flow data to the Industry level
+. 
+. forvalues yr = 1991/2010 {
+  2.   foreach f in imports exports {
+  3.   
+.     disp ("year: `yr', flow: `f'")
+  4.     use ../Data_Other/comtrade/colombia/colombia_all_`f'_`yr', clear
+  5.   
+.     sort hs1992
+  6.     merge m:1 hs1992 using ../Data_Other/hs1992_to_industry
+  7.     list hs1992 if _merge == 1 // should be none
+  8.           
+.     keep if _merge == 3
+  9.     drop _merge
+ 10.     collapse (sum) `f', by(partnercode industry)
+ 11.     gen year = `yr'
+ 12.     sort partnercode industry
+ 13.     save colombia_all_`f'_industry_`yr', replace  
+ 14.   }
+ 15. }
+year: 1991, flow: imports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           893
+        from master                         0  (_merge==1)
+        from using                        893  (_merge==2)
+
+    matched                             6,027  (_merge==3)
+    -----------------------------------------
+(893 observations deleted)
+(note: file colombia_all_imports_industry_1991.dta not found)
+file colombia_all_imports_industry_1991.dta saved
+year: 1991, flow: exports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                         2,129
+        from master                         0  (_merge==1)
+        from using                      2,129  (_merge==2)
+
+    matched                             4,565  (_merge==3)
+    -----------------------------------------
+(2129 observations deleted)
+(note: file colombia_all_exports_industry_1991.dta not found)
+file colombia_all_exports_industry_1991.dta saved
+year: 1992, flow: imports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           740
+        from master                         0  (_merge==1)
+        from using                        740  (_merge==2)
+
+    matched                             6,727  (_merge==3)
+    -----------------------------------------
+(740 observations deleted)
+(note: file colombia_all_imports_industry_1992.dta not found)
+file colombia_all_imports_industry_1992.dta saved
+year: 1992, flow: exports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                         2,264
+        from master                         0  (_merge==1)
+        from using                      2,264  (_merge==2)
+
+    matched                             4,478  (_merge==3)
+    -----------------------------------------
+(2264 observations deleted)
+(note: file colombia_all_exports_industry_1992.dta not found)
+file colombia_all_exports_industry_1992.dta saved
+year: 1993, flow: imports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           570
+        from master                         0  (_merge==1)
+        from using                        570  (_merge==2)
+
+    matched                             7,738  (_merge==3)
+    -----------------------------------------
+(570 observations deleted)
+(note: file colombia_all_imports_industry_1993.dta not found)
+file colombia_all_imports_industry_1993.dta saved
+year: 1993, flow: exports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                         2,182
+        from master                         0  (_merge==1)
+        from using                      2,182  (_merge==2)
+
+    matched                             4,557  (_merge==3)
+    -----------------------------------------
+(2182 observations deleted)
+(note: file colombia_all_exports_industry_1993.dta not found)
+file colombia_all_exports_industry_1993.dta saved
+year: 1994, flow: imports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           454
+        from master                         0  (_merge==1)
+        from using                        454  (_merge==2)
+
+    matched                             8,313  (_merge==3)
+    -----------------------------------------
+(454 observations deleted)
+(note: file colombia_all_imports_industry_1994.dta not found)
+file colombia_all_imports_industry_1994.dta saved
+year: 1994, flow: exports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                         2,022
+        from master                         0  (_merge==1)
+        from using                      2,022  (_merge==2)
+
+    matched                             4,969  (_merge==3)
+    -----------------------------------------
+(2022 observations deleted)
+(note: file colombia_all_exports_industry_1994.dta not found)
+file colombia_all_exports_industry_1994.dta saved
+year: 1995, flow: imports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           402
+        from master                         0  (_merge==1)
+        from using                        402  (_merge==2)
+
+    matched                             8,488  (_merge==3)
+    -----------------------------------------
+(402 observations deleted)
+(note: file colombia_all_imports_industry_1995.dta not found)
+file colombia_all_imports_industry_1995.dta saved
+year: 1995, flow: exports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                         1,994
+        from master                         0  (_merge==1)
+        from using                      1,994  (_merge==2)
+
+    matched                             5,148  (_merge==3)
+    -----------------------------------------
+(1994 observations deleted)
+(note: file colombia_all_exports_industry_1995.dta not found)
+file colombia_all_exports_industry_1995.dta saved
+year: 1996, flow: imports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           466
+        from master                         0  (_merge==1)
+        from using                        466  (_merge==2)
+
+    matched                             8,545  (_merge==3)
+    -----------------------------------------
+(466 observations deleted)
+(note: file colombia_all_imports_industry_1996.dta not found)
+file colombia_all_imports_industry_1996.dta saved
+year: 1996, flow: exports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                         1,964
+        from master                         0  (_merge==1)
+        from using                      1,964  (_merge==2)
+
+    matched                             5,290  (_merge==3)
+    -----------------------------------------
+(1964 observations deleted)
+(note: file colombia_all_exports_industry_1996.dta not found)
+file colombia_all_exports_industry_1996.dta saved
+year: 1997, flow: imports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           429
+        from master                         0  (_merge==1)
+        from using                        429  (_merge==2)
+
+    matched                             8,838  (_merge==3)
+    -----------------------------------------
+(429 observations deleted)
+(note: file colombia_all_imports_industry_1997.dta not found)
+file colombia_all_imports_industry_1997.dta saved
+year: 1997, flow: exports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                         1,947
+        from master                         0  (_merge==1)
+        from using                      1,947  (_merge==2)
+
+    matched                             5,312  (_merge==3)
+    -----------------------------------------
+(1947 observations deleted)
+(note: file colombia_all_exports_industry_1997.dta not found)
+file colombia_all_exports_industry_1997.dta saved
+year: 1998, flow: imports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           437
+        from master                         0  (_merge==1)
+        from using                        437  (_merge==2)
+
+    matched                             9,002  (_merge==3)
+    -----------------------------------------
+(437 observations deleted)
+(note: file colombia_all_imports_industry_1998.dta not found)
+file colombia_all_imports_industry_1998.dta saved
+year: 1998, flow: exports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                         1,942
+        from master                         0  (_merge==1)
+        from using                      1,942  (_merge==2)
+
+    matched                             5,280  (_merge==3)
+    -----------------------------------------
+(1942 observations deleted)
+(note: file colombia_all_exports_industry_1998.dta not found)
+file colombia_all_exports_industry_1998.dta saved
+year: 1999, flow: imports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           520
+        from master                         0  (_merge==1)
+        from using                        520  (_merge==2)
+
+    matched                             8,863  (_merge==3)
+    -----------------------------------------
+(520 observations deleted)
+(note: file colombia_all_imports_industry_1999.dta not found)
+file colombia_all_imports_industry_1999.dta saved
+year: 1999, flow: exports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                         1,913
+        from master                         0  (_merge==1)
+        from using                      1,913  (_merge==2)
+
+    matched                             5,295  (_merge==3)
+    -----------------------------------------
+(1913 observations deleted)
+(note: file colombia_all_exports_industry_1999.dta not found)
+file colombia_all_exports_industry_1999.dta saved
+year: 2000, flow: imports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           504
+        from master                         0  (_merge==1)
+        from using                        504  (_merge==2)
+
+    matched                            10,276  (_merge==3)
+    -----------------------------------------
+(504 observations deleted)
+(note: file colombia_all_imports_industry_2000.dta not found)
+file colombia_all_imports_industry_2000.dta saved
+year: 2000, flow: exports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                         1,740
+        from master                         0  (_merge==1)
+        from using                      1,740  (_merge==2)
+
+    matched                             5,945  (_merge==3)
+    -----------------------------------------
+(1740 observations deleted)
+(note: file colombia_all_exports_industry_2000.dta not found)
+file colombia_all_exports_industry_2000.dta saved
+year: 2001, flow: imports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           549
+        from master                         0  (_merge==1)
+        from using                        549  (_merge==2)
+
+    matched                            10,720  (_merge==3)
+    -----------------------------------------
+(549 observations deleted)
+(note: file colombia_all_imports_industry_2001.dta not found)
+file colombia_all_imports_industry_2001.dta saved
+year: 2001, flow: exports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                         1,651
+        from master                         0  (_merge==1)
+        from using                      1,651  (_merge==2)
+
+    matched                             5,946  (_merge==3)
+    -----------------------------------------
+(1651 observations deleted)
+(note: file colombia_all_exports_industry_2001.dta not found)
+file colombia_all_exports_industry_2001.dta saved
+year: 2002, flow: imports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           552
+        from master                         0  (_merge==1)
+        from using                        552  (_merge==2)
+
+    matched                            11,140  (_merge==3)
+    -----------------------------------------
+(552 observations deleted)
+(note: file colombia_all_imports_industry_2002.dta not found)
+file colombia_all_imports_industry_2002.dta saved
+year: 2002, flow: exports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                         1,622
+        from master                         0  (_merge==1)
+        from using                      1,622  (_merge==2)
+
+    matched                             5,919  (_merge==3)
+    -----------------------------------------
+(1622 observations deleted)
+(note: file colombia_all_exports_industry_2002.dta not found)
+file colombia_all_exports_industry_2002.dta saved
+year: 2003, flow: imports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           603
+        from master                         0  (_merge==1)
+        from using                        603  (_merge==2)
+
+    matched                            11,477  (_merge==3)
+    -----------------------------------------
+(603 observations deleted)
+(note: file colombia_all_imports_industry_2003.dta not found)
+file colombia_all_imports_industry_2003.dta saved
+year: 2003, flow: exports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                         1,550
+        from master                         0  (_merge==1)
+        from using                      1,550  (_merge==2)
+
+    matched                             6,358  (_merge==3)
+    -----------------------------------------
+(1550 observations deleted)
+(note: file colombia_all_exports_industry_2003.dta not found)
+file colombia_all_exports_industry_2003.dta saved
+year: 2004, flow: imports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           562
+        from master                         0  (_merge==1)
+        from using                        562  (_merge==2)
+
+    matched                            11,903  (_merge==3)
+    -----------------------------------------
+(562 observations deleted)
+(note: file colombia_all_imports_industry_2004.dta not found)
+file colombia_all_imports_industry_2004.dta saved
+year: 2004, flow: exports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                         1,450
+        from master                         0  (_merge==1)
+        from using                      1,450  (_merge==2)
+
+    matched                             6,759  (_merge==3)
+    -----------------------------------------
+(1450 observations deleted)
+(note: file colombia_all_exports_industry_2004.dta not found)
+file colombia_all_exports_industry_2004.dta saved
+year: 2005, flow: imports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           545
+        from master                         0  (_merge==1)
+        from using                        545  (_merge==2)
+
+    matched                            12,767  (_merge==3)
+    -----------------------------------------
+(545 observations deleted)
+(note: file colombia_all_imports_industry_2005.dta not found)
+file colombia_all_imports_industry_2005.dta saved
+year: 2005, flow: exports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                         1,433
+        from master                         0  (_merge==1)
+        from using                      1,433  (_merge==2)
+
+    matched                             7,002  (_merge==3)
+    -----------------------------------------
+(1433 observations deleted)
+(note: file colombia_all_exports_industry_2005.dta not found)
+file colombia_all_exports_industry_2005.dta saved
+year: 2006, flow: imports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           563
+        from master                         0  (_merge==1)
+        from using                        563  (_merge==2)
+
+    matched                            13,115  (_merge==3)
+    -----------------------------------------
+(563 observations deleted)
+(note: file colombia_all_imports_industry_2006.dta not found)
+file colombia_all_imports_industry_2006.dta saved
+year: 2006, flow: exports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                         1,455
+        from master                         0  (_merge==1)
+        from using                      1,455  (_merge==2)
+
+    matched                             7,004  (_merge==3)
+    -----------------------------------------
+(1455 observations deleted)
+(note: file colombia_all_exports_industry_2006.dta not found)
+file colombia_all_exports_industry_2006.dta saved
+year: 2007, flow: imports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           758
+        from master                         0  (_merge==1)
+        from using                        758  (_merge==2)
+
+    matched                            13,245  (_merge==3)
+    -----------------------------------------
+(758 observations deleted)
+(note: file colombia_all_imports_industry_2007.dta not found)
+file colombia_all_imports_industry_2007.dta saved
+year: 2007, flow: exports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                         1,591
+        from master                         0  (_merge==1)
+        from using                      1,591  (_merge==2)
+
+    matched                             6,963  (_merge==3)
+    -----------------------------------------
+(1591 observations deleted)
+(note: file colombia_all_exports_industry_2007.dta not found)
+file colombia_all_exports_industry_2007.dta saved
+year: 2008, flow: imports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           759
+        from master                         0  (_merge==1)
+        from using                        759  (_merge==2)
+
+    matched                            13,347  (_merge==3)
+    -----------------------------------------
+(759 observations deleted)
+(note: file colombia_all_imports_industry_2008.dta not found)
+file colombia_all_imports_industry_2008.dta saved
+year: 2008, flow: exports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                         1,562
+        from master                         0  (_merge==1)
+        from using                      1,562  (_merge==2)
+
+    matched                             7,097  (_merge==3)
+    -----------------------------------------
+(1562 observations deleted)
+(note: file colombia_all_exports_industry_2008.dta not found)
+file colombia_all_exports_industry_2008.dta saved
+year: 2009, flow: imports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           776
+        from master                         0  (_merge==1)
+        from using                        776  (_merge==2)
+
+    matched                            12,964  (_merge==3)
+    -----------------------------------------
+(776 observations deleted)
+(note: file colombia_all_imports_industry_2009.dta not found)
+file colombia_all_imports_industry_2009.dta saved
+year: 2009, flow: exports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                         1,602
+        from master                         0  (_merge==1)
+        from using                      1,602  (_merge==2)
+
+    matched                             7,190  (_merge==3)
+    -----------------------------------------
+(1602 observations deleted)
+(note: file colombia_all_exports_industry_2009.dta not found)
+file colombia_all_exports_industry_2009.dta saved
+year: 2010, flow: imports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           803
+        from master                         0  (_merge==1)
+        from using                        803  (_merge==2)
+
+    matched                            13,025  (_merge==3)
+    -----------------------------------------
+(803 observations deleted)
+(note: file colombia_all_imports_industry_2010.dta not found)
+file colombia_all_imports_industry_2010.dta saved
+year: 2010, flow: exports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                         1,641
+        from master                         0  (_merge==1)
+        from using                      1,641  (_merge==2)
+
+    matched                             7,509  (_merge==3)
+    -----------------------------------------
+(1641 observations deleted)
+(note: file colombia_all_exports_industry_2010.dta not found)
+file colombia_all_exports_industry_2010.dta saved
+
+. 
+. * Deflate to 2005 dollars and combine years
+. foreach f in imports exports {
+  2.   use colombia_all_`f'_industry_1991, clear
+  3.   forvalues yr = 1992/2010 {
+  4.     append using colombia_all_`f'_industry_`yr'
+  5.   }
+  6.   sort partnercode industry year
+  7.   merge m:1 year using ../Data_Other/cpi
+  8.   keep if _merge == 3 // drops earlier years
+  9.   drop _merge
+ 10.   replace `f' = `f' / cpi2005
+ 11.   keep partnercode industry year `f'
+ 12.   reshape wide `f', i(partnercode industry) j(year)
+ 13.   forvalues yr = 1991/2010 {
+ 14.     replace `f'`yr' = 0 if `f'`yr' >= .
+ 15.   }
+ 16.   drop if industry >= .
+ 17.   order industry
+ 18.   sort industry
+ 19.   save colombia_all_`f'_industry, replace
+ 20. }
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                             8
+        from master                         0  (_merge==1)
+        from using                          8  (_merge==2)
+
+    matched                             4,414  (_merge==3)
+    -----------------------------------------
+(8 observations deleted)
+(4186 real changes made)
+(note: j = 1991 1992 1993 1994 1995 1996 1997 1998 1999 2000 2001 2002 2003 2004 2005 2006 2007 2
+> 008 2009 2010)
+
+Data                               long   ->   wide
+-----------------------------------------------------------------------------
+Number of obs.                     4414   ->     293
+Number of variables                   4   ->      22
+j variable (20 values)             year   ->   (dropped)
+xij variables:
+                                imports   ->   imports1991 imports1992 ... imports2010
+-----------------------------------------------------------------------------
+(116 real changes made)
+(99 real changes made)
+(89 real changes made)
+(81 real changes made)
+(77 real changes made)
+(73 real changes made)
+(77 real changes made)
+(77 real changes made)
+(81 real changes made)
+(65 real changes made)
+(61 real changes made)
+(61 real changes made)
+(73 real changes made)
+(61 real changes made)
+(65 real changes made)
+(58 real changes made)
+(54 real changes made)
+(54 real changes made)
+(64 real changes made)
+(60 real changes made)
+(8 observations deleted)
+(note: file colombia_all_imports_industry.dta not found)
+file colombia_all_imports_industry.dta saved
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                             8
+        from master                         0  (_merge==1)
+        from using                          8  (_merge==2)
+
+    matched                             4,148  (_merge==3)
+    -----------------------------------------
+(8 observations deleted)
+(3923 real changes made)
+(note: j = 1991 1992 1993 1994 1995 1996 1997 1998 1999 2000 2001 2002 2003 2004 2005 2006 2007 2
+> 008 2009 2010)
+
+Data                               long   ->   wide
+-----------------------------------------------------------------------------
+Number of obs.                     4148   ->     287
+Number of variables                   4   ->      22
+j variable (20 values)             year   ->   (dropped)
+xij variables:
+                                exports   ->   exports1991 exports1992 ... exports2010
+-----------------------------------------------------------------------------
+(99 real changes made)
+(103 real changes made)
+(105 real changes made)
+(109 real changes made)
+(92 real changes made)
+(92 real changes made)
+(89 real changes made)
+(81 real changes made)
+(91 real changes made)
+(76 real changes made)
+(78 real changes made)
+(76 real changes made)
+(80 real changes made)
+(68 real changes made)
+(62 real changes made)
+(62 real changes made)
+(64 real changes made)
+(56 real changes made)
+(57 real changes made)
+(52 real changes made)
+(8 observations deleted)
+(note: file colombia_all_exports_industry.dta not found)
+file colombia_all_exports_industry.dta saved
+
+. foreach f in imports exports {
+  2.   forvalues yr = 1991/2010 {
+  3.     rm colombia_all_`f'_industry_`yr'.dta
+  4.   }
+  5. }
+
+. 
+. ****************************************
+. * Further aggregate to the IndMatch level
+. 
+. foreach f in imports exports {
+  2.         * merge with indmatch concordance
+.         use colombia_all_`f'_industry, clear
+  3.         sort industry
+  4.         merge m:1 industry using ../Data_Other/industry_to_indmatch
+  5.         tab industry if _merge < 3
+  6.         keep if _merge == 3
+  7.         drop _merge
+  8.         
+.         * aggregate to indmatch level
+.         reshape long `f', i(partnercode industry) j(year)
+  9.         collapse (sum) `f', by(partnercode indmatch year)
+ 10.         reshape wide `f', i(partnercode indmatch) j(year)
+ 11.         forvalues yr = 1991/2010 {
+ 12.                 replace `f'`yr' = 0 if `f'`yr' >= .
+ 13.         }
+ 14.                 
+.         * save
+.         sort indmatch
+ 15.         save colombia_all_`f'_indmatch, replace
+ 16. }
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                             1
+        from master                         0  (_merge==1)
+        from using                          1  (_merge==2)
+
+    matched                               285  (_merge==3)
+    -----------------------------------------
+
+   industry |      Freq.     Percent        Cum.
+------------+-----------------------------------
+         99 |          1      100.00      100.00
+------------+-----------------------------------
+      Total |          1      100.00
+(1 observation deleted)
+(note: j = 1991 1992 1993 1994 1995 1996 1997 1998 1999 2000 2001 2002 2003 2004 2005 2006 2007 2
+> 008 2009 2010)
+
+Data                               wide   ->   long
+-----------------------------------------------------------------------------
+Number of obs.                      285   ->    5700
+Number of variables                  23   ->       5
+j variable (20 values)                    ->   year
+xij variables:
+imports1991 imports1992 ... imports2010   ->   imports
+-----------------------------------------------------------------------------
+(note: j = 1991 1992 1993 1994 1995 1996 1997 1998 1999 2000 2001 2002 2003 2004 2005 2006 2007 2
+> 008 2009 2010)
+
+Data                               long   ->   wide
+-----------------------------------------------------------------------------
+Number of obs.                     3140   ->     157
+Number of variables                   4   ->      22
+j variable (20 values)             year   ->   (dropped)
+xij variables:
+                                imports   ->   imports1991 imports1992 ... imports2010
+-----------------------------------------------------------------------------
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(note: file colombia_all_imports_indmatch.dta not found)
+file colombia_all_imports_indmatch.dta saved
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                             1
+        from master                         0  (_merge==1)
+        from using                          1  (_merge==2)
+
+    matched                               279  (_merge==3)
+    -----------------------------------------
+
+   industry |      Freq.     Percent        Cum.
+------------+-----------------------------------
+         99 |          1      100.00      100.00
+------------+-----------------------------------
+      Total |          1      100.00
+(1 observation deleted)
+(note: j = 1991 1992 1993 1994 1995 1996 1997 1998 1999 2000 2001 2002 2003 2004 2005 2006 2007 2
+> 008 2009 2010)
+
+Data                               wide   ->   long
+-----------------------------------------------------------------------------
+Number of obs.                      279   ->    5580
+Number of variables                  23   ->       5
+j variable (20 values)                    ->   year
+xij variables:
+exports1991 exports1992 ... exports2010   ->   exports
+-----------------------------------------------------------------------------
+(note: j = 1991 1992 1993 1994 1995 1996 1997 1998 1999 2000 2001 2002 2003 2004 2005 2006 2007 2
+> 008 2009 2010)
+
+Data                               long   ->   wide
+-----------------------------------------------------------------------------
+Number of obs.                     3180   ->     159
+Number of variables                   4   ->      22
+j variable (20 values)             year   ->   (dropped)
+xij variables:
+                                exports   ->   exports1991 exports1992 ... exports2010
+-----------------------------------------------------------------------------
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(note: file colombia_all_exports_indmatch.dta not found)
+file colombia_all_exports_indmatch.dta saved
+
+. 
+. rm colombia_all_imports_industry.dta
+
+. rm colombia_all_exports_industry.dta
+
+. 
+. 
+. ****************************************
+. * Calculate IndMatch level shocks
+. 
+. local base = 1991
+
+. local baseplus1 = `base' + 1
+
+. 
+. use colombia_all_imports_indmatch, clear
+
+. sort partnercode indmatch
+
+. merge 1:1 partnercode indmatch using colombia_all_exports_indmatch
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                             2
+        from master                         0  (_merge==1)
+        from using                          2  (_merge==2)
+
+    matched                               157  (_merge==3)
+    -----------------------------------------
+
+. drop _merge // perfect match
+
+. keep if inlist(partnercode,0,76) // world, Brazil
+(119 observations deleted)
+
+. merge m:1 indmatch using ../Data/indmatch_employment_1991
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                             1
+        from master                         0  (_merge==1)
+        from using                          1  (_merge==2)
+
+    matched                                40  (_merge==3)
+    -----------------------------------------
+
+. tab indmatch if _merge < 3
+
+   indmatch |      Freq.     Percent        Cum.
+------------+-----------------------------------
+         99 |          1      100.00      100.00
+------------+-----------------------------------
+      Total |          1      100.00
+
+. keep if _merge == 3 // drops nontradables
+(1 observation deleted)
+
+. drop _merge
+
+. 
+. 
+. reshape wide imports* exports*, i(indmatch) j(partnercode)
+(note: j = 0 76)
+
+Data                               long   ->   wide
+-----------------------------------------------------------------------------
+Number of obs.                       40   ->      20
+Number of variables                  43   ->      82
+j variable (2 values)       partnercode   ->   (dropped)
+xij variables:
+                            imports1991   ->   imports19910 imports199176
+                            imports1992   ->   imports19920 imports199276
+                            imports1993   ->   imports19930 imports199376
+                            imports1994   ->   imports19940 imports199476
+                            imports1995   ->   imports19950 imports199576
+                            imports1996   ->   imports19960 imports199676
+                            imports1997   ->   imports19970 imports199776
+                            imports1998   ->   imports19980 imports199876
+                            imports1999   ->   imports19990 imports199976
+                            imports2000   ->   imports20000 imports200076
+                            imports2001   ->   imports20010 imports200176
+                            imports2002   ->   imports20020 imports200276
+                            imports2003   ->   imports20030 imports200376
+                            imports2004   ->   imports20040 imports200476
+                            imports2005   ->   imports20050 imports200576
+                            imports2006   ->   imports20060 imports200676
+                            imports2007   ->   imports20070 imports200776
+                            imports2008   ->   imports20080 imports200876
+                            imports2009   ->   imports20090 imports200976
+                            imports2010   ->   imports20100 imports201076
+                            exports1991   ->   exports19910 exports199176
+                            exports1992   ->   exports19920 exports199276
+                            exports1993   ->   exports19930 exports199376
+                            exports1994   ->   exports19940 exports199476
+                            exports1995   ->   exports19950 exports199576
+                            exports1996   ->   exports19960 exports199676
+                            exports1997   ->   exports19970 exports199776
+                            exports1998   ->   exports19980 exports199876
+                            exports1999   ->   exports19990 exports199976
+                            exports2000   ->   exports20000 exports200076
+                            exports2001   ->   exports20010 exports200176
+                            exports2002   ->   exports20020 exports200276
+                            exports2003   ->   exports20030 exports200376
+                            exports2004   ->   exports20040 exports200476
+                            exports2005   ->   exports20050 exports200576
+                            exports2006   ->   exports20060 exports200676
+                            exports2007   ->   exports20070 exports200776
+                            exports2008   ->   exports20080 exports200876
+                            exports2009   ->   exports20090 exports200976
+                            exports2010   ->   exports20100 exports201076
+-----------------------------------------------------------------------------
+
+. forvalues yr = `base'/2010 { // world trade minus Brazil
+  2.         gen imports`yr' = imports`yr'0 - imports`yr'76
+  3.         gen exports`yr' = exports`yr'0 - exports`yr'76
+  4. }
+
+. 
+. forvalues yr = `baseplus1'/2010 {
+  2.         foreach f in imports exports {
+  3.                 gen dpw_`f'_`yr' = (`f'`yr' - `f'`base')/employment
+  4.                 replace dpw_`f'_`yr' = 0 if dpw_`f'_`yr' >= .
+  5.                 gen dln_`f'_`yr' = ln(`f'`yr') - ln(`f'`base')
+  6.         }
+  7. }
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
+
+. 
+. keep indmatch dpw* dln*
+
+. sort indmatch
+
+. aorder 
+
+. order indmatch
+
+. save colombia_worldmb_shocks, replace
+(note: file colombia_worldmb_shocks.dta not found)
+file colombia_worldmb_shocks.dta saved
+
+. 
+. rm colombia_all_imports_indmatch.dta
+
+. rm colombia_all_exports_indmatch.dta
+
+. 
+. 
+. ****************************************
+. * ADH style shocks
+. 
+. local base = 1991
+
+. local baseplus1 = `base' + 1
+
+. 
+. foreach p in worldmb {
+  2.         * merge regional weights and industry shocks
+.         use ../Data/beta_indmatch, clear
+  3.         keep mmc indmatch beta_t_notheta beta_nt_notheta
+  4.         drop if indmatch == 99
+  5.         sort indmatch
+  6.         merge m:1 indmatch using colombia_`p'_shocks
+  7.         drop _merge // perfect match
+  8. 
+.         * confirm weight coding
+.         bysort mmc: egen test_t = sum(beta_t_notheta)
+  9.         by mmc: egen test_nt = sum(beta_nt_notheta)
+ 10.         sum test_t // should be all 1's
+ 11.         sum test_nt // should be strictly < 1
+ 12.         drop test*
+ 13. 
+.         * generate elements of weighted averages
+.         forvalues yr = `baseplus1'/2010 {
+ 14.                 foreach f in imports exports {
+ 15.                         gen element_dpw_t_`f'_`yr' = beta_t_notheta * dpw_`f'_`yr'
+ 16.                         gen element_dpw_nt_`f'_`yr' = beta_nt_notheta * dpw_`f'_`yr'
+ 17.                         gen element_dln_t_`f'_`yr' = beta_t_notheta * dln_`f'_`yr'
+ 18.                         gen element_dln_nt_`f'_`yr' = beta_nt_notheta * dln_`f'_`yr'
+ 19.                 }
+ 20.         }
+ 21.         
+.         * calculate weighted averages
+.         collapse (sum) element*, by(mmc)
+ 22.         forvalues yr = `baseplus1'/2010 {
+ 23.                 foreach f in imports exports {
+ 24.                         rename element_dpw_t_`f'_`yr' adh_t_`f'_`yr'
+ 25.                         rename element_dpw_nt_`f'_`yr' adh_nt_`f'_`yr'
+ 26.                         rename element_dln_t_`f'_`yr' adhdln_t_`f'_`yr'
+ 27.                         rename element_dln_nt_`f'_`yr' adhdln_nt_`f'_`yr'
+ 28.                 }
+ 29.         }
+ 30.         
+.         * summarize results
+.         foreach yr in 2000 2010 {
+ 31.                 foreach f in imports exports {
+ 32.                         foreach t in adh adhdln {
+ 33.                                 foreach n in t nt {
+ 34.                                         disp "`t'_`n'_`f'_`yr'"
+ 35.                                         sum `t'_`n'_`f'_`yr'
+ 36.                                 }
+ 37.                         }
+ 38.                 }
+ 39.         }
+ 40.         
+.         *output
+.         keep mmc adh*
+ 41.         codebook mmc
+ 42.         sort mmc
+ 43.         save ../Data/colombia_`p'_adh_shocks, replace
+ 44. }
+(486 observations deleted)
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                             0
+    matched                             9,720  (_merge==3)
+    -----------------------------------------
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+      test_t |      9720           1    3.27e-08   .9999999          1
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+     test_nt |      9720    .5126877    .1500017   .0406255   .8348322
+adh_t_imports_2000
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+adh_t_i~2000 |       486    207.2041    174.0194   61.26133   1267.404
+adh_nt_imports_2000
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+adh_nt_im~00 |       486    89.54833    56.50695   6.532237   438.1351
+adhdln_t_imports_2000
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+adhdln_t_i.. |       486    1.052058     .112539   .5915569     2.2286
+adhdln_nt_imports_2000
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+adhdln_nt_.. |       486    .5401277    .1683702   .0454645   .9241523
+adh_t_exports_2000
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+adh_t_e~2000 |       486     194.976     857.079  -206.7471   12765.47
+adh_nt_exports_2000
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+adh_nt_ex~00 |       486    67.32776    293.7805  -107.0436   3772.568
+adhdln_t_exports_2000
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+adhdln_t_e.. |       486   -.0332819    .1562045  -.3636419   .8947761
+adhdln_nt_exports_2000
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+adhdln_nt_.. |       486   -.0327204    .0678654  -.1882761   .2348916
+adh_t_imports_2010
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+adh_t_i~2010 |       486    804.8574    835.6155   148.7163   6831.568
+adh_nt_imports_2010
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+adh_nt_im~10 |       486    335.6502    267.2425   15.62297   2361.637
+adhdln_t_imports_2010
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+adhdln_t_i.. |       486    1.794098    .1192743   1.416874   2.878306
+adhdln_nt_imports_2010
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+adhdln_nt_.. |       486    .9137178    .2590273   .0719056   1.513307
+adh_t_exports_2010
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+adh_t_e~2010 |       486     1091.58     4137.66  -3.130961   62405.57
+adh_nt_exports_2010
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+adh_nt_ex~10 |       486    417.8474    1415.827  -1.630975   18442.67
+adhdln_t_exports_2010
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+adhdln_t_e.. |       486    .3625524    .2510288  -.1847364   1.559253
+adhdln_nt_exports_2010
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+adhdln_nt_.. |       486    .1633172    .0864517  -.0956475   .6210644
+
+-------------------------------------------------------------------------------------------------
+mmc                                                                                   (unlabeled)
+-------------------------------------------------------------------------------------------------
+
+                  type:  numeric (float)
+
+                 range:  [11901,53001]                units:  1
+         unique values:  486                      missing .:  0/486
+
+                  mean:   31150.3
+              std. dev:   9818.45
+
+           percentiles:        10%       25%       50%       75%       90%
+                             17007     24018   31025.5     35053     43027
+file ../Data/colombia_worldmb_adh_shocks.dta saved
+
+. 
+. rm colombia_worldmb_shocks.dta
+
+. 
+. log close
+      name:  <unnamed>
+       log:  /Users/briankovak/Dropbox/DixCarneiroKovakRodriguez/ReplicationFiles/Codes_Other/col
+> ombia_worldmb_adh_shocks.txt
+  log type:  text
+ closed on:   3 May 2017, 13:31:37
+-------------------------------------------------------------------------------------------------

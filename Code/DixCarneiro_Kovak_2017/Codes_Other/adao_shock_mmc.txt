@@ -1,0 +1,185 @@
+-------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  /Users/briankovak/Dropbox/DixCarneiroKovakRodriguez/ReplicationFiles/Codes_Other/ada
+> o_shock_mmc.txt
+  log type:  text
+ opened on:   3 May 2017, 13:29:45
+
+. 
+. 
+. ******************************
+. * calculate phi weights in equation (16) by mmc
+. 
+. use ../Data_Census/code_sample if year==1991
+
+. 
+. * merge Adao commodity industry codes
+. sort atividade
+
+. merge m:1 atividade using ../Data_Other/atividade_to_ind_adao
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                     3,458,775
+        from master                 3,458,774  (_merge==1)
+        from using                          1  (_merge==2)
+
+    matched                         5,611,701  (_merge==3)
+    -----------------------------------------
+
+. tab atividade if _merge == 1
+no observations
+
+. tab atividade if _merge == 2 // nonsense code 30
+
+  atividade |      Freq.     Percent        Cum.
+------------+-----------------------------------
+         30 |          1      100.00      100.00
+------------+-----------------------------------
+      Total |          1      100.00
+
+. 
+. * restrict sample
+. keep if ind_adao < . 
+(7590770 observations deleted)
+
+. keep if employed == 1 // employed (only drops 1 person with a non-missing ind_adao code
+(1 observation deleted)
+
+. keep if female == 0 // men only
+(192978 observations deleted)
+
+. keep if race == 1 // white only
+(727098 observations deleted)
+
+. 
+. * sum earnings at main job by each mmc x ind_adao 
+. collapse (sum) earn=ymain [pw=xweighti], by(mmc ind_adao)
+
+. 
+. * calculate weights by mmc x ind_adao
+. bysort mmc: egen totearn = sum(earn)
+
+. gen phi = earn / totearn
+
+. sum phi
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+         phi |      2585    .1880077    .2125726          0   .9999999
+
+. 
+. * save weights
+. keep mmc ind_adao phi
+
+. sort mmc ind_adao
+
+. 
+. ******************************
+. * calculate weighted average price by mmc and year
+. 
+. * merge prices with weights
+. expand 31
+(77550 observations created)
+
+. bysort mmc ind_adao: gen year = _n + 1980 - 1
+
+. tab year
+
+       year |      Freq.     Percent        Cum.
+------------+-----------------------------------
+       1980 |      2,585        3.23        3.23
+       1981 |      2,585        3.23        6.45
+       1982 |      2,585        3.23        9.68
+       1983 |      2,585        3.23       12.90
+       1984 |      2,585        3.23       16.13
+       1985 |      2,585        3.23       19.35
+       1986 |      2,585        3.23       22.58
+       1987 |      2,585        3.23       25.81
+       1988 |      2,585        3.23       29.03
+       1989 |      2,585        3.23       32.26
+       1990 |      2,585        3.23       35.48
+       1991 |      2,585        3.23       38.71
+       1992 |      2,585        3.23       41.94
+       1993 |      2,585        3.23       45.16
+       1994 |      2,585        3.23       48.39
+       1995 |      2,585        3.23       51.61
+       1996 |      2,585        3.23       54.84
+       1997 |      2,585        3.23       58.06
+       1998 |      2,585        3.23       61.29
+       1999 |      2,585        3.23       64.52
+       2000 |      2,585        3.23       67.74
+       2001 |      2,585        3.23       70.97
+       2002 |      2,585        3.23       74.19
+       2003 |      2,585        3.23       77.42
+       2004 |      2,585        3.23       80.65
+       2005 |      2,585        3.23       83.87
+       2006 |      2,585        3.23       87.10
+       2007 |      2,585        3.23       90.32
+       2008 |      2,585        3.23       93.55
+       2009 |      2,585        3.23       96.77
+       2010 |      2,585        3.23      100.00
+------------+-----------------------------------
+      Total |     80,135      100.00
+
+. sort ind_adao year
+
+. merge m:1 ind_adao year using ../Data_Other/commodity_prices_adao
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                             0
+    matched                            80,135  (_merge==3)
+    -----------------------------------------
+
+. drop _merge // perfect match
+
+. 
+. * calculate yearly weighted average
+. gen element = phi * price
+
+. collapse (sum) wgt_price=element, by(mmc year)
+
+. 
+. * changes in weighted average prices
+. reshape wide wgt_price, i(mmc) j(year)
+(note: j = 1980 1981 1982 1983 1984 1985 1986 1987 1988 1989 1990 1991 1992 1993 1994 1995 1996 1
+> 997 1998 1999 2000 2001 2002 2003 2004 2005 2006 2007 2008 2009 2010)
+
+Data                               long   ->   wide
+-----------------------------------------------------------------------------
+Number of obs.                    15066   ->     486
+Number of variables                   3   ->      32
+j variable (31 values)             year   ->   (dropped)
+xij variables:
+                              wgt_price   ->   wgt_price1980 wgt_price1981 ... wgt_price2010
+-----------------------------------------------------------------------------
+
+. forvalues yr = 1992/2010 {
+  2.         gen adao_shock_1991_`yr' = wgt_price`yr' - wgt_price1991
+  3. }
+
+. sum adao_shock_1991_2010
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+adao_sh~2010 |       486    .0859463    .0932516          0   .7591578
+
+. 
+. * save results
+. keep mmc adao*
+
+. sort mmc
+
+. save ../Data/adao_shock_mmc, replace
+file ../Data/adao_shock_mmc.dta saved
+
+. 
+. 
+. log close
+      name:  <unnamed>
+       log:  /Users/briankovak/Dropbox/DixCarneiroKovakRodriguez/ReplicationFiles/Codes_Other/ada
+> o_shock_mmc.txt
+  log type:  text
+ closed on:   3 May 2017, 13:30:30
+-------------------------------------------------------------------------------------------------

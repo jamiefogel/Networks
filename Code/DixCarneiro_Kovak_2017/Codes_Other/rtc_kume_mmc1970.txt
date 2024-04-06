@@ -1,0 +1,393 @@
+-------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  /Users/briankovak/Dropbox/DixCarneiroKovakRodriguez/ReplicationFiles/Codes_Other/rtc
+> _kume_mmc1970.txt
+  log type:  text
+ opened on:   3 May 2017, 10:47:50
+
+. 
+. ***************************
+. * calculate beta weights by mmc1970
+. 
+. * load census data for 1991
+. use ../Data_Census/code_sample, clear
+
+. keep if year == 1991
+(24356469 observations deleted)
+
+. 
+. ************
+. * generate lambda: indsutrial distribution of labor in each region
+. 
+. keep if indmatch < .
+(3469410 observations deleted)
+
+. keep indmatchflag* mmc1970 xweighti
+
+. rename indmatchflag1 lambda1
+
+. rename indmatchflag2 lambda2
+
+. rename indmatchflag3 lambda3
+
+. rename indmatchflag4 lambda4
+
+. rename indmatchflag5 lambda5
+
+. rename indmatchflag6 lambda8
+
+. rename indmatchflag7 lambda10
+
+. rename indmatchflag8 lambda12
+
+. rename indmatchflag9 lambda14
+
+. rename indmatchflag10 lambda15
+
+. rename indmatchflag11 lambda16
+
+. rename indmatchflag12 lambda17
+
+. rename indmatchflag13 lambda18
+
+. rename indmatchflag14 lambda20
+
+. rename indmatchflag15 lambda21
+
+. rename indmatchflag16 lambda22
+
+. rename indmatchflag17 lambda23
+
+. rename indmatchflag18 lambda24
+
+. rename indmatchflag19 lambda25
+
+. rename indmatchflag20 lambda32
+
+. rename indmatchflag21 lambda99
+
+. collapse (mean) lambda* [pw=xweighti], by(mmc1970)
+
+. 
+. reshape long lambda, i(mmc1970) j(indmatch)
+(note: j = 1 2 3 4 5 8 10 12 14 15 16 17 18 20 21 22 23 24 25 32 99)
+
+Data                               wide   ->   long
+-----------------------------------------------------------------------------
+Number of obs.                      413   ->    8673
+Number of variables                  22   ->       3
+j variable (21 values)                    ->   indmatch
+xij variables:
+           lambda1 lambda2 ... lambda99   ->   lambda
+-----------------------------------------------------------------------------
+
+. save ../Data/lambda_mmc1970, replace
+file ../Data/lambda_mmc1970.dta saved
+
+. 
+. * bring in thetas
+. sort indmatch
+
+. merge m:1 indmatch using ../Data_Other/theta_indmatch
+(note: variable indmatch was byte, now int to accommodate using data's values)
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                             0
+    matched                             8,673  (_merge==3)
+    -----------------------------------------
+
+. drop _merge
+
+. 
+. ************
+. * calculate versions of beta
+. 
+. * including nontradables, without theta adjustment
+. gen beta_nt_notheta = lambda
+
+. bysort mmc1970: egen test = sum(beta_nt_notheta) // confirm proper weights
+
+. sum test // all = 1
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+        test |      8673           1    1.15e-08   .9999999          1
+
+. drop test
+
+. 
+. * including nontradables, without theta adjustment
+. gen beta_nt_theta_temp = lambda / theta
+
+. bysort mmc1970: egen total = sum(beta_nt_theta_temp)
+
+. gen beta_nt_theta = beta_nt_theta_temp / total
+
+. by mmc1970: egen test = sum(beta_nt_theta)
+
+. sum test // all = 1
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+        test |      8673           1    2.29e-08   .9999999          1
+
+. drop test total beta_nt_theta_temp
+
+. 
+. * omitting nontradables, without theta adjustment
+. gen beta_t_notheta_temp = lambda if indmatch != 99
+(413 missing values generated)
+
+. bysort mmc1970: egen total = sum(beta_t_notheta_temp) if indmatch != 99
+(413 missing values generated)
+
+. gen beta_t_notheta = beta_t_notheta_temp / total
+(413 missing values generated)
+
+. by mmc1970: egen test = sum(beta_t_notheta)
+
+. sum test // all = 1
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+        test |      8673           1    3.20e-08   .9999999          1
+
+. drop test total beta_t_notheta_temp
+
+. 
+. * omitting nontradables, with theta adjustment
+. gen beta_t_theta_temp = lambda / theta if indmatch != 99
+(413 missing values generated)
+
+. bysort mmc1970: egen total = sum(beta_t_theta_temp) if indmatch != 99
+(413 missing values generated)
+
+. gen beta_t_theta = beta_t_theta_temp / total
+(413 missing values generated)
+
+. by mmc1970: egen test = sum(beta_t_theta)
+
+. sum test // all - 1
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+        test |      8673           1    2.56e-08   .9999999          1
+
+. drop test total beta_t_theta_temp
+
+. 
+. keep mmc1970 indmatch beta*
+
+. sort mmc1970 indmatch
+
+. save ../Data/beta_indmatch_mmc1970, replace
+file ../Data/beta_indmatch_mmc1970.dta saved
+
+. 
+. ***************************
+. * merge tariff changes onto beta weights
+. 
+. sort indmatch
+
+. merge m:1 indmatch using ../Data/tariff_chg_kume
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           413
+        from master                       413  (_merge==1)
+        from using                          0  (_merge==2)
+
+    matched                             8,260  (_merge==3)
+    -----------------------------------------
+
+. tab indmatch if _merge < 3 // all nontradable
+
+   indmatch |      Freq.     Percent        Cum.
+------------+-----------------------------------
+         99 |        413      100.00      100.00
+------------+-----------------------------------
+      Total |        413      100.00
+
+. drop _merge
+
+. forvalues yr = 1991/1998 {
+  2.   replace dlnonetariff_1990_`yr' = 0 if indmatch == 99
+  3.   replace dlnoneerp_1990_`yr' = 0 if indmatch == 99
+  4.   list indmatch dlnonetariff_1990_`yr' if dlnonetariff_1990_`yr' >= . // should be none
+  5.   list indmatch dlnoneerp_1990_`yr' if dlnoneerp_1990_`yr' >= . // should be none
+  6. }
+(413 real changes made)
+(413 real changes made)
+(413 real changes made)
+(413 real changes made)
+(413 real changes made)
+(413 real changes made)
+(413 real changes made)
+(413 real changes made)
+(413 real changes made)
+(413 real changes made)
+(413 real changes made)
+(413 real changes made)
+(413 real changes made)
+(413 real changes made)
+(413 real changes made)
+(413 real changes made)
+
+. 
+. ***************************
+. * create regional weighted averages
+. 
+. * set up sum elements
+. forvalues yr = 1991/1998 {
+  2.   foreach v in nt_notheta nt_theta t_notheta t_theta {
+  3.     foreach m in tariff erp {
+  4.       gen el_`m'_1990_`v'_`yr' = beta_`v' * dlnone`m'_1990_`yr'
+  5.           gen el_`m'_1995_`v'_`yr' = beta_`v' * dlnone`m'_1995_`yr'
+  6.         }
+  7.   }
+  8. }
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+(413 missing values generated)
+
+. * sum to create weighted averages
+. collapse (sum) el*, by(mmc1970)
+
+. * rename collapsed weighted averages
+. forvalues yr = 1991/1998 {
+  2.   foreach v in nt_notheta nt_theta t_notheta t_theta {
+  3.     foreach m in tariff erp {
+  4.           if ("`m'"=="tariff") {
+  5.         rename el_`m'_1990_`v'_`yr' rtc_kume_`v'_1990_`yr'
+  6.         rename el_`m'_1995_`v'_`yr' rtc_kume_`v'_1995_`yr'
+  7.           }
+  8.           if ("`m'"=="erp") {
+  9.         rename el_`m'_1990_`v'_`yr' rec_kume_`v'_1990_`yr'
+ 10.         rename el_`m'_1995_`v'_`yr' rec_kume_`v'_1995_`yr'
+ 11.           }
+ 12.         }
+ 13.   }
+ 14. }
+
+. 
+. * rename to create rtc_kume_main
+. rename rtc_kume_t_theta_1990_1995 rtc_kume_main
+
+. rename rec_kume_t_theta_1990_1995 rec_kume_main
+
+. 
+. sum rtc_kume_main rec_kume_main
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+rtc_kume_m~n |       413   -.0452688    .0400813  -.1536338   .0085132
+rec_kume_m~n |       413   -.0465824    .0612783  -.2411064   .0358012
+
+. sort mmc1970
+
+. save ../Data/rtc_kume_mmc1970, replace
+file ../Data/rtc_kume_mmc1970.dta saved
+
+. 
+. 
+. log close
+      name:  <unnamed>
+       log:  /Users/briankovak/Dropbox/DixCarneiroKovakRodriguez/ReplicationFiles/Codes_Other/rtc
+> _kume_mmc1970.txt
+  log type:  text
+ closed on:   3 May 2017, 10:50:36
+-------------------------------------------------------------------------------------------------

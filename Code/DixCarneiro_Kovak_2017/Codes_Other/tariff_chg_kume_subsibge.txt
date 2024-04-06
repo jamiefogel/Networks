@@ -1,0 +1,78 @@
+-------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  /Users/briankovak/Dropbox/DixCarneiroKovakRodriguez/ReplicationFiles/Codes_Other/tar
+> iff_chg_kume_subsibge.txt
+  log type:  text
+ opened on:   3 May 2017, 12:13:40
+
+. 
+. use ../Data_Other/kume_subsibge, clear
+
+. keep tariff erp subsibge year
+
+. reshape wide tariff erp, i(subsibge) j(year)
+(note: j = 1987 1988 1989 1990 1991 1992 1993 1994 1995 1996 1997 1998)
+
+Data                               long   ->   wide
+-----------------------------------------------------------------------------
+Number of obs.                      168   ->      14
+Number of variables                   4   ->      25
+j variable (12 values)             year   ->   (dropped)
+xij variables:
+                                 tariff   ->   tariff1987 tariff1988 ... tariff1998
+                                    erp   ->   erp1987 erp1988 ... erp1998
+-----------------------------------------------------------------------------
+
+. 
+. forvalues yr = 1991/1998 {
+  2.   gen dlnonetariff_1990_`yr' = ln(1+(tariff`yr'/100)) - ln(1+(tariff1990/100)) 
+  3.   gen dlnonetariff_1995_`yr' = ln(1+(tariff`yr'/100)) - ln(1+(tariff1995/100))
+  4.   gen dlnoneerp_1990_`yr' = ln(1+(erp`yr'/100)) - ln(1+(erp1990/100)) 
+  5.   gen dlnoneerp_1995_`yr' = ln(1+(erp`yr'/100)) - ln(1+(erp1995/100))
+  6. }
+
+. 
+. sum dlnonetariff_1990_1995
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+~f_1990_1995 |        14   -.1361804    .0637523  -.2372042   .0140649
+
+. sum dlnoneerp_1990_1995
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+~p_1990_1995 |        14   -.1886203    .1405231  -.4865353   .0436917
+
+. list subsibge dlnonetariff_1990_1995, clean
+
+       subsibge   dlnonet..  
+  1.          1    -.043595  
+  2.          2   -.1767099  
+  3.          3   -.1126157  
+  4.          4   -.1635484  
+  5.          5   -.1678445  
+  6.          6    -.185989  
+  7.          7   -.1246848  
+  8.          8     -.11839  
+  9.          9   -.2372042  
+ 10.         10   -.1510576  
+ 11.         11   -.1779527  
+ 12.         12    -.094616  
+ 13.         13   -.1663833  
+ 14.         25    .0140649  
+
+. 
+. keep subsibge d*
+
+. save ../Data/tariff_chg_kume_subsibge, replace
+file ../Data/tariff_chg_kume_subsibge.dta saved
+
+. 
+. log close
+      name:  <unnamed>
+       log:  /Users/briankovak/Dropbox/DixCarneiroKovakRodriguez/ReplicationFiles/Codes_Other/tar
+> iff_chg_kume_subsibge.txt
+  log type:  text
+ closed on:   3 May 2017, 12:13:40
+-------------------------------------------------------------------------------------------------

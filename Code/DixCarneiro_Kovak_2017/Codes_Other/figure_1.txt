@@ -1,0 +1,190 @@
+-------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  /Users/briankovak/Dropbox/DixCarneiroKovakRodriguez/ReplicationFiles/Codes_Other/fig
+> ure_1.txt
+  log type:  text
+ opened on:   3 May 2017, 10:50:36
+
+. 
+. ******************
+. * Generate tariff changes from IndMatch level tariff data from Kume et al.
+. 
+. use ../Data_Other/kume_indmatch, clear
+
+. keep tariff erp indmatch year
+
+. reshape wide tariff erp, i(indmatch) j(year)
+(note: j = 1987 1988 1989 1990 1991 1992 1993 1994 1995 1996 1997 1998)
+
+Data                               long   ->   wide
+-----------------------------------------------------------------------------
+Number of obs.                      240   ->      20
+Number of variables                   4   ->      25
+j variable (12 values)             year   ->   (dropped)
+xij variables:
+                                 tariff   ->   tariff1987 tariff1988 ... tariff1998
+                                    erp   ->   erp1987 erp1988 ... erp1998
+-----------------------------------------------------------------------------
+
+. 
+. forvalues yr = 1991/1998 {
+  2.   gen dlnonetariff_1990_`yr' = ln(1+(tariff`yr'/100)) - ln(1+(tariff1990/100)) 
+  3.   gen dlnonetariff_1995_`yr' = ln(1+(tariff`yr'/100)) - ln(1+(tariff1995/100))
+  4.   gen dlnoneerp_1990_`yr' = ln(1+(erp`yr'/100)) - ln(1+(erp1990/100)) 
+  5.   gen dlnoneerp_1995_`yr' = ln(1+(erp`yr'/100)) - ln(1+(erp1995/100))
+  6. }
+
+.   
+.   
+. sum dlnonetariff_1990_1995
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+~f_1990_1995 |        20   -.1452504    .0670529  -.2638661   .0140649
+
+. sum dlnoneerp_1990_1995
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+~p_1990_1995 |        20   -.1986624    .1329745  -.4865353   .0436917
+
+. list indmatch dlnonetariff_1990_1995, clean
+
+       indmatch   dlnonet..  
+  1.          1    .0140649  
+  2.          2    -.064052  
+  3.          3   -.0324672  
+  4.          4   -.1767099  
+  5.          5   -.1126157  
+  6.          8   -.1635484  
+  7.         10   -.1678445  
+  8.         12    -.185989  
+  9.         14   -.1246848  
+ 10.         15     -.11839  
+ 11.         16   -.2638661  
+ 12.         17   -.1335352  
+ 13.         18   -.1400132  
+ 14.         20   -.1968756  
+ 15.         21   -.1869365  
+ 16.         22   -.1372234  
+ 17.         23   -.2321182  
+ 18.         24    -.094616  
+ 19.         25   -.1663833  
+ 20.         32   -.2212033  
+
+. 
+. gen lnonetariff_1990 = ln(1+(tariff1990/100))
+
+. corr dlnonetariff_1990_1995 lnonetariff_1990
+(obs=20)
+
+             | dlnone.. lno~1990
+-------------+------------------
+~f_1990_1995 |   1.0000
+lnoneta~1990 |  -0.8994   1.0000
+
+
+. 
+. keep indmatch d*
+
+. save ../Data/tariff_chg_kume, replace
+file ../Data/tariff_chg_kume.dta saved
+
+. 
+. ******************
+. * Prepare Figure 1
+. 
+. * start by calculating initial employment by Industry to sort industries
+. * on figure
+. use ../Data_Census/code_sample, clear
+
+. keep if year == 1991
+(24356469 observations deleted)
+
+. keep if indmatch < .
+(3469410 observations deleted)
+
+. collapse (sum) emp=xweighti, by(indmatch)
+
+. 
+. * merge in tariff changes
+. sort indmatch
+
+. merge 1:1 indmatch using ../Data/tariff_chg_kume
+(note: variable indmatch was byte, now int to accommodate using data's values)
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                             1
+        from master                         1  (_merge==1)
+        from using                          0  (_merge==2)
+
+    matched                                20  (_merge==3)
+    -----------------------------------------
+
+. list indmatch _merge if _merge < 3
+
+     +----------------------------+
+     | indmatch            _merge |
+     |----------------------------|
+ 21. |       99   master only (1) |
+     +----------------------------+
+
+. keep if _merge == 3 // drops nontraded (no tariff change available)
+(1 observation deleted)
+
+. drop _merge
+
+. 
+. * merge in industry names
+. merge 1:1 indmatch using ../Data_Other/indmatchnames
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                             1
+        from master                         0  (_merge==1)
+        from using                          1  (_merge==2)
+
+    matched                                20  (_merge==3)
+    -----------------------------------------
+
+. list indmatch _merge if _merge < 3
+
+     +---------------------------+
+     | indmatch           _merge |
+     |---------------------------|
+ 21. |       99   using only (2) |
+     +---------------------------+
+
+. keep if _merge == 3 // drops nontraded (no tariff change available)
+(1 observation deleted)
+
+. drop _merge
+
+. 
+. * make figure
+. keep indmatch emp dlnonetariff_1990_1995 indname
+
+. gen negemp = -emp
+
+. graph bar dlnonetariff_1990_1995, ///
+>       over(indname, label(angle(vertical) labsize(small)) sort(negemp)) ///
+>           ytitle("Change in ln(1+tariff), 1990-95") ///
+>           yscale(range(-0.30 (0.05) 0.05)) ///
+>           ylabel(,angle(horizontal) format(%3.2f) labsize(small)) ///
+>           bar(1,color(gs8)) ///
+>           graphregion(color(white))
+
+. graph export ../Results/CensusOther/figure_1.pdf, replace
+(file /Users/briankovak/Dropbox/DixCarneiroKovakRodriguez/ReplicationFiles/Codes_Other/../Results
+> /CensusOther/figure_1.pdf written in PDF format)
+
+. 
+. 
+. log close
+      name:  <unnamed>
+       log:  /Users/briankovak/Dropbox/DixCarneiroKovakRodriguez/ReplicationFiles/Codes_Other/fig
+> ure_1.txt
+  log type:  text
+ closed on:   3 May 2017, 10:53:12
+-------------------------------------------------------------------------------------------------

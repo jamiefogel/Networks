@@ -1,0 +1,1156 @@
+-------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  /Users/briankovak/Dropbox/DixCarneiroKovakRodriguez/ReplicationFiles/Codes_Other/adh
+> _shocks.txt
+  log type:  text
+ opened on:   3 May 2017, 13:30:30
+
+. 
+. ****************************************
+. * Aggregate Comtrade trade flow data to the Industry level
+. 
+. forvalues yr = 1989/2013 {
+  2.   foreach f in imports exports {
+  3.     foreach c in world {
+  4.   
+.       disp ("year: `yr', flow: `f'")
+  5.       use ../Data_Other/comtrade/`c'/comtrade_`c'_`f'_`yr', clear
+  6.   
+.       if (`yr' <= 1996) {
+  7.         sort hs1992
+  8.         merge 1:1 hs1992 using ../Data_Other/hs1992_to_industry
+  9.         list hs1992 if _merge == 1 // should be none
+ 10.       }
+ 11.       if (`yr' >= 1997) {
+ 12.         sort hs1996
+ 13.         merge 1:1 hs1996 using ../Data_Other/hs1996_to_industry
+ 14.         list hs1996 if _merge == 1 // should be none
+ 15.       }
+ 16.   
+.       keep if _merge == 3
+ 17.       drop _merge
+ 18.       collapse (sum) `f', by(industry)
+ 19.       gen year = `yr'
+ 20.       sort industry
+ 21.       save comtrade_`c'_`f'_industry_`yr', replace  
+ 22.         }
+ 23.   }
+ 24. }
+year: 1989, flow: imports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           906
+        from master                         0  (_merge==1)
+        from using                        906  (_merge==2)
+
+    matched                             4,133  (_merge==3)
+    -----------------------------------------
+(906 observations deleted)
+(note: file comtrade_world_imports_industry_1989.dta not found)
+file comtrade_world_imports_industry_1989.dta saved
+year: 1989, flow: exports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                         1,062
+        from master                         0  (_merge==1)
+        from using                      1,062  (_merge==2)
+
+    matched                             3,977  (_merge==3)
+    -----------------------------------------
+(1062 observations deleted)
+(note: file comtrade_world_exports_industry_1989.dta not found)
+file comtrade_world_exports_industry_1989.dta saved
+year: 1990, flow: imports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           738
+        from master                         0  (_merge==1)
+        from using                        738  (_merge==2)
+
+    matched                             4,301  (_merge==3)
+    -----------------------------------------
+(738 observations deleted)
+(note: file comtrade_world_imports_industry_1990.dta not found)
+file comtrade_world_imports_industry_1990.dta saved
+year: 1990, flow: exports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                         1,211
+        from master                         0  (_merge==1)
+        from using                      1,211  (_merge==2)
+
+    matched                             3,828  (_merge==3)
+    -----------------------------------------
+(1211 observations deleted)
+(note: file comtrade_world_exports_industry_1990.dta not found)
+file comtrade_world_exports_industry_1990.dta saved
+year: 1991, flow: imports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           561
+        from master                         0  (_merge==1)
+        from using                        561  (_merge==2)
+
+    matched                             4,478  (_merge==3)
+    -----------------------------------------
+(561 observations deleted)
+(note: file comtrade_world_imports_industry_1991.dta not found)
+file comtrade_world_imports_industry_1991.dta saved
+year: 1991, flow: exports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                         1,053
+        from master                         0  (_merge==1)
+        from using                      1,053  (_merge==2)
+
+    matched                             3,986  (_merge==3)
+    -----------------------------------------
+(1053 observations deleted)
+(note: file comtrade_world_exports_industry_1991.dta not found)
+file comtrade_world_exports_industry_1991.dta saved
+year: 1992, flow: imports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           598
+        from master                         0  (_merge==1)
+        from using                        598  (_merge==2)
+
+    matched                             4,441  (_merge==3)
+    -----------------------------------------
+(598 observations deleted)
+(note: file comtrade_world_imports_industry_1992.dta not found)
+file comtrade_world_imports_industry_1992.dta saved
+year: 1992, flow: exports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           855
+        from master                         0  (_merge==1)
+        from using                        855  (_merge==2)
+
+    matched                             4,184  (_merge==3)
+    -----------------------------------------
+(855 observations deleted)
+(note: file comtrade_world_exports_industry_1992.dta not found)
+file comtrade_world_exports_industry_1992.dta saved
+year: 1993, flow: imports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           435
+        from master                         0  (_merge==1)
+        from using                        435  (_merge==2)
+
+    matched                             4,604  (_merge==3)
+    -----------------------------------------
+(435 observations deleted)
+(note: file comtrade_world_imports_industry_1993.dta not found)
+file comtrade_world_imports_industry_1993.dta saved
+year: 1993, flow: exports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           795
+        from master                         0  (_merge==1)
+        from using                        795  (_merge==2)
+
+    matched                             4,244  (_merge==3)
+    -----------------------------------------
+(795 observations deleted)
+(note: file comtrade_world_exports_industry_1993.dta not found)
+file comtrade_world_exports_industry_1993.dta saved
+year: 1994, flow: imports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           361
+        from master                         0  (_merge==1)
+        from using                        361  (_merge==2)
+
+    matched                             4,678  (_merge==3)
+    -----------------------------------------
+(361 observations deleted)
+(note: file comtrade_world_imports_industry_1994.dta not found)
+file comtrade_world_imports_industry_1994.dta saved
+year: 1994, flow: exports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           814
+        from master                         0  (_merge==1)
+        from using                        814  (_merge==2)
+
+    matched                             4,225  (_merge==3)
+    -----------------------------------------
+(814 observations deleted)
+(note: file comtrade_world_exports_industry_1994.dta not found)
+file comtrade_world_exports_industry_1994.dta saved
+year: 1995, flow: imports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           241
+        from master                         0  (_merge==1)
+        from using                        241  (_merge==2)
+
+    matched                             4,798  (_merge==3)
+    -----------------------------------------
+(241 observations deleted)
+(note: file comtrade_world_imports_industry_1995.dta not found)
+file comtrade_world_imports_industry_1995.dta saved
+year: 1995, flow: exports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           868
+        from master                         0  (_merge==1)
+        from using                        868  (_merge==2)
+
+    matched                             4,171  (_merge==3)
+    -----------------------------------------
+(868 observations deleted)
+(note: file comtrade_world_exports_industry_1995.dta not found)
+file comtrade_world_exports_industry_1995.dta saved
+year: 1996, flow: imports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           250
+        from master                         0  (_merge==1)
+        from using                        250  (_merge==2)
+
+    matched                             4,789  (_merge==3)
+    -----------------------------------------
+(250 observations deleted)
+(note: file comtrade_world_imports_industry_1996.dta not found)
+file comtrade_world_imports_industry_1996.dta saved
+year: 1996, flow: exports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           908
+        from master                         0  (_merge==1)
+        from using                        908  (_merge==2)
+
+    matched                             4,131  (_merge==3)
+    -----------------------------------------
+(908 observations deleted)
+(note: file comtrade_world_exports_industry_1996.dta not found)
+file comtrade_world_exports_industry_1996.dta saved
+year: 1997, flow: imports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           217
+        from master                         0  (_merge==1)
+        from using                        217  (_merge==2)
+
+    matched                             4,915  (_merge==3)
+    -----------------------------------------
+(217 observations deleted)
+(note: file comtrade_world_imports_industry_1997.dta not found)
+file comtrade_world_imports_industry_1997.dta saved
+year: 1997, flow: exports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           870
+        from master                         0  (_merge==1)
+        from using                        870  (_merge==2)
+
+    matched                             4,262  (_merge==3)
+    -----------------------------------------
+(870 observations deleted)
+(note: file comtrade_world_exports_industry_1997.dta not found)
+file comtrade_world_exports_industry_1997.dta saved
+year: 1998, flow: imports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           247
+        from master                         0  (_merge==1)
+        from using                        247  (_merge==2)
+
+    matched                             4,885  (_merge==3)
+    -----------------------------------------
+(247 observations deleted)
+(note: file comtrade_world_imports_industry_1998.dta not found)
+file comtrade_world_imports_industry_1998.dta saved
+year: 1998, flow: exports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           829
+        from master                         0  (_merge==1)
+        from using                        829  (_merge==2)
+
+    matched                             4,303  (_merge==3)
+    -----------------------------------------
+(829 observations deleted)
+(note: file comtrade_world_exports_industry_1998.dta not found)
+file comtrade_world_exports_industry_1998.dta saved
+year: 1999, flow: imports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           308
+        from master                         0  (_merge==1)
+        from using                        308  (_merge==2)
+
+    matched                             4,824  (_merge==3)
+    -----------------------------------------
+(308 observations deleted)
+(note: file comtrade_world_imports_industry_1999.dta not found)
+file comtrade_world_imports_industry_1999.dta saved
+year: 1999, flow: exports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           768
+        from master                         0  (_merge==1)
+        from using                        768  (_merge==2)
+
+    matched                             4,364  (_merge==3)
+    -----------------------------------------
+(768 observations deleted)
+(note: file comtrade_world_exports_industry_1999.dta not found)
+file comtrade_world_exports_industry_1999.dta saved
+year: 2000, flow: imports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           334
+        from master                         0  (_merge==1)
+        from using                        334  (_merge==2)
+
+    matched                             4,798  (_merge==3)
+    -----------------------------------------
+(334 observations deleted)
+(note: file comtrade_world_imports_industry_2000.dta not found)
+file comtrade_world_imports_industry_2000.dta saved
+year: 2000, flow: exports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           757
+        from master                         0  (_merge==1)
+        from using                        757  (_merge==2)
+
+    matched                             4,375  (_merge==3)
+    -----------------------------------------
+(757 observations deleted)
+(note: file comtrade_world_exports_industry_2000.dta not found)
+file comtrade_world_exports_industry_2000.dta saved
+year: 2001, flow: imports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           350
+        from master                         0  (_merge==1)
+        from using                        350  (_merge==2)
+
+    matched                             4,782  (_merge==3)
+    -----------------------------------------
+(350 observations deleted)
+(note: file comtrade_world_imports_industry_2001.dta not found)
+file comtrade_world_imports_industry_2001.dta saved
+year: 2001, flow: exports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           709
+        from master                         0  (_merge==1)
+        from using                        709  (_merge==2)
+
+    matched                             4,423  (_merge==3)
+    -----------------------------------------
+(709 observations deleted)
+(note: file comtrade_world_exports_industry_2001.dta not found)
+file comtrade_world_exports_industry_2001.dta saved
+year: 2002, flow: imports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           433
+        from master                         0  (_merge==1)
+        from using                        433  (_merge==2)
+
+    matched                             4,699  (_merge==3)
+    -----------------------------------------
+(433 observations deleted)
+(note: file comtrade_world_imports_industry_2002.dta not found)
+file comtrade_world_imports_industry_2002.dta saved
+year: 2002, flow: exports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           716
+        from master                         0  (_merge==1)
+        from using                        716  (_merge==2)
+
+    matched                             4,416  (_merge==3)
+    -----------------------------------------
+(716 observations deleted)
+(note: file comtrade_world_exports_industry_2002.dta not found)
+file comtrade_world_exports_industry_2002.dta saved
+year: 2003, flow: imports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           453
+        from master                         0  (_merge==1)
+        from using                        453  (_merge==2)
+
+    matched                             4,679  (_merge==3)
+    -----------------------------------------
+(453 observations deleted)
+(note: file comtrade_world_imports_industry_2003.dta not found)
+file comtrade_world_imports_industry_2003.dta saved
+year: 2003, flow: exports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           676
+        from master                         0  (_merge==1)
+        from using                        676  (_merge==2)
+
+    matched                             4,456  (_merge==3)
+    -----------------------------------------
+(676 observations deleted)
+(note: file comtrade_world_exports_industry_2003.dta not found)
+file comtrade_world_exports_industry_2003.dta saved
+year: 2004, flow: imports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           448
+        from master                         0  (_merge==1)
+        from using                        448  (_merge==2)
+
+    matched                             4,684  (_merge==3)
+    -----------------------------------------
+(448 observations deleted)
+(note: file comtrade_world_imports_industry_2004.dta not found)
+file comtrade_world_imports_industry_2004.dta saved
+year: 2004, flow: exports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           681
+        from master                         0  (_merge==1)
+        from using                        681  (_merge==2)
+
+    matched                             4,451  (_merge==3)
+    -----------------------------------------
+(681 observations deleted)
+(note: file comtrade_world_exports_industry_2004.dta not found)
+file comtrade_world_exports_industry_2004.dta saved
+year: 2005, flow: imports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           442
+        from master                         0  (_merge==1)
+        from using                        442  (_merge==2)
+
+    matched                             4,690  (_merge==3)
+    -----------------------------------------
+(442 observations deleted)
+(note: file comtrade_world_imports_industry_2005.dta not found)
+file comtrade_world_imports_industry_2005.dta saved
+year: 2005, flow: exports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           644
+        from master                         0  (_merge==1)
+        from using                        644  (_merge==2)
+
+    matched                             4,488  (_merge==3)
+    -----------------------------------------
+(644 observations deleted)
+(note: file comtrade_world_exports_industry_2005.dta not found)
+file comtrade_world_exports_industry_2005.dta saved
+year: 2006, flow: imports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           436
+        from master                         0  (_merge==1)
+        from using                        436  (_merge==2)
+
+    matched                             4,696  (_merge==3)
+    -----------------------------------------
+(436 observations deleted)
+(note: file comtrade_world_imports_industry_2006.dta not found)
+file comtrade_world_imports_industry_2006.dta saved
+year: 2006, flow: exports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           659
+        from master                         0  (_merge==1)
+        from using                        659  (_merge==2)
+
+    matched                             4,473  (_merge==3)
+    -----------------------------------------
+(659 observations deleted)
+(note: file comtrade_world_exports_industry_2006.dta not found)
+file comtrade_world_exports_industry_2006.dta saved
+year: 2007, flow: imports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           602
+        from master                         0  (_merge==1)
+        from using                        602  (_merge==2)
+
+    matched                             4,530  (_merge==3)
+    -----------------------------------------
+(602 observations deleted)
+(note: file comtrade_world_imports_industry_2007.dta not found)
+file comtrade_world_imports_industry_2007.dta saved
+year: 2007, flow: exports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           741
+        from master                         0  (_merge==1)
+        from using                        741  (_merge==2)
+
+    matched                             4,391  (_merge==3)
+    -----------------------------------------
+(741 observations deleted)
+(note: file comtrade_world_exports_industry_2007.dta not found)
+file comtrade_world_exports_industry_2007.dta saved
+year: 2008, flow: imports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           667
+        from master                         0  (_merge==1)
+        from using                        667  (_merge==2)
+
+    matched                             4,465  (_merge==3)
+    -----------------------------------------
+(667 observations deleted)
+(note: file comtrade_world_imports_industry_2008.dta not found)
+file comtrade_world_imports_industry_2008.dta saved
+year: 2008, flow: exports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           864
+        from master                         0  (_merge==1)
+        from using                        864  (_merge==2)
+
+    matched                             4,268  (_merge==3)
+    -----------------------------------------
+(864 observations deleted)
+(note: file comtrade_world_exports_industry_2008.dta not found)
+file comtrade_world_exports_industry_2008.dta saved
+year: 2009, flow: imports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           674
+        from master                         0  (_merge==1)
+        from using                        674  (_merge==2)
+
+    matched                             4,458  (_merge==3)
+    -----------------------------------------
+(674 observations deleted)
+(note: file comtrade_world_imports_industry_2009.dta not found)
+file comtrade_world_imports_industry_2009.dta saved
+year: 2009, flow: exports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           924
+        from master                         0  (_merge==1)
+        from using                        924  (_merge==2)
+
+    matched                             4,208  (_merge==3)
+    -----------------------------------------
+(924 observations deleted)
+(note: file comtrade_world_exports_industry_2009.dta not found)
+file comtrade_world_exports_industry_2009.dta saved
+year: 2010, flow: imports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           656
+        from master                         0  (_merge==1)
+        from using                        656  (_merge==2)
+
+    matched                             4,476  (_merge==3)
+    -----------------------------------------
+(656 observations deleted)
+(note: file comtrade_world_imports_industry_2010.dta not found)
+file comtrade_world_imports_industry_2010.dta saved
+year: 2010, flow: exports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                         1,000
+        from master                         0  (_merge==1)
+        from using                      1,000  (_merge==2)
+
+    matched                             4,132  (_merge==3)
+    -----------------------------------------
+(1000 observations deleted)
+(note: file comtrade_world_exports_industry_2010.dta not found)
+file comtrade_world_exports_industry_2010.dta saved
+year: 2011, flow: imports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           655
+        from master                         0  (_merge==1)
+        from using                        655  (_merge==2)
+
+    matched                             4,477  (_merge==3)
+    -----------------------------------------
+(655 observations deleted)
+(note: file comtrade_world_imports_industry_2011.dta not found)
+file comtrade_world_imports_industry_2011.dta saved
+year: 2011, flow: exports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           919
+        from master                         0  (_merge==1)
+        from using                        919  (_merge==2)
+
+    matched                             4,213  (_merge==3)
+    -----------------------------------------
+(919 observations deleted)
+(note: file comtrade_world_exports_industry_2011.dta not found)
+file comtrade_world_exports_industry_2011.dta saved
+year: 2012, flow: imports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           678
+        from master                         0  (_merge==1)
+        from using                        678  (_merge==2)
+
+    matched                             4,454  (_merge==3)
+    -----------------------------------------
+(678 observations deleted)
+(note: file comtrade_world_imports_industry_2012.dta not found)
+file comtrade_world_imports_industry_2012.dta saved
+year: 2012, flow: exports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           968
+        from master                         0  (_merge==1)
+        from using                        968  (_merge==2)
+
+    matched                             4,164  (_merge==3)
+    -----------------------------------------
+(968 observations deleted)
+(note: file comtrade_world_exports_industry_2012.dta not found)
+file comtrade_world_exports_industry_2012.dta saved
+year: 2013, flow: imports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                           691
+        from master                         0  (_merge==1)
+        from using                        691  (_merge==2)
+
+    matched                             4,441  (_merge==3)
+    -----------------------------------------
+(691 observations deleted)
+(note: file comtrade_world_imports_industry_2013.dta not found)
+file comtrade_world_imports_industry_2013.dta saved
+year: 2013, flow: exports
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                         1,000
+        from master                         0  (_merge==1)
+        from using                      1,000  (_merge==2)
+
+    matched                             4,132  (_merge==3)
+    -----------------------------------------
+(1000 observations deleted)
+(note: file comtrade_world_exports_industry_2013.dta not found)
+file comtrade_world_exports_industry_2013.dta saved
+
+. 
+. foreach f in imports exports {
+  2.   foreach c in world {
+  3.     use comtrade_`c'_`f'_industry_1989, clear
+  4.     forvalues yr = 1990/2013 {
+  5.       append using comtrade_`c'_`f'_industry_`yr'
+  6.     }
+  7.     sort industry year
+  8.     merge m:1 year using ../Data_Other/cpi
+  9.     keep if _merge == 3 // drops earlier years
+ 10.     drop _merge
+ 11.     replace `f' = `f' / cpi2005
+ 12.     keep industry year `f'
+ 13.     reshape wide `f', i(industry) j(year)
+ 14.     forvalues yr = 1989/2013 {
+ 15.       replace `f'`yr' = 0 if `f'`yr' >= .
+ 16.     }
+ 17.     drop if industry >= .
+ 18.     order industry
+ 19.     sort industry
+ 20.     save comtrade_`c'_`f'_industry, replace
+ 21.   }
+ 22. }
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                             3
+        from master                         0  (_merge==1)
+        from using                          3  (_merge==2)
+
+    matched                             1,086  (_merge==3)
+    -----------------------------------------
+(3 observations deleted)
+(1041 real changes made)
+(note: j = 1989 1990 1991 1992 1993 1994 1995 1996 1997 1998 1999 2000 2001 2002 2003 2004 2005 2
+> 006 2007 2008 2009 2010 2011 2012 2013)
+
+Data                               long   ->   wide
+-----------------------------------------------------------------------------
+Number of obs.                     1086   ->      45
+Number of variables                   3   ->      26
+j variable (25 values)             year   ->   (dropped)
+xij variables:
+                                imports   ->   imports1989 imports1990 ... imports2013
+-----------------------------------------------------------------------------
+(4 real changes made)
+(4 real changes made)
+(6 real changes made)
+(2 real changes made)
+(2 real changes made)
+(1 real change made)
+(1 real change made)
+(1 real change made)
+(1 real change made)
+(2 real changes made)
+(1 real change made)
+(1 real change made)
+(2 real changes made)
+(1 real change made)
+(0 real changes made)
+(1 real change made)
+(0 real changes made)
+(1 real change made)
+(2 real changes made)
+(1 real change made)
+(2 real changes made)
+(2 real changes made)
+(1 real change made)
+(0 real changes made)
+(0 real changes made)
+(1 observation deleted)
+(note: file comtrade_world_imports_industry.dta not found)
+file comtrade_world_imports_industry.dta saved
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                             3
+        from master                         0  (_merge==1)
+        from using                          3  (_merge==2)
+
+    matched                             1,095  (_merge==3)
+    -----------------------------------------
+(3 observations deleted)
+(1051 real changes made)
+(note: j = 1989 1990 1991 1992 1993 1994 1995 1996 1997 1998 1999 2000 2001 2002 2003 2004 2005 2
+> 006 2007 2008 2009 2010 2011 2012 2013)
+
+Data                               long   ->   wide
+-----------------------------------------------------------------------------
+Number of obs.                     1095   ->      45
+Number of variables                   3   ->      26
+j variable (25 values)             year   ->   (dropped)
+xij variables:
+                                exports   ->   exports1989 exports1990 ... exports2013
+-----------------------------------------------------------------------------
+(3 real changes made)
+(3 real changes made)
+(2 real changes made)
+(1 real change made)
+(1 real change made)
+(0 real changes made)
+(2 real changes made)
+(1 real change made)
+(1 real change made)
+(1 real change made)
+(1 real change made)
+(1 real change made)
+(1 real change made)
+(1 real change made)
+(1 real change made)
+(1 real change made)
+(1 real change made)
+(1 real change made)
+(1 real change made)
+(1 real change made)
+(1 real change made)
+(1 real change made)
+(1 real change made)
+(1 real change made)
+(1 real change made)
+(1 observation deleted)
+(note: file comtrade_world_exports_industry.dta not found)
+file comtrade_world_exports_industry.dta saved
+
+. 
+. forvalues yr = 1989/2013 {
+  2.   foreach f in imports exports {
+  3.     foreach c in world {
+  4.       erase comtrade_`c'_`f'_industry_`yr'.dta
+  5.     }
+  6.   }
+  7. }
+
+. 
+. ****************************************
+. * 1991 IndMatch employment weights
+. 
+. * load census data for 1991
+. use ../Data_Census/code_sample if year == 1991, clear
+
+. 
+. * restrict sample
+. keep if employed==1 // employed
+(3458775 observations deleted)
+
+. drop if indlinkn==98 // drop public admin
+(656923 observations deleted)
+
+. keep if indmatch < . // valid indmatch code
+(10636 observations deleted)
+
+. 
+. * calculate total employment by indmatch
+. keep if indmatch < .
+(0 observations deleted)
+
+. collapse (sum) employment=xweighti, by(indmatch)
+
+. 
+. * save output
+. sort indmatch
+
+. save ../Data/indmatch_employment_1991, replace
+file ../Data/indmatch_employment_1991.dta saved
+
+. 
+. ****************************************
+. * 1991 Industry employment weights
+. 
+. * load census data for 1991
+. use ../Data_Census/code_sample if year == 1991, clear
+
+. 
+. * restrict sample
+. keep if employed==1 // employed
+(3458775 observations deleted)
+
+. drop if indlinkn==98 // drop public admin
+(656923 observations deleted)
+
+. keep if industry < . // valid industry code
+(47364 observations deleted)
+
+. 
+. * calculate total employment by industry
+. collapse (sum) employment=xweighti, by(industry)
+
+. 
+. * save output
+. sort industry
+
+. save ../Data/industry_employment_1991, replace
+file ../Data/industry_employment_1991.dta saved
+
+. 
+. 
+. ****************************************
+. * Calculate Industry level shocks
+. 
+. foreach s in world {
+  2. 
+.         use comtrade_`s'_imports_industry, clear
+  3.         sort industry
+  4.         merge 1:1 industry using comtrade_`s'_exports_industry
+  5.         drop _merge // perfect match
+  6.         merge 1:1 industry using ../Data/industry_employment_1991
+  7.         keep if _merge == 3 // drops nontradables
+  8.         drop _merge
+  9. 
+.         forvalues yr = 1991/2013 {
+ 10.                 foreach f in imports exports {
+ 11.                         gen dpw_`f'_`yr' = (`f'`yr' - `f'1990)/employment
+ 12.                         replace dpw_`f'_`yr' = 0 if dpw_`f'_`yr' >= .
+ 13.                         gen dln_`f'_`yr' = ln(`f'`yr') - ln(`f'1990)
+ 14.                 }
+ 15.         }
+ 16.         
+.         sort industry
+ 17.         aorder 
+ 18.         order industry
+ 19.         save industry_shocks_`s', replace
+ 20. }
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                             0
+    matched                                44  (_merge==3)
+    -----------------------------------------
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                             1
+        from master                         0  (_merge==1)
+        from using                          1  (_merge==2)
+
+    matched                                44  (_merge==3)
+    -----------------------------------------
+(1 observation deleted)
+(0 real changes made)
+(6 missing values generated)
+(0 real changes made)
+(3 missing values generated)
+(0 real changes made)
+(4 missing values generated)
+(0 real changes made)
+(3 missing values generated)
+(0 real changes made)
+(4 missing values generated)
+(0 real changes made)
+(3 missing values generated)
+(0 real changes made)
+(5 missing values generated)
+(0 real changes made)
+(3 missing values generated)
+(0 real changes made)
+(4 missing values generated)
+(0 real changes made)
+(4 missing values generated)
+(0 real changes made)
+(4 missing values generated)
+(0 real changes made)
+(3 missing values generated)
+(0 real changes made)
+(4 missing values generated)
+(0 real changes made)
+(3 missing values generated)
+(0 real changes made)
+(5 missing values generated)
+(0 real changes made)
+(3 missing values generated)
+(0 real changes made)
+(4 missing values generated)
+(0 real changes made)
+(3 missing values generated)
+(0 real changes made)
+(4 missing values generated)
+(0 real changes made)
+(3 missing values generated)
+(0 real changes made)
+(4 missing values generated)
+(0 real changes made)
+(3 missing values generated)
+(0 real changes made)
+(4 missing values generated)
+(0 real changes made)
+(3 missing values generated)
+(0 real changes made)
+(4 missing values generated)
+(0 real changes made)
+(3 missing values generated)
+(0 real changes made)
+(4 missing values generated)
+(0 real changes made)
+(3 missing values generated)
+(0 real changes made)
+(4 missing values generated)
+(0 real changes made)
+(3 missing values generated)
+(0 real changes made)
+(4 missing values generated)
+(0 real changes made)
+(3 missing values generated)
+(0 real changes made)
+(4 missing values generated)
+(0 real changes made)
+(3 missing values generated)
+(0 real changes made)
+(4 missing values generated)
+(0 real changes made)
+(3 missing values generated)
+(0 real changes made)
+(4 missing values generated)
+(0 real changes made)
+(3 missing values generated)
+(0 real changes made)
+(4 missing values generated)
+(0 real changes made)
+(3 missing values generated)
+(0 real changes made)
+(4 missing values generated)
+(0 real changes made)
+(3 missing values generated)
+(0 real changes made)
+(4 missing values generated)
+(0 real changes made)
+(3 missing values generated)
+(0 real changes made)
+(4 missing values generated)
+(0 real changes made)
+(3 missing values generated)
+(note: file industry_shocks_world.dta not found)
+file industry_shocks_world.dta saved
+
+. erase comtrade_world_imports_industry.dta
+
+. erase comtrade_world_exports_industry.dta
+
+. 
+. 
+. ****************************************
+. * ADH style shocks
+. 
+. * combine weights and industry shocks
+. use ../Data/beta_industry, clear
+
+. keep mmc industry beta_t_notheta beta_nt_notheta
+
+. drop if industry == 99
+(486 observations deleted)
+
+. sort industry
+
+. merge m:1 industry using industry_shocks_world
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                             0
+    matched                            21,384  (_merge==3)
+    -----------------------------------------
+
+. drop _merge // perfect match
+
+. 
+. * confirm weight coding
+. bysort mmc: egen test_t = sum(beta_t_notheta)
+
+. by mmc: egen test_nt = sum(beta_nt_notheta)
+
+. sum test_t // should be all 1's
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+      test_t |     21384           1    2.75e-08   .9999999          1
+
+. sum test_nt // should be strictly < 1
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+     test_nt |     21384    .5271455    .1463364   .0441754   .8374596
+
+. drop test*
+
+. 
+. * generate elements of weighted averages
+. forvalues yr = 1991/2013 {
+  2.         foreach f in imports exports {
+  3.                 gen element_t_`f'_`yr' = beta_t_notheta * dpw_`f'_`yr'
+  4.                 gen element_nt_`f'_`yr' = beta_nt_notheta * dpw_`f'_`yr'
+  5.         }
+  6. }
+
+. 
+. * calculate weighted averages
+. collapse (sum) element*, by(mmc)
+
+. forvalues yr = 1991/2013 {
+  2.   foreach f in imports exports {
+  3.     rename element_t_`f'_`yr' adh_t_`f'_`yr'
+  4.     rename element_nt_`f'_`yr' adh_nt_`f'_`yr'
+  5.   }
+  6. }
+
+. sum adh_t_imports_2000 adh_t_imports_2010
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+adh_t_i~2000 |       486    738.7465    1386.868  -16238.31   7649.438
+adh_t_i~2010 |       486    3762.411    4061.794   149.9771   29849.05
+
+. sum adh_nt_imports_2000 adh_nt_imports_2010
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+adh_nt_im~00 |       486    327.1727    479.7147   -5145.84   2073.427
+adh_nt_im~10 |       486    1606.907    1372.306   83.91531   11171.29
+
+. sum adh_t_exports_2000 adh_t_exports_2010
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+adh_t_e~2000 |       486    555.3622    475.2762  -1472.225   2535.845
+adh_t_e~2010 |       486    5939.189    9758.461    243.995   131540.6
+
+. sum adh_nt_exports_2000 adh_nt_exports_2010
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+adh_nt_ex~00 |       486    249.7572    192.0164  -799.4145   1463.849
+adh_nt_ex~10 |       486    2738.733    4469.468    160.602   71426.25
+
+. 
+. *output
+. order mmc adh_t_imports* adh_t_exports* adh_nt_imports* adh_nt_exports*
+
+. codebook mmc
+
+-------------------------------------------------------------------------------------------------
+mmc                                                                                   (unlabeled)
+-------------------------------------------------------------------------------------------------
+
+                  type:  numeric (float)
+
+                 range:  [11901,53001]                units:  1
+         unique values:  486                      missing .:  0/486
+
+                  mean:   31150.3
+              std. dev:   9818.45
+
+           percentiles:        10%       25%       50%       75%       90%
+                             17007     24018   31025.5     35053     43027
+
+. sort mmc
+
+. save ../Data/adh_shocks, replace
+file ../Data/adh_shocks.dta saved
+
+. 
+. erase industry_shocks_world.dta
+
+. 
+. log close
+      name:  <unnamed>
+       log:  /Users/briankovak/Dropbox/DixCarneiroKovakRodriguez/ReplicationFiles/Codes_Other/adh
+> _shocks.txt
+  log type:  text
+ closed on:   3 May 2017, 13:31:35
+-------------------------------------------------------------------------------------------------
