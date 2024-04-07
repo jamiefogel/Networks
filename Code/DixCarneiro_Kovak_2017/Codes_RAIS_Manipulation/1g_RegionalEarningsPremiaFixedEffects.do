@@ -7,7 +7,7 @@
 clear all 
 set more off
 capture log close
-global root "\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\DixCarneiro_Kovak_2017"
+global root "\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\DixCarneiro_Kovak_2017\"
 
 global data1 "${root}Data_Other\"
 global data2 "${root}ProcessedData_RAIS\Panel_1986_2010\"
