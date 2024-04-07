@@ -11,12 +11,12 @@ clear
 
 set more off
 
-* global root "C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\"
+* global root "C:/Users/rd123/Dropbox/DixCarneiroKovakRodriguez/ReplicationFiles/"
 
-global data1 "${root}Data\"
-global data2 "${root}Data_Other\"
-global output "${root}Results\SlowRespImportsExports\"
-global earnings "${root}ProcessedData_RAIS\RegionalEarnPremia\"
+global data1 "${root}Data/"
+global data2 "${root}Data_Other/"
+global output "${root}Results/SlowRespImportsExports/"
+global earnings "${root}ProcessedData_RAIS/RegionalEarnPremia/"
 
 ********************************************************************************
 ********************************************************************************
@@ -384,10 +384,10 @@ clear
 
 set more off
 
-global data1 "${root}Data\"
-global data2 "${root}Data_Other\"
-global output "${root}Results\SlowRespImportsExports\"
-global earnings "${root}ProcessedData_RAIS\RegionalEarnPremia\"
+global data1 "${root}Data/"
+global data2 "${root}Data_Other/"
+global output "${root}Results/SlowRespImportsExports/"
+global earnings "${root}ProcessedData_RAIS/RegionalEarnPremia/"
 
 ********************************************************************************
 ********************************************************************************

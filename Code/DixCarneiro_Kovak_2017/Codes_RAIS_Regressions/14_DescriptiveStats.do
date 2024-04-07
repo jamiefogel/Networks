@@ -8,15 +8,15 @@ clear
 
 set more off
 
-* global root "C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\"
+* global root "C:/Users/rd123/Dropbox/DixCarneiroKovakRodriguez/ReplicationFiles/"
 
-global data1 "${root}Data\"
-global data2 "${root}Data_Other\"
-global output "${root}Results\DescriptiveStatistics\"
-global earnings "${root}ProcessedData_RAIS\RegionalEarnPremia\"
-global employment "${root}ProcessedData_RAIS\RegionalEmployment\"
-global plants "${root}ProcessedData_RAIS\Plants\"
-global jobcreat "${root}ProcessedData_RAIS\JobDestruction_JobCreation\"
+global data1 "${root}Data/"
+global data2 "${root}Data_Other/"
+global output "${root}Results/DescriptiveStatistics/"
+global earnings "${root}ProcessedData_RAIS/RegionalEarnPremia/"
+global employment "${root}ProcessedData_RAIS/RegionalEmployment/"
+global plants "${root}ProcessedData_RAIS/Plants/"
+global jobcreat "${root}ProcessedData_RAIS/JobDestruction_JobCreation/"
 
 ********************************************************************************
 ********************************************************************************

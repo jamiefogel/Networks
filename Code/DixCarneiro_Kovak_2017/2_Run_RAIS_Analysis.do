@@ -10,93 +10,93 @@
 * in folder Data.
 ********************************************************************************
 
-* Update this line to point to the \ReplicationFiles\ folder
+* Update this line to point to the /ReplicationFiles/ folder
 local os "`c(os)'"
 if "`os'" == "MacOSX" {
-    global root "/Users/jfogel/NetworksGit/Code/DixCarneiro_Kovak_2017"
+    global root "/Users/jfogel/NetworksGit/Code/DixCarneiro_Kovak_2017/"
 }
 else if "`os'" == "Windows" {
-    global root "\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\DixCarneiro_Kovak_2017"
+    global root "//storage6/usuarios/labormkt_rafaelpereira/NetworksGit/Code/DixCarneiro_Kovak_2017/"
 }
 else {
     di "Unsupported operating system"
     exit
 }
-global results "${root}Results\"
+global results "${root}Results/"
 
 cap log close
 
 log using ${results}Run_RAIS_Analysis_Log.log, replace
 
 ********************************************************************************
-do ${root}\Codes_RAIS_Regressions\1_Main_Regressions_Earnings.do
+do ${root}/Codes_RAIS_Regressions/1_Main_Regressions_Earnings.do
 * Generates results used in Figure 3 and Table 2
 ********************************************************************************
 
 ********************************************************************************
-do ${root}\Codes_RAIS_Regressions\2_Main_Regressions_Employment.do
+do ${root}/Codes_RAIS_Regressions/2_Main_Regressions_Employment.do
 * Generates results used in Figure 4 and Table 2
 ********************************************************************************
 
 ********************************************************************************
-do ${root}\Codes_RAIS_Regressions\3_Mechanisms_WorkerComp.do
+do ${root}/Codes_RAIS_Regressions/3_Mechanisms_WorkerComp.do
 * Generates results in Table 5
 ********************************************************************************
 
 ********************************************************************************
-do ${root}\Codes_RAIS_Regressions\4_ADH_IV.do
+do ${root}/Codes_RAIS_Regressions/4_ADH_IV.do
 * Generates Table 6 and Figure 5
 ********************************************************************************
 
 ********************************************************************************
-do ${root}\Codes_RAIS_Regressions\5_ResidualAnalysis.do
+do ${root}/Codes_RAIS_Regressions/5_ResidualAnalysis.do
 * Generates Figure 6
 ********************************************************************************
 
 ********************************************************************************
-do ${root}\Codes_RAIS_Regressions\6_NumberOfPlants.do
+do ${root}/Codes_RAIS_Regressions/6_NumberOfPlants.do
 * Generates Results in Figure 7
 ********************************************************************************
 
 ********************************************************************************
-do ${root}\Codes_RAIS_Regressions\7_PlantEntryExit.do
+do ${root}/Codes_RAIS_Regressions/7_PlantEntryExit.do
 * Generates Figure 8
 ********************************************************************************
 
 ********************************************************************************
-do ${root}\Codes_RAIS_Regressions\8_JobDestruction_JobCreation.do
+do ${root}/Codes_RAIS_Regressions/8_JobDestruction_JobCreation.do
 * Generates Figure 9
 ********************************************************************************
 
 ********************************************************************************
-do ${root}\Codes_RAIS_Regressions\9_TestAggEcon.do
+do ${root}/Codes_RAIS_Regressions/9_TestAggEcon.do
 * Generates results in Table 7
 * Test for Agglomeration Economies
 ********************************************************************************
 
 ********************************************************************************
-do ${root}\Codes_RAIS_Regressions\10_AgglomerationEconomies.do
+do ${root}/Codes_RAIS_Regressions/10_AgglomerationEconomies.do
 * Generates Table 8
 * Agglomeration Elasticity Estimates
 ********************************************************************************
 
 ********************************************************************************
-do ${root}\Codes_RAIS_Regressions\11_MainRobustnessEarn.do
+do ${root}/Codes_RAIS_Regressions/11_MainRobustnessEarn.do
 * Generates results reported in Tables B6 and B8
 ********************************************************************************
 
 ********************************************************************************
-do ${root}\Codes_RAIS_Regressions\12_MainRobustnessEmp.do
+do ${root}/Codes_RAIS_Regressions/12_MainRobustnessEmp.do
 * Generates results in Table B7
 ********************************************************************************
 
 ********************************************************************************
-do ${root}\Codes_RAIS_Regressions\13_RobustnessCommodityBoom.do
+do ${root}/Codes_RAIS_Regressions/13_RobustnessCommodityBoom.do
 * Generates Tables B9 and B11
 ********************************************************************************
 
 ********************************************************************************
-do ${root}\Codes_RAIS_Regressions\14_DescriptiveStats.do
+do ${root}/Codes_RAIS_Regressions/14_DescriptiveStats.do
 * Generates part of Table 1, with Descriptive Statistics
 * Remaining rows (indexed by an "a" superscript) are generated using Census data
 ********************************************************************************
