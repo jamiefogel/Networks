@@ -1,0 +1,90 @@
+* /comtrade/
+Comtrade trade flow data
+
+* /trains/
+Contains Brazilian tariff data from UNCTAD TRAINS for 1989-2011
+
+* _CGP2015_BrazilChina_IS_XD_Censo_2000.dta
+Regional import supply and export demand shocks and associated IVs from Costa et al. (2016), graciously provided by Francisco Costa.
+
+* atividade_to_imf_code.dta
+Mapping from Census 1991 atividade industries to commodity codes in IMF Primary Commodity Price data
+
+* atividade_to_ind_adao.dta
+Mapping from Census 1991 atividade industries to commodity codes in Rodrigo Adao’s job market paper
+
+* commodity_prices_adao.dta
+Commodity price data used in Rodrigo Adao’s job market paper.  Special thanks to Rodrigo Adao for sharing his data and code.
+
+* comtrade_h2_to_h1.dta
+Product concordance from Comtrade h2 to h1 codes
+
+* comtrade_h2_to_h1.dta
+Product concordance from Comtrade h3 to h1 codes
+
+* comtrade_partner_exports_1989.dta
+1989 exports from Brazil to all trading partners by product from Comtrade
+
+* comtrade_partner_imports_1989.dta
+1989 imports to Brazil from all trading partners by product from Comtrade
+
+* country_concord.dta
+Maps from Penn World Table country codes to Comtrade country codes for use in calculating real exchange rate shocks
+
+* cpi.dta
+National consumer price index normalized to 1 in 2005
+
+* hs1992_to_industry.dta
+Industry concordance from 1992 Harmonized System codes to Industry classification
+
+* hs1996_to_industry.dta
+Industry concordance from 1996 Harmonized System codes to Industry classification
+
+* imf_data.dta
+Yearly average commodity price data from IMF Primary Commodity Price program
+
+* indmatchnames.dta
+Names for IndMatch industries, which are consistent across tariff data and Census industries
+
+* industry_to_indmatch.dta
+Industry concordance from Industry classification to IndMatch, which is consistent across tariff data and Census industries
+
+* kume_indmatch.dta
+Tariffs from Kume et al. (2003), aggregated to the IndMatch level, which is consistent across tariff data and Census industries
+
+* kume_subsibge.dta
+Tariffs from Kume et al. (2003), aggregated to the SUBSIBGE level, which is used in RAIS
+
+* Minimum_Wage.dta
+Yearly data on national minimum wage and consumer price deflators, used in descriptive statistics
+
+* mmc_1991_2010_to_c_mesoreg.dta
+Geographic concordance from consistent microregions spanning 1991 to 2010 to consistent mesoregions spanning the same time range
+
+* mmc_drop.dta
+Indicators for microregions to drop the empirical analysis, to ensure a constant sample of microregions across all analyses
+
+* mmc1970_drop.dta
+Indicators for consistent microregions spanning 1970 to 2010 to drop the empirical analysis, to ensure a constant sample of microregions across all analyses
+
+* mmc1970_to_c_mesoreg1970.dta
+Geographic concordance from consistent microregions spanning 1970 to 2010 to consistent mesoregions spanning 1970 to 2010
+
+* pwt71.dta
+Penn World Tables data used to calculate real exchange rates
+
+* rais_codemun_to_mmc_1970_2010.dta
+Geographic concordance from municipio codes in RAIS to consistent microregions spanning 1970-2010.
+
+* rais_codemun_to_mmc_1991_2010.dta
+Geographic concordance from municipio codes in RAIS to consistent microregions spanning 1991-2010.
+
+* subsibge_to_subsibge_rais.dta
+Maps between alternative coding schemes for the SUBSIBGE industry classification
+
+* theta_indmatch.dta
+Measure of the share of income earned by capital, using data from 1990 IBGE National Accounts, by IndMatch industry
+
+* theta_industry.dta
+Measure of the share of income earned by capital, using data from 1990 IBGE National Accounts, by Industry code
+
