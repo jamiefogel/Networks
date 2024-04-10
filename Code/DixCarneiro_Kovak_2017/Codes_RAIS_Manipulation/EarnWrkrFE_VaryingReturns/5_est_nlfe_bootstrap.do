@@ -7,13 +7,13 @@ capture log close
 
 capture set mem 20g
 
-global root "C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\"
+global root "C:/Users/rd123/Dropbox/DixCarneiroKovakRodriguez/ReplicationFiles/"
 
-global data1  "${root}ProcessedData_RAIS\Panel_1986_2010\"
-global data2  "${root}Data_Other\"
-global output "${root}ProcessedData_RAIS\RegionalEarnPremia_WorkerFE\Temp\"
-global boot   "${root}ProcessedData_RAIS\RegionalEarnPremia_WorkerFE\Temp\Bootstrap\"
-global logs   "${root}ProcessedData_RAIS\RegionalEarnPremia_WorkerFE\Temp\Logs\"
+global data1  "${root}ProcessedData_RAIS/Panel_1986_2010/"
+global data2  "${root}Data_Other/"
+global output "${root}ProcessedData_RAIS/RegionalEarnPremia_WorkerFE/Temp/"
+global boot   "${root}ProcessedData_RAIS/RegionalEarnPremia_WorkerFE/Temp/Bootstrap/"
+global logs   "${root}ProcessedData_RAIS/RegionalEarnPremia_WorkerFE/Temp/Logs/"
 
 ********************************************************************************
 ********************************************************************************

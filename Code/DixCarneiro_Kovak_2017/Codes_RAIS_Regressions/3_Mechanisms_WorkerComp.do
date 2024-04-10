@@ -7,12 +7,12 @@ clear
 
 set more off
 
-* global root "C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\"
+* global root "C:/Users/rd123/Dropbox/DixCarneiroKovakRodriguez/ReplicationFiles/"
 
-global data1 "${root}Data\"
-global data2 "${root}Data_Other\"
-global data3 "${root}ProcessedData_RAIS\RegionalEarnPremia_WorkerFE\"
-global output "${root}Results\Earnings_WorkerFE\"
+global data1 "${root}Data/"
+global data2 "${root}Data_Other/"
+global data3 "${root}ProcessedData_RAIS/RegionalEarnPremia_WorkerFE/"
+global output "${root}Results/Earnings_WorkerFE/"
 
 ********************************************************************************
 ********************************************************************************

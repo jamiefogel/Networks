@@ -1,0 +1,107 @@
+* Codes years of education from the various education-related
+* questions in the 1980 Census, following the coding used by
+* IPUMS to harmonize the 1980 values with the "years of
+* schooling" variables present in subsequent censuses
+
+gen BR80A420 = v520 // no missing codes in v520 , so no 99 codes in BR80A420 
+gen BR80A421 = v521
+gen BR80A422 = v522
+gen BR80A423 = v523
+gen BR80A424 = v524
+
+gen educ = .
+
+replace educ = 0 if BR80A420==0 & BR80A421==0 & BR80A422==0 & BR80A423==0 & BR80A424==0
+replace educ = 0 if BR80A420==1 & BR80A421==1 & BR80A422==0 & BR80A423==0 & BR80A424==0
+replace educ = 0 if BR80A420==1 & BR80A421==3 & BR80A422==0 & BR80A423==0 & BR80A424==0
+replace educ = 0 if BR80A420==1 & BR80A421==6 & BR80A422==0 & BR80A423==0 & BR80A424==0
+replace educ = 0 if BR80A420==0 & BR80A421==0 & BR80A422==1 & BR80A423==0 & BR80A424==0
+replace educ = 0 if BR80A420==2 & BR80A421==3 & BR80A422==0 & BR80A423==0 & BR80A424==0
+
+replace educ = 1 if BR80A420==0 & BR80A421==0 & BR80A422==0 & BR80A423==1 & BR80A424==2
+replace educ = 1 if BR80A420==0 & BR80A421==0 & BR80A422==0 & BR80A423==1 & BR80A424==4
+replace educ = 1 if BR80A420==2 & BR80A421==1 & BR80A422==0 & BR80A423==0 & BR80A424==0
+replace educ = 1 if BR80A420==2 & BR80A421==6 & BR80A422==0 & BR80A423==0 & BR80A424==0
+
+replace educ = 2 if BR80A420==0 & BR80A421==0 & BR80A422==0 & BR80A423==2 & BR80A424==2
+replace educ = 2 if BR80A420==0 & BR80A421==0 & BR80A422==0 & BR80A423==2 & BR80A424==4
+replace educ = 2 if BR80A420==3 & BR80A421==1 & BR80A422==0 & BR80A423==0 & BR80A424==0
+replace educ = 2 if BR80A420==3 & BR80A421==3 & BR80A422==0 & BR80A423==0 & BR80A424==0
+replace educ = 2 if BR80A420==3 & BR80A421==6 & BR80A422==0 & BR80A423==0 & BR80A424==0
+
+replace educ = 3 if BR80A420==0 & BR80A421==0 & BR80A422==0 & BR80A423==3 & BR80A424==2
+replace educ = 3 if BR80A420==0 & BR80A421==0 & BR80A422==0 & BR80A423==3 & BR80A424==4
+replace educ = 3 if BR80A420==4 & BR80A421==1 & BR80A422==0 & BR80A423==0 & BR80A424==0
+replace educ = 3 if BR80A420==4 & BR80A421==3 & BR80A422==0 & BR80A423==0 & BR80A424==0
+replace educ = 3 if BR80A420==4 & BR80A421==6 & BR80A422==0 & BR80A423==0 & BR80A424==0
+
+replace educ = 4 if BR80A420==0 & BR80A421==0 & BR80A422==0 & BR80A423==4 & BR80A424==2
+replace educ = 4 if BR80A420==0 & BR80A421==0 & BR80A422==0 & BR80A423==4 & BR80A424==4
+replace educ = 4 if BR80A420==0 & BR80A421==0 & BR80A422==0 & BR80A423==5 & BR80A424==2
+replace educ = 4 if BR80A420==1 & BR80A421==2 & BR80A422==0 & BR80A423==0 & BR80A424==0
+replace educ = 4 if BR80A420==5 & BR80A421==3 & BR80A422==0 & BR80A423==0 & BR80A424==0
+replace educ = 4 if BR80A420==5 & BR80A421==6 & BR80A422==0 & BR80A423==0 & BR80A424==0
+
+replace educ = 5 if BR80A420==0 & BR80A421==0 & BR80A422==0 & BR80A423==1 & BR80A424==3
+replace educ = 5 if BR80A420==0 & BR80A421==0 & BR80A422==0 & BR80A423==5 & BR80A424==4
+replace educ = 5 if BR80A420==2 & BR80A421==2 & BR80A422==0 & BR80A423==0 & BR80A424==0
+replace educ = 5 if BR80A420==6 & BR80A421==3 & BR80A422==0 & BR80A423==0 & BR80A424==0
+replace educ = 5 if BR80A420==6 & BR80A421==6 & BR80A422==0 & BR80A423==0 & BR80A424==0
+
+replace educ = 6 if BR80A420==0 & BR80A421==0 & BR80A422==0 & BR80A423==2 & BR80A424==3
+replace educ = 6 if BR80A420==0 & BR80A421==0 & BR80A422==0 & BR80A423==6 & BR80A424==4
+replace educ = 6 if BR80A420==3 & BR80A421==2 & BR80A422==0 & BR80A423==0 & BR80A424==0
+replace educ = 6 if BR80A420==7 & BR80A421==6 & BR80A422==0 & BR80A423==0 & BR80A424==0
+replace educ = 6 if BR80A420==7 & BR80A421==3 & BR80A422==0 & BR80A423==0 & BR80A424==0
+
+replace educ = 7 if BR80A420==0 & BR80A421==0 & BR80A422==0 & BR80A423==3 & BR80A424==3
+replace educ = 7 if BR80A420==0 & BR80A421==0 & BR80A422==0 & BR80A423==7 & BR80A424==4
+replace educ = 7 if BR80A420==4 & BR80A421==2 & BR80A422==0 & BR80A423==0 & BR80A424==0
+replace educ = 7 if BR80A420==8 & BR80A421==3 & BR80A422==0 & BR80A423==0 & BR80A424==0
+replace educ = 7 if BR80A420==8 & BR80A421==6 & BR80A422==0 & BR80A423==0 & BR80A424==0
+
+replace educ = 8 if BR80A420==0 & BR80A421==0 & BR80A422==0 & BR80A423==4 & BR80A424==3
+replace educ = 8 if BR80A420==0 & BR80A421==0 & BR80A422==0 & BR80A423==5 & BR80A424==3
+replace educ = 8 if BR80A420==0 & BR80A421==0 & BR80A422==0 & BR80A423==8 & BR80A424==4
+replace educ = 8 if BR80A420==1 & BR80A421==4 & BR80A422==0 & BR80A423==0 & BR80A424==0
+replace educ = 8 if BR80A420==1 & BR80A421==5 & BR80A422==0 & BR80A423==0 & BR80A424==0
+replace educ = 8 if BR80A420==1 & BR80A421==7 & BR80A422==0 & BR80A423==0 & BR80A424==0
+
+replace educ = 9 if BR80A420==0 & BR80A421==0 & BR80A422==0 & BR80A423==1 & BR80A424==5
+replace educ = 9 if BR80A420==0 & BR80A421==0 & BR80A422==0 & BR80A423==1 & BR80A424==6
+replace educ = 9 if BR80A420==2 & BR80A421==4 & BR80A422==0 & BR80A423==0 & BR80A424==0
+replace educ = 9 if BR80A420==2 & BR80A421==5 & BR80A422==0 & BR80A423==0 & BR80A424==0
+replace educ = 9 if BR80A420==2 & BR80A421==7 & BR80A422==0 & BR80A423==0 & BR80A424==0
+
+replace educ = 10 if BR80A420==0 & BR80A421==0 & BR80A422==0 & BR80A423==2 & BR80A424==5
+replace educ = 10 if BR80A420==0 & BR80A421==0 & BR80A422==0 & BR80A423==2 & BR80A424==6
+replace educ = 10 if BR80A420==3 & BR80A421==4 & BR80A422==0 & BR80A423==0 & BR80A424==0
+replace educ = 10 if BR80A420==3 & BR80A421==5 & BR80A422==0 & BR80A423==0 & BR80A424==0
+replace educ = 10 if BR80A420==3 & BR80A421==7 & BR80A422==0 & BR80A423==0 & BR80A424==0
+replace educ = 10 if BR80A420==4 & BR80A421==4 & BR80A422==0 & BR80A423==0 & BR80A424==0
+replace educ = 10 if BR80A420==4 & BR80A421==5 & BR80A422==0 & BR80A423==0 & BR80A424==0
+
+replace educ = 11 if BR80A420==0 & BR80A421==0 & BR80A422==0 & BR80A423==3 & BR80A424==5
+replace educ = 11 if BR80A420==0 & BR80A421==0 & BR80A422==0 & BR80A423==3 & BR80A424==6
+replace educ = 11 if BR80A420==0 & BR80A421==0 & BR80A422==0 & BR80A423==4 & BR80A424==5
+replace educ = 11 if BR80A420==0 & BR80A421==0 & BR80A422==0 & BR80A423==4 & BR80A424==6
+replace educ = 11 if BR80A420==1 & BR80A421==8 & BR80A422==0 & BR80A423==0 & BR80A424==0
+
+replace educ = 12 if BR80A420==0 & BR80A421==0 & BR80A422==0 & BR80A423==1 & BR80A424==7
+replace educ = 12 if BR80A420==2 & BR80A421==8 & BR80A422==0 & BR80A423==0 & BR80A424==0
+
+replace educ = 13 if BR80A420==0 & BR80A421==0 & BR80A422==0 & BR80A423==2 & BR80A424==7
+replace educ = 13 if BR80A420==3 & BR80A421==8 & BR80A422==0 & BR80A423==0 & BR80A424==0
+
+replace educ = 14 if BR80A420==0 & BR80A421==0 & BR80A422==0 & BR80A423==3 & BR80A424==7
+replace educ = 14 if BR80A420==4 & BR80A421==8 & BR80A422==0 & BR80A423==0 & BR80A424==0
+
+replace educ = 15 if BR80A420==0 & BR80A421==0 & BR80A422==0 & BR80A423==4 & BR80A424==7
+replace educ = 15 if BR80A420==5 & BR80A421==8 & BR80A422==0 & BR80A423==0 & BR80A424==0
+
+replace educ = 16 if BR80A420==0 & BR80A421==0 & BR80A422==0 & BR80A423==0 & BR80A424==8
+replace educ = 16 if BR80A420==0 & BR80A421==0 & BR80A422==0 & BR80A423==5 & BR80A424==7
+replace educ = 16 if BR80A420==6 & BR80A421==8 & BR80A422==0 & BR80A423==0 & BR80A424==0
+
+replace educ = 17 if BR80A420==0 & BR80A421==0 & BR80A422==0 & BR80A423==6 & BR80A424==7
+

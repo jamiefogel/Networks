@@ -1,0 +1,56 @@
+* atividade_to_indlinkn.dta
+Industry concordance from 1991 Census atividade codes to IndLinkN codes, which are consistent across Census and RAIS, and include detailed nontradable industries
+
+* atividade_to_industry.dta
+Industry concordance from 1991 Census atividade codes to Industry codes, which are consistent across Census industries and HS products
+
+* atividade1970_to_atividade.dta
+Industry concordance from 1970 Census atividade codes to 1991 Census atividade codes
+
+* census_1970_munic_to_mmc_1970_2010.dta
+Geographic concordance from Census 1970 municipios to consistent microregions spanning 1970 to 2010
+
+* census_1980_munic_to_mmc_1970_2010.dta
+Geographic concordance from Census 1980 municipios to consistent microregions spanning 1970 to 2010
+
+* census 1991_munic_to_c_mesoreg.dta
+Geographic concordance from Census 1991 municipios to consistent mesoregions
+
+* census_1991_munic_to_mmc_1970_2010.dta
+Geographic concordance from Census 1991 municipios to consistent microregions spanning 1970 to 2010
+
+* census_1991_munic_to_mmc_1991_2010.dta
+Geographic concordance from Census 1991 municipios to consistent microregions spanning 1991 to 2010
+
+* census_2000_munic_to_mmc_1970_2010.dta
+Geographic concordance from Census 2000 municipios to consistent microregions spanning 1970 to 2010
+
+* census_2000_munic_to_mmc_1991_2010.dta
+Geographic concordance from Census 2000 municipios to consistent microregions spanning 1991 to 2010
+
+* census_2010_munic_to_mmc_1970_2010.dta
+Geographic concordance from Census 2010 municipios to consistent microregions spanning 1970 to 2010
+
+* census_2010_munic_to_mmc_1991_2010.dta
+Geographic concordance from Census 2010 municipios to consistent microregions spanning 1991 to 2010
+
+* census_cod70_to_munic1991.dta
+Geographic concordance from Census 1970 municipios to Census 1991 municipios
+
+* census_munic1980_to_munic1991.dta
+Geographic concordance from Census 1980 municipios to Census 1991 municipios
+
+* cnaedom_to_indlinkn.dta
+Industry concordance from CNAE-Dom to IndLinkN codes, which are consistent across Census and RAIS, and include detailed nontradable industries
+
+* cnaedom_to_indmatch.dta
+Industry concordance from CNAE-Dom to IndMatch codes, which are consistent across tariff data and Census industries
+
+* cnaedom_to_industry.dta
+Industry concordance from CNAE-Dom to Industry codes, which are consistent across Census industries and HS products
+
+* indmatch_to_indlink.dta
+Industry concordance from IndMatch to IndLink codes, which are consistent across Census and RAIS
+
+* pnad_to_indmatch.dta
+Industry concordance from Census 1991 atividade codes (also used in PNAD) to IndMatch, which are consistent across tariff data and Census industries

@@ -9,14 +9,14 @@ set more off
 
 set matsize 10000
 
-* global root "C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\"
+* global root "C:/Users/rd123/Dropbox/DixCarneiroKovakRodriguez/ReplicationFiles/"
 
-global data1 "${root}Data\"
-global data2 "${root}\Data_Other\"
-global earnings "${root}\ProcessedData_RAIS\RegionalEarnPremia\"
-global employment "${root}ProcessedData_RAIS\RegionalEmployment\"
-global NPLANTS "${root}ProcessedData_RAIS\Plants\"
-global AggEcon "${root}Results\AgglomerationEconomies\"
+global data1 "${root}Data/"
+global data2 "${root}/Data_Other/"
+global earnings "${root}/ProcessedData_RAIS/RegionalEarnPremia/"
+global employment "${root}ProcessedData_RAIS/RegionalEmployment/"
+global NPLANTS "${root}ProcessedData_RAIS/Plants/"
+global AggEcon "${root}Results/AgglomerationEconomies/"
 
 ********************************************************************************
 ********************************************************************************

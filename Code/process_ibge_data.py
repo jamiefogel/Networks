@@ -48,25 +48,31 @@ for i in range(1, 34):
     print(f"Table {i} corresponds to {region}")
 
 
-
 df_MG = pd.read_csv(f"{sector_data_filepath}/sectors_20.csv")
 df_RJ = pd.read_csv(f"{sector_data_filepath}/sectors_22.csv")
 df_SP = pd.read_csv(f"{sector_data_filepath}/sectors_23.csv")
 
-df_MG = df_MG.drop(columns=['p_s']).pivot(index='year', columns='s', values=['y_s']).pct_change()
-df_RJ = df_RJ.drop(columns=['p_s']).pivot(index='year', columns='s', values=['y_s']).pct_change()
-df_SP = df_SP.drop(columns=['p_s']).pivot(index='year', columns='s', values=['y_s']).pct_change()
+df_MG.drop(columns=['p_s'], inplace=True)
+df_RJ.drop(columns=['p_s'], inplace=True)
+df_SP.drop(columns=['p_s'], inplace=True)
+
+df_MG = df_MG.sort_values(['s', 'year'])
+df_RJ = df_RJ.sort_values(['s', 'year'])
+df_SP = df_SP.sort_values(['s', 'year'])
 
 # Calculate percent changes for each state and sector
-
-df_MG['y_s_pct_change'] = df_MG['y_s'].pct_change()
-df_RJ['y_s_pct_change'] = df_RJ['y_s'].pct_change()
-df_SP['y_s_pct_change'] = df_SP['y_s'].pct_change()
+df_MG['y_s_pct_change'] = df_MG.groupby('s')['y_s'].pct_change()
+df_RJ['y_s_pct_change'] = df_RJ.groupby('s')['y_s'].pct_change()
+df_SP['y_s_pct_change'] = df_SP.groupby('s')['y_s'].pct_change()
 
 # Calculate normalized y_s for each state and sector
-df_MG['y_s_norm'] = df_MG['y_s'] / df_MG['y_s'].iloc[0]
-df_RJ['y_s_norm'] = df_RJ['y_s'] / df_RJ['y_s'].iloc[0]
-df_SP['y_s_norm'] = df_SP['y_s'] / df_SP['y_s'].iloc[0]
+df_MG['y_s_norm'] = df_MG.groupby('s')['y_s'].transform(lambda x: x / x.iloc[0])
+df_RJ['y_s_norm'] = df_RJ.groupby('s')['y_s'].transform(lambda x: x / x.iloc[0])
+df_SP['y_s_norm'] = df_SP.groupby('s')['y_s'].transform(lambda x: x / x.iloc[0])
+
+df_MG = df_MG.pivot(index='year', columns='s', values=['y_s','y_s_pct_change','y_s_norm'])
+df_RJ = df_RJ.pivot(index='year', columns='s', values=['y_s','y_s_pct_change','y_s_norm'])
+df_SP = df_SP.pivot(index='year', columns='s', values=['y_s','y_s_pct_change','y_s_norm'])
 
 
 

@@ -3,9 +3,9 @@
 
 clear
 
-global root "\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\DixCarneiro_Kovak_2017\"
+global root "//storage6/usuarios/labormkt_rafaelpereira/NetworksGit/Code/DixCarneiro_Kovak_2017/"
 
-global result "${root}ProcessedData_RAIS\JobDestruction_JobCreation\"
+global result "${root}ProcessedData_RAIS/JobDestruction_JobCreation/"
 
 log using ${result}JobDestruction_JobCreation.log, replace
 

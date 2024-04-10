@@ -5,9 +5,9 @@ clear
 
 set more off
 
-global root "\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\DixCarneiro_Kovak_2017\"
-global data   "${root}ProcessedData_RAIS\Plants\PanelOfPlants\"
-global result "${root}ProcessedData_RAIS\Plants\"
+global root "//storage6/usuarios/labormkt_rafaelpereira/NetworksGit/Code/DixCarneiro_Kovak_2017/"
+global data   "${root}ProcessedData_RAIS/Plants/PanelOfPlants/"
+global result "${root}ProcessedData_RAIS/Plants/"
 
 log using ${result}NumberPlantsMMC.log, replace
 

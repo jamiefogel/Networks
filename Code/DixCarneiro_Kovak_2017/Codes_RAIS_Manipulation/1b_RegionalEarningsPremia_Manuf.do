@@ -12,11 +12,11 @@ set varabbrev off
 
 capture log close
 
-global root "\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\DixCarneiro_Kovak_2017\"
+global root "//storage6/usuarios/labormkt_rafaelpereira/NetworksGit/Code/DixCarneiro_Kovak_2017/"
 
-global data1  "\\storage6\bases\DADOS\RESTRITO\RAIS\Stata\"
-global data2  "${root}Data_Other\"
-global result "${root}ProcessedData_RAIS\RegionalEarnPremia\"
+global data1  "//storage6/bases/DADOS/RESTRITO/RAIS/Stata/"
+global data2  "${root}Data_Other/"
+global result "${root}ProcessedData_RAIS/RegionalEarnPremia/"
 
 
 log using ${result}RegionalEarnPremia_Manuf.log, replace

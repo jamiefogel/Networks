@@ -6,10 +6,10 @@ clear
 * Run code 0b_Panel1986_2010 in order to construct the panel with the
 * individuals selected in this code
 
-global root "\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\DixCarneiro_Kovak_2017\"
+global root "//storage6/usuarios/labormkt_rafaelpereira/NetworksGit/Code/DixCarneiro_Kovak_2017/"
 
-global rais "\\storage6\bases\DADOS\RESTRITO\RAIS\Stata\"
-global result "${root}ProcessedData_RAIS\Panel_1986_2010\"
+global rais "//storage6/bases/DADOS/RESTRITO/RAIS/Stata/"
+global result "${root}ProcessedData_RAIS/Panel_1986_2010/"
 
 cap log close
 

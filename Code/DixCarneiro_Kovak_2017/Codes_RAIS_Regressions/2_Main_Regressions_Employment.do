@@ -9,12 +9,12 @@ clear
 
 set more off
 
-*global root "\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\DixCarneiro_Kovak_2017"
+*global root "//storage6/usuarios/labormkt_rafaelpereira/NetworksGit/Code/DixCarneiro_Kovak_2017"
 
-global data1 "${root}Data\"
-global data2 "${root}Data_Other\"
-global output "${root}Results\MainEmployment\"
-global empl "${root}ProcessedData_RAIS\RegionalEmployment\"
+global data1 "${root}Data/"
+global data2 "${root}Data_Other/"
+global output "${root}Results/MainEmployment/"
+global empl "${root}ProcessedData_RAIS/RegionalEmployment/"
 
 ********************************************************************************
 ********************************************************************************

@@ -1,0 +1,1579 @@
+{smcl}
+{txt}{sf}{ul off}{.-}
+      name:  {res}<unnamed>
+       {txt}log:  {res}C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\PanelOfPlantMMCpairs.smcl
+  {txt}log type:  {res}smcl
+ {txt}opened on:  {res}14 Apr 2017, 11:20:13
+{txt}
+{com}. 
+. forvalues year = 1986/2010{c -(}
+{txt}  2{com}. 
+.         local yr = substr("`year'",3,2)
+{txt}  3{com}. 
+.         use ${c -(}data1{c )-}brasil`yr'
+{txt}  4{com}. 
+.         duplicates drop
+{txt}  5{com}. 
+.         if `year' < 2010{c -(}
+{txt}  6{com}.                 keep pis`yr' cnpj`yr' codemun`yr' subs_ibge`yr' rem_dez`yr' mes_adm`yr' mes_deslig`yr' temp_empr`yr'
+{txt}  7{com}.                 rename pis`yr' pis
+{txt}  8{com}.         {c )-}
+{txt}  9{com}.         if `year' == 2010{c -(}
+{txt} 10{com}.                 keep cpf`yr' cnpj`yr' codemun`yr' subs_ibge`yr' rem_dez`yr' mes_adm`yr' mes_deslig`yr' temp_empr`yr'
+{txt} 11{com}.                 rename cpf`yr' cpf
+{txt} 12{com}.         {c )-}
+{txt} 13{com}. 
+.         rename cnpj`yr' cnpj
+{txt} 14{com}.         rename codemun`yr' codemun
+{txt} 15{com}.         rename subs_ibge`yr' subs_ibge
+{txt} 16{com}.         rename rem_dez`yr' rem_dez
+{txt} 17{com}.         rename mes_adm`yr' mes_adm
+{txt} 18{com}.         rename mes_deslig`yr' mes_deslig
+{txt} 19{com}.         rename temp_empr`yr' temp_empr
+{txt} 20{com}. 
+.         display _N
+{txt} 21{com}.         * Only keep individuals with valid December earnings
+.         keep if rem_dez ~= . & rem_dez > 0
+{txt} 22{com}.         display _N
+{txt} 23{com}.         
+.         * Drop wrong CNPJ's
+.         drop if trim(cnpj) == "00000000000000"
+{txt} 24{com}.         display _N
+{txt} 25{com}.         drop if length(cnpj) ~= 14
+{txt} 26{com}.         display _N
+{txt} 27{com}.         
+.         * Keep only 1 observation per ID (PIS or CPF) within the plant
+.         * If the ID is equal to zero, keep all of them -- a few firms report all
+.         * of their employees with a "0" ID. Some of them are quite large. Disregarding these
+.         * firms in some years can potentially create spurious job creation or destruction in
+.         * some years
+.         if `year' < 2010{c -(}
+{txt} 28{com}.                 gsort + cnpj + pis - rem_dez
+{txt} 29{com}.                 by cnpj pis: gen obs = _n
+{txt} 30{com}.                 replace obs = 1 if trim(pis) == "0" | trim(pis) == "00000000000"
+{txt} 31{com}.         {c )-}
+{txt} 32{com}.         if `year' == 2010{c -(}
+{txt} 33{com}.                 gsort + cnpj + cpf - rem_dez
+{txt} 34{com}.                 by cnpj cpf: gen obs = _n
+{txt} 35{com}.                 replace obs = 1 if trim(cpf) == "0" | trim(cpf) == "00000000000"
+{txt} 36{com}.         {c )-}
+{txt} 37{com}.         
+.         keep if obs == 1
+{txt} 38{com}.         drop obs
+{txt} 39{com}.         
+.         gen ones = 1
+{txt} 40{com}.         sort cnpj codemun
+{txt} 41{com}.         by cnpj codemun: egen count_codemun = total(ones)
+{txt} 42{com}. 
+.         * We keep one single municipality for each establishment: the most frequently reported one
+.         preserve
+{txt} 43{com}.         sort cnpj count_codemun
+{txt} 44{com}.         gsort + cnpj - count_codemun
+{txt} 45{com}.         by cnpj: gen obs = _n
+{txt} 46{com}.         keep if obs == 1
+{txt} 47{com}.         keep cnpj codemun
+{txt} 48{com}.         duplicates drop
+{txt} 49{com}.         sort cnpj
+{txt} 50{com}.         save ${c -(}result{c )-}auxfile2, replace
+{txt} 51{com}.         restore
+{txt} 52{com}. 
+.         drop codemun
+{txt} 53{com}.         sort cnpj
+{txt} 54{com}.         merge m:1 cnpj using ${c -(}result{c )-}auxfile2
+{txt} 55{com}.         drop _merge
+{txt} 56{com}.         erase ${c -(}result{c )-}auxfile2.dta
+{txt} 57{com}.         
+.         sort codemun
+{txt} 58{com}.         merge m:1 codemun using ${c -(}data2{c )-}rais_codemun_to_mmc_1991_2010
+{txt} 59{com}.         keep if _merge == 1 | _merge == 3
+{txt} 60{com}.         drop _merge
+{txt} 61{com}.         
+.         display _N
+{txt} 62{com}.         drop if trim(mmc) == "" | trim(mmc) == "." | length(mmc) ~= 5
+{txt} 63{com}.         display _N
+{txt} 64{com}.         
+.         gen cnpj_mmc = cnpj + mmc
+{txt} 65{com}.         sort cnpj_mmc subs_ibge
+{txt} 66{com}.         by cnpj_mmc: egen emp = total(ones)
+{txt} 67{com}.         by cnpj_mmc subs_ibge: egen emp_ind = total(ones)
+{txt} 68{com}.         by cnpj_mmc: egen max_temp_empr = max(temp_empr)
+{txt} 69{com}.         
+.         keep cnpj_mmc emp subs_ibge emp_ind max_temp_empr
+{txt} 70{com}.         duplicates drop
+{txt} 71{com}.         
+.         * rename emp emp`year' 
+.         
+.         gen year = `year'
+{txt} 72{com}.         
+.         sort cnpj_mmc
+{txt} 73{com}. 
+.         save ${c -(}result{c )-}Plants`year', replace
+{txt} 74{com}.         
+. {c )-}
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(2 observations deleted)
+{res}32617922
+{txt}(11,398,471 observations deleted)
+21219451
+(0 observations deleted)
+21219451
+(0 observations deleted)
+21219451
+(134,519 real changes made)
+(64,932 observations deleted)
+(20,187,898 observations deleted)
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(0 observations are duplicates)
+(note: file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\auxfile2.dta not found)
+file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\auxfile2.dta saved
+{res}
+{txt}{col 5}Result{col 38}# of obs.
+{col 5}{hline 41}
+{col 5}not matched{col 30}{res}               0
+{txt}{col 5}matched{col 30}{res}      21,154,519{txt}  (_merge==3)
+{col 5}{hline 41}
+{res}
+{txt}{col 5}Result{col 38}# of obs.
+{col 5}{hline 41}
+{col 5}not matched{col 30}{res}           1,503
+{txt}{col 9}from master{col 30}{res}               0{txt}  (_merge==1)
+{col 9}from using{col 30}{res}           1,503{txt}  (_merge==2)
+
+{col 5}matched{col 30}{res}      21,154,519{txt}  (_merge==3)
+{col 5}{hline 41}
+(1,503 observations deleted)
+21154519
+(23,628 observations deleted)
+21130891
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(20,166,927 observations deleted)
+(note: file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\Plants1986.dta not found)
+file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\Plants1986.dta saved
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(7 observations deleted)
+{res}34335924
+{txt}(12,370,873 observations deleted)
+21965051
+(412 observations deleted)
+21964639
+(0 observations deleted)
+21964639
+(143,257 real changes made)
+(81,100 observations deleted)
+(20,811,987 observations deleted)
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(0 observations are duplicates)
+(note: file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\auxfile2.dta not found)
+file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\auxfile2.dta saved
+{res}
+{txt}{col 5}Result{col 38}# of obs.
+{col 5}{hline 41}
+{col 5}not matched{col 30}{res}               0
+{txt}{col 5}matched{col 30}{res}      21,883,539{txt}  (_merge==3)
+{col 5}{hline 41}
+{res}
+{txt}{col 5}Result{col 38}# of obs.
+{col 5}{hline 41}
+{col 5}not matched{col 30}{res}           1,561
+{txt}{col 9}from master{col 30}{res}               0{txt}  (_merge==1)
+{col 9}from using{col 30}{res}           1,561{txt}  (_merge==2)
+
+{col 5}matched{col 30}{res}      21,883,539{txt}  (_merge==3)
+{col 5}{hline 41}
+(1,561 observations deleted)
+21883539
+(29,663 observations deleted)
+21853876
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(20,785,235 observations deleted)
+(note: file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\Plants1987.dta not found)
+file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\Plants1987.dta saved
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(2 observations deleted)
+{res}34994358
+{txt}(12,158,343 observations deleted)
+22836015
+(9,217 observations deleted)
+22826798
+(0 observations deleted)
+22826798
+(207,512 real changes made)
+(75,263 observations deleted)
+(21,607,196 observations deleted)
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(0 observations are duplicates)
+(note: file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\auxfile2.dta not found)
+file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\auxfile2.dta saved
+{res}
+{txt}{col 5}Result{col 38}# of obs.
+{col 5}{hline 41}
+{col 5}not matched{col 30}{res}               0
+{txt}{col 5}matched{col 30}{res}      22,751,535{txt}  (_merge==3)
+{col 5}{hline 41}
+{res}
+{txt}{col 5}Result{col 38}# of obs.
+{col 5}{hline 41}
+{col 5}not matched{col 30}{res}           1,491
+{txt}{col 9}from master{col 30}{res}               0{txt}  (_merge==1)
+{col 9}from using{col 30}{res}           1,491{txt}  (_merge==2)
+
+{col 5}matched{col 30}{res}      22,751,535{txt}  (_merge==3)
+{col 5}{hline 41}
+(1,491 observations deleted)
+22751535
+(12,735 observations deleted)
+22738800
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(21,595,652 observations deleted)
+(note: file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\Plants1988.dta not found)
+file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\Plants1988.dta saved
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(0 observations are duplicates)
+{res}35527603
+{txt}(12,187,843 observations deleted)
+23339760
+(21,936 observations deleted)
+23317824
+(0 observations deleted)
+23317824
+(214,304 real changes made)
+(80,834 observations deleted)
+(22,090,731 observations deleted)
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(0 observations are duplicates)
+(note: file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\auxfile2.dta not found)
+file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\auxfile2.dta saved
+{res}
+{txt}{col 5}Result{col 38}# of obs.
+{col 5}{hline 41}
+{col 5}not matched{col 30}{res}               0
+{txt}{col 5}matched{col 30}{res}      23,236,990{txt}  (_merge==3)
+{col 5}{hline 41}
+{res}
+{txt}{col 5}Result{col 38}# of obs.
+{col 5}{hline 41}
+{col 5}not matched{col 30}{res}           1,439
+{txt}{col 9}from master{col 30}{res}               0{txt}  (_merge==1)
+{col 9}from using{col 30}{res}           1,439{txt}  (_merge==2)
+
+{col 5}matched{col 30}{res}      23,236,990{txt}  (_merge==3)
+{col 5}{hline 41}
+(1,439 observations deleted)
+23236990
+(45,040 observations deleted)
+23191950
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(22,049,088 observations deleted)
+(note: file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\Plants1989.dta not found)
+file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\Plants1989.dta saved
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(0 observations are duplicates)
+{res}34862416
+{txt}(12,452,562 observations deleted)
+22409854
+(13,815 observations deleted)
+22396039
+(0 observations deleted)
+22396039
+(223,467 real changes made)
+(72,442 observations deleted)
+(21,140,768 observations deleted)
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(0 observations are duplicates)
+(note: file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\auxfile2.dta not found)
+file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\auxfile2.dta saved
+{res}
+{txt}{col 5}Result{col 38}# of obs.
+{col 5}{hline 41}
+{col 5}not matched{col 30}{res}               0
+{txt}{col 5}matched{col 30}{res}      22,323,597{txt}  (_merge==3)
+{col 5}{hline 41}
+{res}
+{txt}{col 5}Result{col 38}# of obs.
+{col 5}{hline 41}
+{col 5}not matched{col 30}{res}           1,420
+{txt}{col 9}from master{col 30}{res}               0{txt}  (_merge==1)
+{col 9}from using{col 30}{res}           1,420{txt}  (_merge==2)
+
+{col 5}matched{col 30}{res}      22,323,597{txt}  (_merge==3)
+{col 5}{hline 41}
+(1,420 observations deleted)
+22323597
+(53,356 observations deleted)
+22270241
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(21,092,223 observations deleted)
+(note: file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\Plants1990.dta not found)
+file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\Plants1990.dta saved
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(0 observations are duplicates)
+{res}33450235
+{txt}(11,343,517 observations deleted)
+22106718
+(0 observations deleted)
+22106718
+(10,167 observations deleted)
+22096551
+(258,026 real changes made)
+(131,227 observations deleted)
+(20,770,491 observations deleted)
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(0 observations are duplicates)
+(note: file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\auxfile2.dta not found)
+file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\auxfile2.dta saved
+{res}
+{txt}{col 5}Result{col 38}# of obs.
+{col 5}{hline 41}
+{col 5}not matched{col 30}{res}               0
+{txt}{col 5}matched{col 30}{res}      21,965,324{txt}  (_merge==3)
+{col 5}{hline 41}
+{res}
+{txt}{col 5}Result{col 38}# of obs.
+{col 5}{hline 41}
+{col 5}not matched{col 30}{res}           1,351
+{txt}{col 9}from master{col 30}{res}               0{txt}  (_merge==1)
+{col 9}from using{col 30}{res}           1,351{txt}  (_merge==2)
+
+{col 5}matched{col 30}{res}      21,965,324{txt}  (_merge==3)
+{col 5}{hline 41}
+(1,351 observations deleted)
+21965324
+(73,324 observations deleted)
+21892000
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(20,703,239 observations deleted)
+(note: file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\Plants1991.dta not found)
+file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\Plants1991.dta saved
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(0 observations are duplicates)
+{res}31108454
+{txt}(9,655,685 observations deleted)
+21452769
+(0 observations deleted)
+21452769
+(0 observations deleted)
+21452769
+(165,304 real changes made)
+(79,586 observations deleted)
+(20,177,375 observations deleted)
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(0 observations are duplicates)
+(note: file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\auxfile2.dta not found)
+file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\auxfile2.dta saved
+{res}
+{txt}{col 5}Result{col 38}# of obs.
+{col 5}{hline 41}
+{col 5}not matched{col 30}{res}               0
+{txt}{col 5}matched{col 30}{res}      21,373,183{txt}  (_merge==3)
+{col 5}{hline 41}
+{res}
+{txt}{col 5}Result{col 38}# of obs.
+{col 5}{hline 41}
+{col 5}not matched{col 30}{res}           1,287
+{txt}{col 9}from master{col 30}{res}               0{txt}  (_merge==1)
+{col 9}from using{col 30}{res}           1,287{txt}  (_merge==2)
+
+{col 5}matched{col 30}{res}      21,373,183{txt}  (_merge==3)
+{col 5}{hline 41}
+(1,287 observations deleted)
+21373183
+(54,476 observations deleted)
+21318707
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(20,127,903 observations deleted)
+(note: file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\Plants1992.dta not found)
+file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\Plants1992.dta saved
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(0 observations are duplicates)
+{res}31807237
+{txt}(9,909,111 observations deleted)
+21898126
+(0 observations deleted)
+21898126
+(0 observations deleted)
+21898126
+(168,865 real changes made)
+(70,397 observations deleted)
+(20,564,714 observations deleted)
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(0 observations are duplicates)
+(note: file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\auxfile2.dta not found)
+file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\auxfile2.dta saved
+{res}
+{txt}{col 5}Result{col 38}# of obs.
+{col 5}{hline 41}
+{col 5}not matched{col 30}{res}               0
+{txt}{col 5}matched{col 30}{res}      21,827,729{txt}  (_merge==3)
+{col 5}{hline 41}
+{res}
+{txt}{col 5}Result{col 38}# of obs.
+{col 5}{hline 41}
+{col 5}not matched{col 30}{res}             933
+{txt}{col 9}from master{col 30}{res}               0{txt}  (_merge==1)
+{col 9}from using{col 30}{res}             933{txt}  (_merge==2)
+
+{col 5}matched{col 30}{res}      21,827,729{txt}  (_merge==3)
+{col 5}{hline 41}
+(933 observations deleted)
+21827729
+(18,930 observations deleted)
+21808799
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(20,547,973 observations deleted)
+(note: file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\Plants1993.dta not found)
+file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\Plants1993.dta saved
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(24,932 observations deleted)
+{res}33300944
+{txt}(10,412,027 observations deleted)
+22888917
+(0 observations deleted)
+22888917
+(0 observations deleted)
+22888917
+(155,046 real changes made)
+(79,462 observations deleted)
+(21,440,936 observations deleted)
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(0 observations are duplicates)
+(note: file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\auxfile2.dta not found)
+file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\auxfile2.dta saved
+{res}
+{txt}{col 5}Result{col 38}# of obs.
+{col 5}{hline 41}
+{col 5}not matched{col 30}{res}               0
+{txt}{col 5}matched{col 30}{res}      22,809,455{txt}  (_merge==3)
+{col 5}{hline 41}
+{res}
+{txt}{col 5}Result{col 38}# of obs.
+{col 5}{hline 41}
+{col 5}not matched{col 30}{res}             780
+{txt}{col 9}from master{col 30}{res}               0{txt}  (_merge==1)
+{col 9}from using{col 30}{res}             780{txt}  (_merge==2)
+
+{col 5}matched{col 30}{res}      22,809,455{txt}  (_merge==3)
+{col 5}{hline 41}
+(780 observations deleted)
+22809455
+(19,373 observations deleted)
+22790082
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(21,410,714 observations deleted)
+(note: file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\Plants1994.dta not found)
+file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\Plants1994.dta saved
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(0 observations are duplicates)
+{res}35512835
+{txt}(12,060,174 observations deleted)
+23452661
+(0 observations deleted)
+23452661
+(5,044 observations deleted)
+23447617
+(152,601 real changes made)
+(87,243 observations deleted)
+(21,803,302 observations deleted)
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(0 observations are duplicates)
+(note: file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\auxfile2.dta not found)
+file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\auxfile2.dta saved
+{res}
+{txt}{col 5}Result{col 38}# of obs.
+{col 5}{hline 41}
+{col 5}not matched{col 30}{res}               0
+{txt}{col 5}matched{col 30}{res}      23,360,374{txt}  (_merge==3)
+{col 5}{hline 41}
+{res}
+{txt}{col 5}Result{col 38}# of obs.
+{col 5}{hline 41}
+{col 5}not matched{col 30}{res}             724
+{txt}{col 9}from master{col 30}{res}              40{txt}  (_merge==1)
+{col 9}from using{col 30}{res}             684{txt}  (_merge==2)
+
+{col 5}matched{col 30}{res}      23,360,334{txt}  (_merge==3)
+{col 5}{hline 41}
+(684 observations deleted)
+23360374
+(40 observations deleted)
+23360334
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(21,800,184 observations deleted)
+(note: file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\Plants1995.dta not found)
+file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\Plants1995.dta saved
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(0 observations are duplicates)
+{res}34360696
+{txt}(10,625,386 observations deleted)
+23735310
+(0 observations deleted)
+23735310
+(0 observations deleted)
+23735310
+(40,249 real changes made)
+(97,398 observations deleted)
+(22,015,228 observations deleted)
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(0 observations are duplicates)
+(note: file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\auxfile2.dta not found)
+file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\auxfile2.dta saved
+{res}
+{txt}{col 5}Result{col 38}# of obs.
+{col 5}{hline 41}
+{col 5}not matched{col 30}{res}               0
+{txt}{col 5}matched{col 30}{res}      23,637,912{txt}  (_merge==3)
+{col 5}{hline 41}
+{res}
+{txt}{col 5}Result{col 38}# of obs.
+{col 5}{hline 41}
+{col 5}not matched{col 30}{res}             682
+{txt}{col 9}from master{col 30}{res}               0{txt}  (_merge==1)
+{col 9}from using{col 30}{res}             682{txt}  (_merge==2)
+
+{col 5}matched{col 30}{res}      23,637,912{txt}  (_merge==3)
+{col 5}{hline 41}
+(682 observations deleted)
+23637912
+(7 observations deleted)
+23637905
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(22,012,170 observations deleted)
+(note: file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\Plants1996.dta not found)
+file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\Plants1996.dta saved
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(0 observations are duplicates)
+{res}34675281
+{txt}(10,387,868 observations deleted)
+24287413
+(0 observations deleted)
+24287413
+(0 observations deleted)
+24287413
+(20,613 real changes made)
+(62,547 observations deleted)
+(22,480,399 observations deleted)
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(0 observations are duplicates)
+(note: file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\auxfile2.dta not found)
+file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\auxfile2.dta saved
+{res}
+{txt}{col 5}Result{col 38}# of obs.
+{col 5}{hline 41}
+{col 5}not matched{col 30}{res}               0
+{txt}{col 5}matched{col 30}{res}      24,224,866{txt}  (_merge==3)
+{col 5}{hline 41}
+{res}
+{txt}{col 5}Result{col 38}# of obs.
+{col 5}{hline 41}
+{col 5}not matched{col 30}{res}             666
+{txt}{col 9}from master{col 30}{res}               0{txt}  (_merge==1)
+{col 9}from using{col 30}{res}             666{txt}  (_merge==2)
+
+{col 5}matched{col 30}{res}      24,224,866{txt}  (_merge==3)
+{col 5}{hline 41}
+(666 observations deleted)
+24224866
+(24,091 observations deleted)
+24200775
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(22,456,822 observations deleted)
+(note: file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\Plants1997.dta not found)
+file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\Plants1997.dta saved
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(0 observations are duplicates)
+{res}35005506
+{txt}(10,311,386 observations deleted)
+24694120
+(0 observations deleted)
+24694120
+(691 observations deleted)
+24693429
+(29,205 real changes made)
+(67,618 observations deleted)
+(22,815,522 observations deleted)
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(0 observations are duplicates)
+(note: file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\auxfile2.dta not found)
+file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\auxfile2.dta saved
+{res}
+{txt}{col 5}Result{col 38}# of obs.
+{col 5}{hline 41}
+{col 5}not matched{col 30}{res}               0
+{txt}{col 5}matched{col 30}{res}      24,625,811{txt}  (_merge==3)
+{col 5}{hline 41}
+{res}
+{txt}{col 5}Result{col 38}# of obs.
+{col 5}{hline 41}
+{col 5}not matched{col 30}{res}             206
+{txt}{col 9}from master{col 30}{res}               0{txt}  (_merge==1)
+{col 9}from using{col 30}{res}             206{txt}  (_merge==2)
+
+{col 5}matched{col 30}{res}      24,625,811{txt}  (_merge==3)
+{col 5}{hline 41}
+(206 observations deleted)
+24625811
+(0 observations deleted)
+24625811
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(22,814,724 observations deleted)
+(note: file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\Plants1998.dta not found)
+file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\Plants1998.dta saved
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(0 observations are duplicates)
+{res}35164287
+{txt}(9,963,190 observations deleted)
+25201097
+(0 observations deleted)
+25201097
+(0 observations deleted)
+25201097
+(21,458 real changes made)
+(75,063 observations deleted)
+(23,247,828 observations deleted)
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(0 observations are duplicates)
+(note: file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\auxfile2.dta not found)
+file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\auxfile2.dta saved
+{res}
+{txt}{col 5}Result{col 38}# of obs.
+{col 5}{hline 41}
+{col 5}not matched{col 30}{res}               0
+{txt}{col 5}matched{col 30}{res}      25,126,034{txt}  (_merge==3)
+{col 5}{hline 41}
+{res}
+{txt}{col 5}Result{col 38}# of obs.
+{col 5}{hline 41}
+{col 5}not matched{col 30}{res}             194
+{txt}{col 9}from master{col 30}{res}               0{txt}  (_merge==1)
+{col 9}from using{col 30}{res}             194{txt}  (_merge==2)
+
+{col 5}matched{col 30}{res}      25,126,034{txt}  (_merge==3)
+{col 5}{hline 41}
+(194 observations deleted)
+25126034
+(0 observations deleted)
+25126034
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(23,247,459 observations deleted)
+(note: file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\Plants1999.dta not found)
+file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\Plants1999.dta saved
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(0 observations are duplicates)
+{res}37262386
+{txt}(10,812,007 observations deleted)
+26450379
+(0 observations deleted)
+26450379
+(0 observations deleted)
+26450379
+(450,380 real changes made)
+(68,603 observations deleted)
+(24,409,822 observations deleted)
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(0 observations are duplicates)
+(note: file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\auxfile2.dta not found)
+file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\auxfile2.dta saved
+{res}
+{txt}{col 5}Result{col 38}# of obs.
+{col 5}{hline 41}
+{col 5}not matched{col 30}{res}               0
+{txt}{col 5}matched{col 30}{res}      26,381,776{txt}  (_merge==3)
+{col 5}{hline 41}
+{res}
+{txt}{col 5}Result{col 38}# of obs.
+{col 5}{hline 41}
+{col 5}not matched{col 30}{res}             191
+{txt}{col 9}from master{col 30}{res}               0{txt}  (_merge==1)
+{col 9}from using{col 30}{res}             191{txt}  (_merge==2)
+
+{col 5}matched{col 30}{res}      26,381,776{txt}  (_merge==3)
+{col 5}{hline 41}
+(191 observations deleted)
+26381776
+(0 observations deleted)
+26381776
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(24,409,247 observations deleted)
+(note: file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\Plants2000.dta not found)
+file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\Plants2000.dta saved
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(0 observations are duplicates)
+{res}39243045
+{txt}(11,711,878 observations deleted)
+27531167
+(0 observations deleted)
+27531167
+(0 observations deleted)
+27531167
+(25,193 real changes made)
+(79,915 observations deleted)
+(25,403,394 observations deleted)
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(0 observations are duplicates)
+(note: file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\auxfile2.dta not found)
+file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\auxfile2.dta saved
+{res}
+{txt}{col 5}Result{col 38}# of obs.
+{col 5}{hline 41}
+{col 5}not matched{col 30}{res}               0
+{txt}{col 5}matched{col 30}{res}      27,451,252{txt}  (_merge==3)
+{col 5}{hline 41}
+{res}
+{txt}{col 5}Result{col 38}# of obs.
+{col 5}{hline 41}
+{col 5}not matched{col 30}{res}             110
+{txt}{col 9}from master{col 30}{res}               0{txt}  (_merge==1)
+{col 9}from using{col 30}{res}             110{txt}  (_merge==2)
+
+{col 5}matched{col 30}{res}      27,451,252{txt}  (_merge==3)
+{col 5}{hline 41}
+(110 observations deleted)
+27451252
+(0 observations deleted)
+27451252
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(25,402,807 observations deleted)
+(note: file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\Plants2001.dta not found)
+file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\Plants2001.dta saved
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(0 observations are duplicates)
+{res}40927865
+{txt}(12,008,389 observations deleted)
+28919476
+(0 observations deleted)
+28919476
+(0 observations deleted)
+28919476
+(12,730 real changes made)
+(97,001 observations deleted)
+(26,671,565 observations deleted)
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(0 observations are duplicates)
+(note: file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\auxfile2.dta not found)
+file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\auxfile2.dta saved
+{res}
+{txt}{col 5}Result{col 38}# of obs.
+{col 5}{hline 41}
+{col 5}not matched{col 30}{res}               0
+{txt}{col 5}matched{col 30}{res}      28,822,475{txt}  (_merge==3)
+{col 5}{hline 41}
+{res}
+{txt}{col 5}Result{col 38}# of obs.
+{col 5}{hline 41}
+{col 5}not matched{col 30}{res}             105
+{txt}{col 9}from master{col 30}{res}               0{txt}  (_merge==1)
+{col 9}from using{col 30}{res}             105{txt}  (_merge==2)
+
+{col 5}matched{col 30}{res}      28,822,475{txt}  (_merge==3)
+{col 5}{hline 41}
+(105 observations deleted)
+28822475
+(0 observations deleted)
+28822475
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(26,670,951 observations deleted)
+(note: file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\Plants2002.dta not found)
+file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\Plants2002.dta saved
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(11,649 observations deleted)
+{res}41957513
+{txt}(12,024,634 observations deleted)
+29932879
+(0 observations deleted)
+29932879
+(0 observations deleted)
+29932879
+(8,122 real changes made)
+(106,123 observations deleted)
+(27,606,931 observations deleted)
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(0 observations are duplicates)
+(note: file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\auxfile2.dta not found)
+file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\auxfile2.dta saved
+{res}
+{txt}{col 5}Result{col 38}# of obs.
+{col 5}{hline 41}
+{col 5}not matched{col 30}{res}               0
+{txt}{col 5}matched{col 30}{res}      29,826,756{txt}  (_merge==3)
+{col 5}{hline 41}
+{res}
+{txt}{col 5}Result{col 38}# of obs.
+{col 5}{hline 41}
+{col 5}not matched{col 30}{res}              95
+{txt}{col 9}from master{col 30}{res}               0{txt}  (_merge==1)
+{col 9}from using{col 30}{res}              95{txt}  (_merge==2)
+
+{col 5}matched{col 30}{res}      29,826,756{txt}  (_merge==3)
+{col 5}{hline 41}
+(95 observations deleted)
+29826756
+(0 observations deleted)
+29826756
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(27,606,274 observations deleted)
+(note: file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\Plants2003.dta not found)
+file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\Plants2003.dta saved
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(0 observations are duplicates)
+{res}44675224
+{txt}(12,701,279 observations deleted)
+31973945
+(0 observations deleted)
+31973945
+(0 observations deleted)
+31973945
+(8,034 real changes made)
+(123,230 observations deleted)
+(29,531,203 observations deleted)
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(0 observations are duplicates)
+(note: file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\auxfile2.dta not found)
+file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\auxfile2.dta saved
+{res}
+{txt}{col 5}Result{col 38}# of obs.
+{col 5}{hline 41}
+{col 5}not matched{col 30}{res}               0
+{txt}{col 5}matched{col 30}{res}      31,850,715{txt}  (_merge==3)
+{col 5}{hline 41}
+{res}
+{txt}{col 5}Result{col 38}# of obs.
+{col 5}{hline 41}
+{col 5}not matched{col 30}{res}              94
+{txt}{col 9}from master{col 30}{res}               0{txt}  (_merge==1)
+{col 9}from using{col 30}{res}              94{txt}  (_merge==2)
+
+{col 5}matched{col 30}{res}      31,850,715{txt}  (_merge==3)
+{col 5}{hline 41}
+(94 observations deleted)
+31850715
+(0 observations deleted)
+31850715
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(29,530,561 observations deleted)
+(note: file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\Plants2004.dta not found)
+file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\Plants2004.dta saved
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(0 observations are duplicates)
+{res}47644096
+{txt}(14,037,710 observations deleted)
+33606386
+(0 observations deleted)
+33606386
+(0 observations deleted)
+33606386
+(8,008 real changes made)
+(128,682 observations deleted)
+(31,060,898 observations deleted)
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(0 observations are duplicates)
+(note: file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\auxfile2.dta not found)
+file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\auxfile2.dta saved
+{res}
+{txt}{col 5}Result{col 38}# of obs.
+{col 5}{hline 41}
+{col 5}not matched{col 30}{res}               0
+{txt}{col 5}matched{col 30}{res}      33,477,704{txt}  (_merge==3)
+{col 5}{hline 41}
+{res}
+{txt}{col 5}Result{col 38}# of obs.
+{col 5}{hline 41}
+{col 5}not matched{col 30}{res}              91
+{txt}{col 9}from master{col 30}{res}               0{txt}  (_merge==1)
+{col 9}from using{col 30}{res}              91{txt}  (_merge==2)
+
+{col 5}matched{col 30}{res}      33,477,704{txt}  (_merge==3)
+{col 5}{hline 41}
+(91 observations deleted)
+33477704
+(0 observations deleted)
+33477704
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(31,060,313 observations deleted)
+(note: file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\Plants2005.dta not found)
+file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\Plants2005.dta saved
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(0 observations are duplicates)
+{res}50685256
+{txt}(15,138,358 observations deleted)
+35546898
+(0 observations deleted)
+35546898
+(0 observations deleted)
+35546898
+(0 real changes made)
+(172,302 observations deleted)
+(32,872,518 observations deleted)
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(0 observations are duplicates)
+(note: file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\auxfile2.dta not found)
+file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\auxfile2.dta saved
+{res}
+{txt}{col 5}Result{col 38}# of obs.
+{col 5}{hline 41}
+{col 5}not matched{col 30}{res}               0
+{txt}{col 5}matched{col 30}{res}      35,374,596{txt}  (_merge==3)
+{col 5}{hline 41}
+{res}
+{txt}{col 5}Result{col 38}# of obs.
+{col 5}{hline 41}
+{col 5}not matched{col 30}{res}              86
+{txt}{col 9}from master{col 30}{res}               0{txt}  (_merge==1)
+{col 9}from using{col 30}{res}              86{txt}  (_merge==2)
+
+{col 5}matched{col 30}{res}      35,374,596{txt}  (_merge==3)
+{col 5}{hline 41}
+(86 observations deleted)
+35374596
+(0 observations deleted)
+35374596
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(32,871,971 observations deleted)
+(note: file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\Plants2006.dta not found)
+file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\Plants2006.dta saved
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(0 observations are duplicates)
+{res}54629324
+{txt}(16,830,084 observations deleted)
+37799240
+(0 observations deleted)
+37799240
+(0 observations deleted)
+37799240
+(0 real changes made)
+(181,273 observations deleted)
+(35,036,845 observations deleted)
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(0 observations are duplicates)
+(note: file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\auxfile2.dta not found)
+file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\auxfile2.dta saved
+{res}
+{txt}{col 5}Result{col 38}# of obs.
+{col 5}{hline 41}
+{col 5}not matched{col 30}{res}               0
+{txt}{col 5}matched{col 30}{res}      37,617,967{txt}  (_merge==3)
+{col 5}{hline 41}
+{res}
+{txt}{col 5}Result{col 38}# of obs.
+{col 5}{hline 41}
+{col 5}not matched{col 30}{res}              86
+{txt}{col 9}from master{col 30}{res}               0{txt}  (_merge==1)
+{col 9}from using{col 30}{res}              86{txt}  (_merge==2)
+
+{col 5}matched{col 30}{res}      37,617,967{txt}  (_merge==3)
+{col 5}{hline 41}
+(86 observations deleted)
+37617967
+(0 observations deleted)
+37617967
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(35,036,238 observations deleted)
+(note: file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\Plants2007.dta not found)
+file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\Plants2007.dta saved
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(0 observations are duplicates)
+{res}59690069
+{txt}(19,511,219 observations deleted)
+40178850
+(0 observations deleted)
+40178850
+(0 observations deleted)
+40178850
+(0 real changes made)
+(210,089 observations deleted)
+(37,258,070 observations deleted)
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(0 observations are duplicates)
+(note: file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\auxfile2.dta not found)
+file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\auxfile2.dta saved
+{res}
+{txt}{col 5}Result{col 38}# of obs.
+{col 5}{hline 41}
+{col 5}not matched{col 30}{res}               0
+{txt}{col 5}matched{col 30}{res}      39,968,761{txt}  (_merge==3)
+{col 5}{hline 41}
+{res}
+{txt}{col 5}Result{col 38}# of obs.
+{col 5}{hline 41}
+{col 5}not matched{col 30}{res}              89
+{txt}{col 9}from master{col 30}{res}               0{txt}  (_merge==1)
+{col 9}from using{col 30}{res}              89{txt}  (_merge==2)
+
+{col 5}matched{col 30}{res}      39,968,761{txt}  (_merge==3)
+{col 5}{hline 41}
+(89 observations deleted)
+39968761
+(0 observations deleted)
+39968761
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(37,257,402 observations deleted)
+(note: file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\Plants2008.dta not found)
+file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\Plants2008.dta saved
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(0 observations are duplicates)
+{res}61116809
+{txt}(19,388,471 observations deleted)
+41728338
+(0 observations deleted)
+41728338
+(0 observations deleted)
+41728338
+(0 real changes made)
+(225,791 observations deleted)
+(38,671,660 observations deleted)
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(0 observations are duplicates)
+(note: file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\auxfile2.dta not found)
+file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\auxfile2.dta saved
+{res}
+{txt}{col 5}Result{col 38}# of obs.
+{col 5}{hline 41}
+{col 5}not matched{col 30}{res}               0
+{txt}{col 5}matched{col 30}{res}      41,502,547{txt}  (_merge==3)
+{col 5}{hline 41}
+{res}
+{txt}{col 5}Result{col 38}# of obs.
+{col 5}{hline 41}
+{col 5}not matched{col 30}{res}              87
+{txt}{col 9}from master{col 30}{res}               0{txt}  (_merge==1)
+{col 9}from using{col 30}{res}              87{txt}  (_merge==2)
+
+{col 5}matched{col 30}{res}      41,502,547{txt}  (_merge==3)
+{col 5}{hline 41}
+(87 observations deleted)
+41502547
+(0 observations deleted)
+41502547
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(38,671,021 observations deleted)
+(note: file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\Plants2009.dta not found)
+file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\Plants2009.dta saved
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(0 observations are duplicates)
+{res}66730050
+{txt}(22,051,695 observations deleted)
+44678355
+(0 observations deleted)
+44678355
+(0 observations deleted)
+44678355
+(1,297 real changes made)
+(300,312 observations deleted)
+(41,386,971 observations deleted)
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(0 observations are duplicates)
+(note: file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\auxfile2.dta not found)
+file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\auxfile2.dta saved
+{res}
+{txt}{col 5}Result{col 38}# of obs.
+{col 5}{hline 41}
+{col 5}not matched{col 30}{res}               0
+{txt}{col 5}matched{col 30}{res}      44,378,043{txt}  (_merge==3)
+{col 5}{hline 41}
+{res}
+{txt}{col 5}Result{col 38}# of obs.
+{col 5}{hline 41}
+{col 5}not matched{col 30}{res}              87
+{txt}{col 9}from master{col 30}{res}               0{txt}  (_merge==1)
+{col 9}from using{col 30}{res}              87{txt}  (_merge==2)
+
+{col 5}matched{col 30}{res}      44,378,043{txt}  (_merge==3)
+{col 5}{hline 41}
+(87 observations deleted)
+44378043
+(0 observations deleted)
+44378043
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(41,386,353 observations deleted)
+(note: file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\Plants2010.dta not found)
+file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\Plants2010.dta saved
+
+{com}. 
+. set more off
+{txt}
+{com}. 
+. clear
+{txt}
+{com}. 
+. use ${c -(}result{c )-}Plants1986
+{txt}
+{com}. 
+. forvalues year = 1987/2010{c -(}
+{txt}  2{com}. 
+.         append using ${c -(}result{c )-}Plants`year'
+{txt}  3{com}.         
+. {c )-}
+{txt}
+{com}. 
+. preserve
+{txt}
+{com}.         * selecting unique subs_ibge for each cnpj+mcc combination
+.         sort cnpj_mmc subs_ibge
+{txt}
+{com}.         by cnpj_mmc subs_ibge: egen count = total(emp_ind)
+{txt}
+{com}.         keep cnpj_mmc subs_ibge count
+{txt}
+{com}.         duplicates drop
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(36,296,915 observations deleted)
+
+{com}.         gsort + cnpj_mmc - count
+{txt}
+{com}.         by cnpj_mmc: gen obs = _n
+{txt}
+{com}.         by cnpj_mmc: egen max_obs = max(obs)
+{txt}
+{com}.         drop if max_obs > 1 & subs_ibge == "9999"
+{txt}(382,606 observations deleted)
+
+{com}.         drop obs max_obs
+{txt}
+{com}.         gsort + cnpj_mmc - count
+{txt}
+{com}.         by cnpj_mmc: gen obs = _n
+{txt}
+{com}.         keep if obs == 1
+{txt}(1,095,995 observations deleted)
+
+{com}.         keep cnpj_mmc subs_ibge
+{txt}
+{com}.         duplicates drop
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(0 observations are duplicates)
+
+{com}.         rename subs_ibge subs_ibge0
+{res}{txt}
+{com}.         sort cnpj_mmc
+{txt}
+{com}.         save ${c -(}result{c )-}cnpj_mmc_subs_ibge, replace
+{txt}(note: file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\cnpj_mmc_subs_ibge.dta not found)
+file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\cnpj_mmc_subs_ibge.dta saved
+
+{com}. restore
+{txt}
+{com}. 
+. sort cnpj_mmc
+{txt}
+{com}. merge m:1 cnpj_mmc using ${c -(}result{c )-}cnpj_mmc_subs_ibge
+{res}
+{txt}{col 5}Result{col 38}# of obs.
+{col 5}{hline 41}
+{col 5}not matched{col 30}{res}               0
+{txt}{col 5}matched{col 30}{res}      45,885,346{txt}  (_merge==3)
+{col 5}{hline 41}
+
+{com}. drop _merge
+{txt}
+{com}. 
+. erase ${c -(}result{c )-}cnpj_mmc_subs_ibge.dta
+{txt}
+{com}. 
+. keep cnpj_mmc emp year subs_ibge0 max_temp_empr
+{txt}
+{com}. duplicates drop
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(27,463 observations deleted)
+
+{com}. 
+. reshape wide emp max_temp_empr, i(cnpj_mmc subs_ibge0) j(year)
+{txt}(note: j = 1986 1987 1988 1989 1990 1991 1992 1993 1994 1995 1996 1997 1998 1999 2000 2001 2002 2003 2004 2005 2006 2007 2008 2009 2010)
+
+Data{col 36}long{col 43}->{col 48}wide
+{hline 77}
+Number of obs.                 {res} 4.6e+07   {txt}->{res} 8.1e+06
+{txt}Number of variables            {res}       5   {txt}->{res}      52
+{txt}j variable (25 values)             {res}year   {txt}->   (dropped)
+xij variables:
+                                    {res}emp   {txt}->   {res}emp1986 emp1987 ... emp2010
+                          max_temp_empr   {txt}->   {res}max_temp_empr1986 max_temp_empr1987 ... max_temp_empr2010
+{txt}{hline 77}
+
+{com}. 
+. forvalues year = 1986/2010{c -(}
+{txt}  2{com}.         replace emp`year' = 0 if emp`year' == .
+{txt}  3{com}. {c )-}
+{txt}(7,145,866 real changes made)
+(7,041,358 real changes made)
+(6,966,730 real changes made)
+(6,966,976 real changes made)
+(6,931,812 real changes made)
+(6,921,069 real changes made)
+(6,919,029 real changes made)
+(6,849,004 real changes made)
+(6,743,260 real changes made)
+(6,552,764 real changes made)
+(6,487,149 real changes made)
+(6,366,270 real changes made)
+(6,299,541 real changes made)
+(6,231,624 real changes made)
+(6,137,876 real changes made)
+(6,061,972 real changes made)
+(5,958,920 real changes made)
+(5,890,005 real changes made)
+(5,790,318 real changes made)
+(5,693,024 real changes made)
+(5,607,752 real changes made)
+(5,528,708 real changes made)
+(5,399,139 real changes made)
+(5,278,943 real changes made)
+(5,118,758 real changes made)
+
+{com}. 
+. reshape long emp max_temp_empr, i(cnpj_mmc subs_ibge0) j(year)
+{txt}(note: j = 1986 1987 1988 1989 1990 1991 1992 1993 1994 1995 1996 1997 1998 1999 2000 2001 2002 2003 2004 2005 2006 2007 2008 2009 2010)
+
+Data{col 36}wide{col 43}->{col 48}long
+{hline 77}
+Number of obs.                 {res} 8.1e+06   {txt}->{res} 2.0e+08
+{txt}Number of variables            {res}      52   {txt}->{res}       5
+{txt}j variable (25 values)                    ->   {res}year
+{txt}xij variables:
+            {res}emp1986 emp1987 ... emp2010   {txt}->   {res}emp
+max_temp_empr1986 max_temp_empr1987 ... max_temp_empr2010{txt}->{res}max_temp_empr
+{txt}{hline 77}
+
+{com}. 
+. sort cnpj_mmc year
+{txt}
+{com}. rename subs_ibge0 subs_ibge
+{res}{txt}
+{com}. 
+. save ${c -(}result{c )-}PanelPlants, replace
+{txt}(note: file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\PanelPlants.dta not found)
+file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\PanelPlants.dta saved
+
+{com}. 
+. 
+. *******************************************************************
+. * Imputing employment, municipality and industry for missing values
+. *******************************************************************
+. 
+. clear
+{txt}
+{com}. 
+. use ${c -(}result{c )-}PanelPlants
+{txt}
+{com}. 
+. duplicates drop
+
+{p 0 4}{txt}Duplicates in terms of {txt} all variables{p_end}
+
+(0 observations are duplicates)
+
+{com}. 
+. egen cnpj_mmc_num = group(cnpj_mmc)
+{txt}
+{com}. 
+. xtset cnpj_mmc_num year
+{res}{txt}{col 8}panel variable:  {res}cnpj_mmc_num (strongly balanced)
+{txt}{col 9}time variable:  {res}{col 25}year, 1986 to 2010
+{txt}{col 17}delta:  {res}1 unit
+{txt}
+{com}. 
+. **************
+. * Fixing holes
+. **************
+. 
+. *****************************************************
+. * Fixing one hole
+. * missing emp at t, non-missing emp at t-1 and at t+1
+. *****************************************************
+. 
+. gen fwd_emp  = F.emp
+{txt}(8,109,830 missing values generated)
+
+{com}. gen lag_emp  = L.emp
+{txt}(8,109,830 missing values generated)
+
+{com}. 
+. gen flag = (lag_emp ~= . & lag_emp > 0) & (fwd_emp ~= . & fwd_emp > 0) & emp == .
+{txt}
+{com}. 
+. gen imputed = 0
+{txt}
+{com}. 
+. replace emp = (lag_emp + fwd_emp)/2 if flag == 1
+{txt}(0 real changes made)
+
+{com}. replace imputed = 1 if flag == 1
+{txt}(0 real changes made)
+
+{com}. 
+. **********************************************************
+. * Fixing two holes
+. * missing emp at t and t+1, non-missing emp at t-1 and t+2
+. **********************************************************
+. 
+. gen fwd2_emp  = F2.emp
+{txt}(16,219,660 missing values generated)
+
+{com}. gen lag2_emp  = L2.emp
+{txt}(16,219,660 missing values generated)
+
+{com}. 
+. gen flag2 = (lag_emp ~= . & lag_emp > 0) & (emp == .) & (fwd_emp == .) & (fwd2_emp ~= . & fwd2_emp > 0)
+{txt}
+{com}. gen flag3 = (lag2_emp ~= . & lag2_emp > 0) & (lag_emp == .) & (emp == .) & (fwd_emp ~= . & fwd_emp > 0)
+{txt}
+{com}. 
+. replace emp = lag_emp  + (fwd2_emp - lag_emp)/3     if flag2 == 1
+{txt}(0 real changes made)
+
+{com}. replace imputed = 1 if flag2 == 1
+{txt}(0 real changes made)
+
+{com}. replace emp = lag2_emp + (fwd_emp - lag2_emp)*(2/3) if flag3 == 1
+{txt}(0 real changes made)
+
+{com}. replace imputed = 1 if flag3 == 1
+{txt}(0 real changes made)
+
+{com}. 
+. ****************************************************************
+. * Fixing three holes
+. * missing emp at t,  t+1 and t+2, non-missing emp at t-1 and t+3
+. ****************************************************************
+. 
+. gen fwd3_emp  = F3.emp
+{txt}(24,329,490 missing values generated)
+
+{com}. gen lag3_emp  = L3.emp
+{txt}(24,329,490 missing values generated)
+
+{com}. 
+. gen flag4 = (lag_emp ~= . & lag_emp > 0) & (emp == .) & (fwd_emp == .) & (fwd2_emp == .) & (fwd3_emp ~= . & fwd3_emp > 0)
+{txt}
+{com}. gen flag5 = (lag2_emp ~= . & lag2_emp > 0) & (lag_emp == .) & (emp == .) & (fwd_emp == .) & (fwd2_emp ~= . & fwd2_emp > 0)
+{txt}
+{com}. gen flag6 = (lag3_emp ~= . & lag3_emp > 0) & (lag2_emp == .) & (lag_emp == .) & (emp == .) & (fwd_emp ~= . & fwd_emp > 0)
+{txt}
+{com}. 
+. replace emp = lag_emp  + (fwd3_emp - lag_emp)/4      if flag4 == 1
+{txt}(0 real changes made)
+
+{com}. replace imputed = 1 if flag4 == 1
+{txt}(0 real changes made)
+
+{com}. replace emp = lag2_emp + (fwd2_emp - lag2_emp)*(2/4) if flag5 == 1
+{txt}(0 real changes made)
+
+{com}. replace imputed = 1 if flag5 == 1
+{txt}(0 real changes made)
+
+{com}. replace emp = lag3_emp  + (fwd_emp - lag3_emp)*(3/4) if flag6 == 1
+{txt}(0 real changes made)
+
+{com}. replace imputed = 1 if flag6 == 1
+{txt}(0 real changes made)
+
+{com}. 
+. keep cnpj_mmc cnpj_mmc_num year emp imputed subs_ibge max_temp_empr
+{txt}
+{com}. 
+. replace emp = 0 if emp == .
+{txt}(0 real changes made)
+
+{com}. 
+. sort cnpj_mmc year
+{txt}
+{com}. 
+. gen cnpj = substr(cnpj_mmc,1,14)
+{txt}
+{com}. gen mmc  = substr(cnpj_mmc,15,5)
+{txt}
+{com}. 
+. save ${c -(}result{c )-}PanelPlantsFinal, replace
+{txt}(note: file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\PanelPlantsFinal.dta not found)
+file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\PanelPlantsFinal.dta saved
+
+{com}. 
+. gen year_entry = year - int(max_temp_empr / 12)
+{txt}(156,887,867 missing values generated)
+
+{com}. replace year_entry = . if year >= 1992
+{txt}(39,172,714 real changes made, 39,172,714 to missing)
+
+{com}. sort cnpj_mmc year
+{txt}
+{com}. by cnpj_mmc: egen avg_year_entry = mean(year_entry)
+{txt}(1.508e+08 missing values generated)
+
+{com}. gen age1991 = int(1991 - avg_year_entry)
+{txt}(150,782,775 missing values generated)
+
+{com}. 
+. save ${c -(}result{c )-}PanelPlantsFinal, replace
+{txt}file C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\PanelPlantsFinal.dta saved
+
+{com}. 
+. erase ${c -(}result{c )-}PanelPlants.dta
+{txt}
+{com}. 
+. forvalues year = 1986/2010{c -(}
+{txt}  2{com}.         erase ${c -(}result{c )-}Plants`year'.dta
+{txt}  3{com}. {c )-}
+{txt}
+{com}. 
+. log close
+      {txt}name:  {res}<unnamed>
+       {txt}log:  {res}C:\Users\rd123\Dropbox\DixCarneiroKovakRodriguez\ReplicationFiles\ProcessedData_RAIS\JobDestruction_JobCreation\PanelOfPlantMMCpairs.smcl
+  {txt}log type:  {res}smcl
+ {txt}closed on:  {res}14 Apr 2017, 23:39:33
+{txt}{.-}
+{smcl}
+{txt}{sf}{ul off}
