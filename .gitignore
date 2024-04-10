@@ -25,3 +25,6 @@ Code/Misc/stats_for_jamie_fixed.p
 *.cpython-36.pyc
 Results/for_rafa/results_dict.p
 Results/for_rafa/df_trans.p
+Code/DixCarneiro_Kovak_2017/ProcessedData_RAIS/RegionalEarnPremia/*.xml
+Code/DixCarneiro_Kovak_2017/ProcessedData_RAIS/RegionalEarnPremia/*.txt
+Code/DixCarneiro_Kovak_2017/ProcessedData_RAIS/RegionalEarnPremia/*.dta
