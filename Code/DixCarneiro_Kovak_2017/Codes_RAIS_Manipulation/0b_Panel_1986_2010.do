@@ -43,7 +43,6 @@ replace clas_cnae = "NONFORMAL" if  subs_ibge == "NONFORMAL"
 ******************************************************
 
 sort pis
-
 by pis: egen min_gender = min(sexo)
 by pis: egen max_gender = max(sexo) 
 
@@ -437,7 +436,10 @@ gen real_rem_dez   = rem_dez*real_min_wage05
 gen real_rem_media = rem_media*real_min_wage05
 
 drop rem_dez rem_media min_wage inpc inpc05 real_min_wage05
-	   
+	
+* XX
+rename cbo1994 cbo94
+	
 label var pis         		"Worker ID: PIS"
 label var year        		"Year"
 label var cnpj        		"14-digit Plant ID: CNPJ"

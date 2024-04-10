@@ -13,6 +13,9 @@ capture log close
 
 global root "\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\DixCarneiro_Kovak_2017\"
 
+cd $root
+pwd
+
 global data1  "\\storage6\bases\DADOS\RESTRITO\RAIS\Stata\"
 global data2  "${root}Data_Other\"
 global result "${root}ProcessedData_RAIS\RegionalEarnPremia\"
@@ -33,7 +36,7 @@ save ${data2}rais_codemun_to_mmc_1991_2010, replace
 * We use rem_dez as our earnings measure
 ****************************************
 
-forvalues year = 1986/2009{
+forvalues year = 2003/2009{
 	
 	clear all
 	local y = substr("`year'", 3, 2) 
@@ -188,17 +191,19 @@ forvalues year = 1986/2009{
 	*order ind2, before(ind3)
 
 	* Generate a correspondence table between mmc and mmc2
-	preserve
+	*preserve
+	save temp, replace
 	order pis codemun mmc mmc2
 	keep mmc mmc2 obs_dez
 	duplicates drop
 	sort mmc2
 	save ${result}mmc_obs_dez, replace
-	restore
-
+	* restore
+	use temp, clear
+	
 	* Regression without a constant: we recover parameters for all mmc's
 	reg log_rem region1-region`number_mmc' female age2-age5 educ2-educ9 ind2-ind`number_ind', noc vce(robust)
-	outreg2 _all using ${result}Estimates`year', excel bdec(4) replace
+	*outreg2 _all using ${result}Estimates`year', excel bdec(4) replace
 
 	clear
 	
@@ -235,17 +240,17 @@ clear
 
 set more off
 
-use cpf codemun mes_adm mes_deslig subs_ibge rem_dez_sm grau_instr genero idade ${mini_cond} using ${data1}brasil10
+use cpf codemun mes_adm mes_deslig subs_ibge rem_dez_sm grau_instr genero idade ${mini_cond} using ${data1}brasil2010
 rename rem_dez_sm rem_dez
 rename genero sexo
 destring sexo, replace
 destring grau_instr, replace
 
 * Eliminate the year suffix from all the variable names
-foreach var of varlist *10 {
-	local newvar = regexr("`var'","10","")
-	rename `var' `newvar'
-}
+*foreach var of varlist *10 {
+*	local newvar = regexr("`var'","10","")
+*	rename `var' `newvar'
+*}
 
 display _N
 
@@ -377,17 +382,22 @@ local number_ind = r(max)
 display `number_ind'
 
 * Generate a correspondence table between mmc and mmc2
-preserve
+*preserve
+save temp, replace
 order cpf codemun mmc mmc2
 keep mmc mmc2 obs_dez
 duplicates drop
 sort mmc2
 save ${result}mmc_obs_dez, replace
-restore
+*restore
+use temp, clear
 
 * Regression without a constant: we recover parameters for all mmc's
+di "Pre regression"
 reg log_rem region1-region`number_mmc' female age2-age5 educ2-educ9 ind2-ind`number_ind', noc vce(robust)
-outreg2 _all using ${result}Estimates2010, excel bdec(4) replace
+di "Between regression and outreg2"
+*outreg2 _all using ${result}Estimates2010, excel bdec(4) replace
+di "After outreg2"
 
 clear
 	
@@ -435,15 +445,5 @@ label var obs_dez       "Number of observations used in estimating earnings prem
 sort mmc year
 
 save ${result}mmcEarnPremia_main_1986_2010, replace
-
-forvalues year = 1986/2010{
-	erase ${result}mmc_reg_`year'.dta
-}
-
-forvalues year = 1986/2010{
-	erase ${result}Estimates`year'.txt
-}	
-
-erase ${result}mmc_obs_dez.dta
 
 log close
