@@ -36,7 +36,7 @@ save ${data2}rais_codemun_to_mmc_1991_2010, replace
 * We use rem_dez as our earnings measure
 ****************************************
 
-forvalues year = 2003/2009{
+forvalues year = 1986/2009{
 	
 	clear all
 	local y = substr("`year'", 3, 2) 
@@ -61,7 +61,36 @@ forvalues year = 2003/2009{
 	
 	
 	if !inrange(`year',2003, 2006) 	rename rem_dez_sm rem_dez
-	
+		
+	* XX
+	* We have different codings for subs_ibge
+	replace subs_ibge = "9999" if subs_ibge=="26" // This one is sketchy
+	replace subs_ibge = "5822" if subs_ibge=="23"
+	replace subs_ibge = "4405" if subs_ibge=="01"
+	replace subs_ibge = "4509" if subs_ibge=="12"
+	replace subs_ibge = "5824" if subs_ibge=="22"
+	replace subs_ibge = "1101" if subs_ibge=="25"
+	replace subs_ibge = "4517" if subs_ibge=="08"
+	replace subs_ibge = "4618" if subs_ibge=="14"
+	replace subs_ibge = "4516" if subs_ibge=="02"
+	replace subs_ibge = "4508" if subs_ibge=="05"
+	replace subs_ibge = "4514" if subs_ibge=="07"
+	replace subs_ibge = "4507" if subs_ibge=="09"
+	replace subs_ibge = "4515" if subs_ibge=="06"
+	replace subs_ibge = "4510" if subs_ibge=="04"
+	replace subs_ibge = "2202" if subs_ibge=="17"
+	replace subs_ibge = "4512" if subs_ibge=="10"
+	replace subs_ibge = "4511" if subs_ibge=="03"
+	replace subs_ibge = "4506" if subs_ibge=="13"
+	replace subs_ibge = "4513" if subs_ibge=="11"
+	replace subs_ibge = "5823" if subs_ibge=="18"
+	replace subs_ibge = "3304" if subs_ibge=="15"
+	replace subs_ibge = "5825" if subs_ibge=="20"
+	replace subs_ibge = "5820" if subs_ibge=="19"
+	replace subs_ibge = "5821" if subs_ibge=="21"
+	replace subs_ibge = "2203" if subs_ibge=="16"
+	replace subs_ibge = "5719" if subs_ibge=="24"
+		
 	* Eliminate the year suffix from all the variable names
 	*foreach var of varlist *`y' {
 	*	local newvar = regexr("`var'","`y'","")
@@ -246,6 +275,37 @@ rename genero sexo
 destring sexo, replace
 destring grau_instr, replace
 
+	
+* XX
+* We have different codings for subs_ibge
+replace subs_ibge = "9999" if subs_ibge=="26" // This one is sketchy
+replace subs_ibge = "5822" if subs_ibge=="23"
+replace subs_ibge = "4405" if subs_ibge=="01"
+replace subs_ibge = "4509" if subs_ibge=="12"
+replace subs_ibge = "5824" if subs_ibge=="22"
+replace subs_ibge = "1101" if subs_ibge=="25"
+replace subs_ibge = "4517" if subs_ibge=="08"
+replace subs_ibge = "4618" if subs_ibge=="14"
+replace subs_ibge = "4516" if subs_ibge=="02"
+replace subs_ibge = "4508" if subs_ibge=="05"
+replace subs_ibge = "4514" if subs_ibge=="07"
+replace subs_ibge = "4507" if subs_ibge=="09"
+replace subs_ibge = "4515" if subs_ibge=="06"
+replace subs_ibge = "4510" if subs_ibge=="04"
+replace subs_ibge = "2202" if subs_ibge=="17"
+replace subs_ibge = "4512" if subs_ibge=="10"
+replace subs_ibge = "4511" if subs_ibge=="03"
+replace subs_ibge = "4506" if subs_ibge=="13"
+replace subs_ibge = "4513" if subs_ibge=="11"
+replace subs_ibge = "5823" if subs_ibge=="18"
+replace subs_ibge = "3304" if subs_ibge=="15"
+replace subs_ibge = "5825" if subs_ibge=="20"
+replace subs_ibge = "5820" if subs_ibge=="19"
+replace subs_ibge = "5821" if subs_ibge=="21"
+replace subs_ibge = "2203" if subs_ibge=="16"
+replace subs_ibge = "5719" if subs_ibge=="24"
+
+		 
 * Eliminate the year suffix from all the variable names
 *foreach var of varlist *10 {
 *	local newvar = regexr("`var'","10","")
