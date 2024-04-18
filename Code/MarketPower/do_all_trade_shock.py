@@ -1,4 +1,5 @@
 
+
 # conda activate gt
 
 import os
@@ -225,6 +226,27 @@ if run_sbm==True:
 if run_sbm_mcmc==True:
     model.mcmc_sweeps('./Data/derived/sbm_output/model_'+modelname+'_mcmc.p', tempsavedir='./Data/derived/sbm_output/', numiter=1000, seed=734)
     pickle.dump( model, open('./Data/derived/sbm_output/model_'+modelname+'.p', "wb" ), protocol=4 )
+
+gammas = pd.read_csv('./Data/derived/sbm_output/model_'+modelname+'_jblocks.csv', usecols=['jid','job_blocks_level_0']).rename(columns={'job_blocks_level_0':'gamma'})
+iotas = pd.read_csv('./Data/derived/sbm_output/model_'+modelname+'_wblocks.csv', usecols=['wid','worker_blocks_level_0'], dtype={'wid': object}).rename(columns={'worker_blocks_level_0':'iota'})
+
+
+#####################
+# Testing some stuff for compatibility with Dix-Carneiro and Kovak (2017)
+
+gammas = pd.read_csv('./Data/derived/sbm_output/model_'+modelname+'_jblocks.csv', usecols=['jid','job_blocks_level_0']).rename(columns={'job_blocks_level_0':'gamma'})
+iotas = pd.read_csv('./Data/derived/sbm_output/model_'+modelname+'_wblocks.csv', usecols=['wid','worker_blocks_level_0'], dtype={'wid': object}).rename(columns={'worker_blocks_level_0':'iota'})
+
+
+rais_codemun_to_mmc_1970_2010 = pd.read_stata('./Code/DixCarneiro_Kovak_2017/Data_Other/rais_codemun_to_mmc_1970_2010.dta')
+rais_codemun_to_mmc_1970_2010['codemun'] = pd.to_numeric(rais_codemun_to_mmc_1970_2010['codemun'], errors='coerce')
+
+appended = appended.merge(rais_codemun_to_mmc_1970_2010, on='codemun', how='left', indicator=True)
+appended = appended.merge(iotas, on='wid', how='left', indicator='_merge_iota')
+appended._merge_iota.value_counts()
+appended = appended.merge(gammas, on='jid', how='left', indicator='_merge_gamma')
+appended._merge_gamma.value_counts()
+
 
 
 ################################################################################################
