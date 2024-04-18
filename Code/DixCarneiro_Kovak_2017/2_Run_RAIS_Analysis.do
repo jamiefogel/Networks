@@ -13,8 +13,9 @@
 * Update this line to point to the /ReplicationFiles/ folder
 local os "`c(os)'"
 if "`os'" == "MacOSX" {
-    global root "/Users/jfogel/NetworksGit/Code/DixCarneiro_Kovak_2017/"
-}
+    if      "`c(username)'"=="jfogel"   global root "/Users/jfogel/NetworksGit/Code/DixCarneiro_Kovak_2017/"
+    else if "`c(username)'"=="jsf656"   global root "/Users/jsf656/NetworksGit/Code/DixCarneiro_Kovak_2017/"
+    }
 else if "`os'" == "Windows" {
     global root "//storage6/usuarios/labormkt_rafaelpereira/NetworksGit/Code/DixCarneiro_Kovak_2017/"
 }
