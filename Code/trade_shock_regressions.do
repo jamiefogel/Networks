@@ -40,7 +40,7 @@ forval year = 1991/2010{
 	* 1999 missing for some reason
 	if `year'!=1999{
 	di "`year'"
-	merge 1:1 pis using "\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\DixCarneiro_Kovak_2017\ProcessedData_RAIS\RegionalEarnPremia\processed_rais_pull`year'.dta", keepusing(log_rem)
+	merge 1:1 pis using "\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\DixCarneiro_Kovak_2017\ProcessedData_RAIS\RegionalEarnPremia\processed_rais_pull`year'.dta", keepusing(log_rem) keep(1 3)
 	drop _merge
 	rename log_rem log_rem_`year'
 	gen d_log_rem_1990_`year' = log_rem_`year' - log_rem_1990
