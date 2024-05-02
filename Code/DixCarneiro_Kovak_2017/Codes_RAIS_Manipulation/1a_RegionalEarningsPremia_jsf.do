@@ -45,7 +45,7 @@ forvalues year = 1986/2009{
 	if inrange(`year',2003, 2006) 	local rem_dez rem_dez
 	else 						 	local rem_dez rem_dez_sm
 	if `year'<=1993{
-		use pis codemun mes_adm mes_deslig subs_ibge `rem_dez' grau_instr genero fx_etaria ${mini_cond} using ${data1}brasil`year'
+		use pis codemun mes_adm mes_deslig subs_ibge id_estab uf cbo1994 `rem_dez' grau_instr genero fx_etaria ${mini_cond} using ${data1}brasil`year'
 		rename fx_etaria idade
 		destring idade, replace
 		rename genero sexo
@@ -53,7 +53,7 @@ forvalues year = 1986/2009{
 		destring grau_instr, replace
 	}
 	else {
-		use pis codemun mes_adm mes_deslig subs_ibge `rem_dez' grau_instr genero idade ${mini_cond} using ${data1}brasil`year'
+		use pis codemun mes_adm mes_deslig subs_ibge id_estab uf `rem_dez' grau_instr genero idade ${mini_cond} using ${data1}brasil`year'
 		rename genero sexo
 		destring sexo, replace
 		destring grau_instr, replace
@@ -64,7 +64,12 @@ forvalues year = 1986/2009{
 		
 	* XX
 	* We have different codings for subs_ibge
-	replace subs_ibge = "9999" if subs_ibge=="26" // This one is sketchy
+	rename subs_ibge subsibge
+	destring subsibge, replace
+	merge m:1 subsibge using "${data2}subsibge_to_subsibge_rais.dta", assert(3) nogen
+	label variable subsibge "subsibge (our RAIS encoding)"
+	label variable subs_ibge "subs_ibge (D-C & K's RAIS encoding)"
+	/*replace subs_ibge = "9999" if subs_ibge=="26" // This one is sketchy
 	replace subs_ibge = "5822" if subs_ibge=="23"
 	replace subs_ibge = "4405" if subs_ibge=="01"
 	replace subs_ibge = "4509" if subs_ibge=="12"
@@ -90,7 +95,8 @@ forvalues year = 1986/2009{
 	replace subs_ibge = "5821" if subs_ibge=="21"
 	replace subs_ibge = "2203" if subs_ibge=="16"
 	replace subs_ibge = "5719" if subs_ibge=="24"
-		
+	*/ 
+	
 	* Eliminate the year suffix from all the variable names
 	*foreach var of varlist *`y' {
 	*	local newvar = regexr("`var'","`y'","")
@@ -233,7 +239,11 @@ forvalues year = 1986/2009{
 	* Regression without a constant: we recover parameters for all mmc's
 	reg log_rem region1-region`number_mmc' female age2-age5 educ2-educ9 ind2-ind`number_ind', noc vce(robust)
 	*outreg2 _all using ${result}Estimates`year', excel bdec(4) replace
-
+ 
+	* Create extract to merge to the SBM and run our own regressions
+	* XX For some reason UF seems to be always missing in 1999
+	keep if inlist(uf, "RJ", "SP", "MG")
+	save ${result}processed_rais_pull`year', replace
 	clear
 	
 	* Generate dataset with the estimates
@@ -269,7 +279,7 @@ clear
 
 set more off
 
-use cpf codemun mes_adm mes_deslig subs_ibge rem_dez_sm grau_instr genero idade ${mini_cond} using ${data1}brasil2010
+use cpf codemun mes_adm mes_deslig subs_ibge id_estab uf rem_dez_sm grau_instr genero idade ${mini_cond} using ${data1}brasil2010
 rename rem_dez_sm rem_dez
 rename genero sexo
 destring sexo, replace
@@ -459,6 +469,9 @@ di "Between regression and outreg2"
 *outreg2 _all using ${result}Estimates2010, excel bdec(4) replace
 di "After outreg2"
 
+* Create extract to merge to the SBM and run our own regressions
+keep if inlist(uf, "RJ", "SP", "MG")
+save ${result}processed_rais_pull2010
 clear
 	
 * Generate dataset with the estimates
