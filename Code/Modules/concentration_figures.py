@@ -25,6 +25,9 @@ def concentration_figures(data, xvar, xvarlabel, yvarlist, yvarlabels, savefile,
     #xvarlabel = 'Workers'
     #yvarlist = ['sector_IBGE','gamma']
     #yvarlabels = {'sector_IBGE':'Sector','gamma':'Market'}
+    vars = [xvar] + yvarlist
+    mask = (data[vars] != -1).all(axis=1)
+    data = data.loc[mask]
     fig, ax = plt.subplots()
     savename_str = ''
     for yvar in yvarlist:
@@ -32,7 +35,7 @@ def concentration_figures(data, xvar, xvarlabel, yvarlist, yvarlabels, savefile,
         crosstab = pd.crosstab(index = data[xvar], columns = data[yvar])
         yvar_probabilities_by_xvar = crosstab.div(crosstab.sum(axis=1),axis=0).reset_index()
         yvar_probabilities_by_xvar['hhi'] = yvar_probabilities_by_xvar.drop(columns=xvar).pow(2).sum(axis=1)
-        xvar_counts = data[xvar].value_counts().reset_index().rename(columns={'index':xvar,xvar:'count'})
+        xvar_counts = data[xvar].value_counts().reset_index()
         # Normalize the counts by the minimum count and round to an integer. This avoids having so many points in the scatter plot that it won't print.
         xvar_counts['count'] = np.round(xvar_counts['count']/xvar_counts['count'].min())
         yvar_probabilities_by_xvar = yvar_probabilities_by_xvar.merge(xvar_counts, on=xvar)
