@@ -167,7 +167,7 @@ class bisbm():
     #################################################################################
     #
     #################################################################################
-    def export_blocks(self, output=None, joutput=None, woutput=None, max_level=None):
+    def export_blocks(self, output=None, joutput=None, woutput=None, max_level=None, export_mcmc=False):
 
         df=pd.DataFrame()
         df['worker_node']=self.g.vp.kind.a
@@ -184,7 +184,10 @@ class bisbm():
         for l in range(mlevel):
             # I don't know why copy=True is necessary but without it some of the 0s get converted to very large numbers for some reason
             #Old version: temp = pd.DataFrame(self.state.project_level(l).get_blocks().a, columns=['blocks_level_'], copy=True)
-            temp = pd.DataFrame(pd.DataFrame({'temp_blocks':self.state.project_level(l).get_blocks().a, 'worker_node':df.worker_node}, copy=True).groupby(['worker_node','temp_blocks']).ngroup(), columns=['blocks_level_'])
+            if export_mcmc==False:
+                temp = pd.DataFrame(pd.DataFrame({'temp_blocks':self.state.project_level(l).get_blocks().a, 'worker_node':df.worker_node}, copy=True).groupby(['worker_node','temp_blocks']).ngroup(), columns=['blocks_level_'])
+            elif export_mcmc==True:
+                temp = pd.DataFrame(pd.DataFrame({'temp_blocks':self.state_mcmc.project_level(l).get_blocks().a, 'worker_node':df.worker_node}, copy=True).groupby(['worker_node','temp_blocks']).ngroup(), columns=['blocks_level_'])       
             # Store the number of worker and job blocks at each level
             jmax = temp[['blocks_level_']][df['worker_node']==0].max()[0]
             wmax = temp[['blocks_level_']][df['worker_node']==1].max()[0]
