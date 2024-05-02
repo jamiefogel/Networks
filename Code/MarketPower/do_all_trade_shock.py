@@ -10,6 +10,7 @@ import numpy as np
 import pickle
 from datetime import datetime
 import getpass
+import platform
 import subprocess
 
 now = datetime.now()
@@ -17,9 +18,13 @@ dt_string = now.strftime("%Y_%m_%d__%H_%M_%S")
 print("date and time =", dt_string)	
 
 homedir = os.path.expanduser('~')
+os_name = platform.system()
 if getpass.getuser()=='p13861161':
-    print("Running on Linux")
-    root = homedir + '/labormkt/labormkt_rafaelpereira/NetworksGit/'
+    print("Running on Linux") 
+    if os_name == 'Windows':
+        root = "//storage6/usuarios/labormkt_rafaelpereira/NetworksGit/"
+    elif os_name == 'Linux':
+        root = "/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/"
 elif getpass.getuser()=='jfogel':
     print("Running on Jamie's home laptop")
     root = homedir + '/NetworksGit/'
@@ -28,8 +33,6 @@ sys.path.append(root + 'Code/Modules')
 figuredir = root + 'Results/'
 
 os.chdir(root)
-
-
 
 
 import bisbm
@@ -58,10 +61,10 @@ from concentration_figures import concentration_figures
 #####################################
 # Options from IPEA/do_all_ipea.py
 
-run_sbm = True
-run_sbm_mcmc = True
-run_pull = True
-run_append = True
+run_sbm = False
+run_sbm_mcmc = False
+run_pull = False
+run_append = False
 run_create_earnings_panel = True
 maxrows=None
 modelname = 'trade_shock'
@@ -69,7 +72,7 @@ modelname = 'trade_shock'
 rais_filename_stub =  '~/rais/RAIS/csv/brasil' 
 #rais_filename_stub = root + './Data/raw/synthetic_data_'
 
-
+eta = 2
 firstyear_sbm = 1987
 lastyear_sbm  = 1990
 firstyear_panel = 1987
@@ -222,6 +225,7 @@ if run_sbm==True:
     pickle.dump( model, open('./Data/derived/sbm_output/model_'+modelname+'.p', "wb" ), protocol=4 )
     print('SBM section complete at ', datetime.now())
 
+model = pickle.load( open('./Data/derived/sbm_output/model_'+modelname+'.p', "rb" ))
     
 if run_sbm_mcmc==True:
     model.mcmc_sweeps('./Data/derived/sbm_output/model_'+modelname+'_mcmc.p', tempsavedir='./Data/derived/sbm_output/', numiter=1000, seed=734)
