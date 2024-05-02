@@ -28,3 +28,6 @@ Results/for_rafa/df_trans.p
 Code/DixCarneiro_Kovak_2017/ProcessedData_RAIS/RegionalEarnPremia/*.xml
 Code/DixCarneiro_Kovak_2017/ProcessedData_RAIS/RegionalEarnPremia/*.txt
 Code/DixCarneiro_Kovak_2017/ProcessedData_RAIS/RegionalEarnPremia/*.dtaCode/DixCarneiro_Kovak_2017/ProcessedData_RAIS/Panel_1986_2010/*.dta
+Code/DixCarneiro_Kovak_2017/ProcessedData_RAIS/Panel_1986_2010/*.dta
+Code/DixCarneiro_Kovak_2017/ProcessedData_RAIS/RegionalEarnPremia/*.dta
+Code/DixCarneiro_Kovak_2017/ProcessedData_RAIS/**/*.dta
