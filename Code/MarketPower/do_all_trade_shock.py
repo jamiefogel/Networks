@@ -5,7 +5,6 @@
 import os
 import sys
 import pandas as pd
-import torch
 import numpy as np
 import pickle
 from datetime import datetime
@@ -23,31 +22,42 @@ if getpass.getuser()=='p13861161':
     print("Running on Linux") 
     if os_name == 'Windows':
         root = "//storage6/usuarios/labormkt_rafaelpereira/NetworksGit/"
+        rais = "//storage6/bases/DADOS/RESTRITO/RAIS/"
+        sys.path.append(root + 'Code/Modules')
     elif os_name == 'Linux':
         root = "/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/"
-elif getpass.getuser()=='jfogel':
+        rais = "~/rais/RAIS/"
+        sys.path.append(root + 'Code/Modules')
+        # These all require torch
+        import torch
+        from torch_mle import torch_mle
+        import bisbm
+        from mle_load_fulldata import mle_load_fulldata
+        from normalization_k import normalization_k
+        from alphas_func import load_alphas
+        import solve_model_functions as smf
+        from correlogram import correlogram
+
+if getpass.getuser()=='jfogel':
     print("Running on Jamie's home laptop")
     root = homedir + '/NetworksGit/'
+    sys.path.append(root + 'Code/Modules')
 
-sys.path.append(root + 'Code/Modules')
+
 figuredir = root + 'Results/'
 
 os.chdir(root)
 
+sector_data_filepath = root + "Data/raw/IBGE/Conta_da_producao_2002_2017_xls"
 
-import bisbm
-from create_earnings_panel import create_earnings_panel
+
+#from create_earnings_panel import create_earnings_panel
+from create_earnings_panel_trade_shock import create_earnings_panel_trade_shock
 from pull_one_year import pull_one_year
 
 
 import matplotlib.pyplot as plt
-from torch_mle import torch_mle
-from mle_load_fulldata import mle_load_fulldata
-from normalization_k import normalization_k
-from alphas_func import load_alphas
-import solve_model_functions as smf
 from occ_counts_by_type import occ_counts_by_type
-from correlogram import correlogram
 from concentration_figures import concentration_figures
 
 
@@ -69,7 +79,7 @@ run_create_earnings_panel = True
 maxrows=None
 modelname = 'trade_shock'
 #modelname = 'synthetic_data_3states_2009to2012'
-rais_filename_stub =  '~/rais/RAIS/csv/brasil' 
+rais_filename_stub =  rais + 'csv/brasil' 
 #rais_filename_stub = root + './Data/raw/synthetic_data_'
 
 eta = 2
@@ -93,17 +103,16 @@ level = 0
 xi_outopt_scalar = 0
 phi_outopt_scalar = 0
 
-torch.set_printoptions(precision=4, linewidth=200, sci_mode=False, edgeitems=150)
 pd.options.display.max_columns=20
 pd.options.display.width=200
 np.set_printoptions(linewidth=200)
 np.set_printoptions(suppress=True)
 
 
-run_all = False
-run_mle = False
-run_query_sums = False
-run_normalization = False
+run_all = True
+run_mle = True
+run_query_sums = True
+run_normalization = True
 solve_GE_silently = True
 a_s_variation = True
 
@@ -164,9 +173,9 @@ if run_pull==True:
             sep = ';'
         else:
             sep = ','
-        vars = ['pis','id_estab',occvar,'codemun','fx_etaria','nat_vinculo'] 
+        vars = ['pis','id_estab',occvar,'codemun','fx_etaria','nat_vinculo','rem_dez_sm','subs_ibge','emp_31dez','cnpj_raiz'] 
         if filename is None:
-            filename = '~/rais/RAIS/csv/brasil' + str(year) + '.csv'
+            filename = rais + '/csv/brasil' + str(year) + '.csv'
         # 2009 csv is corrupted so use Stata instead
         if year!=2009:
             raw_data = pd.read_csv(filename, usecols=vars, sep=sep, dtype={'id_estab':str, 'pis':str, occvar:str}, nrows=maxrows)
@@ -202,9 +211,9 @@ if run_append==True:
         if year==firstyear_panel:
             appended = df
         else:
-            appended = df.append(appended, sort=True)
+            appended = pd.concat([df, appended], ignore_index=True, sort=True)
         del df
-    appended.to_pickle('./Data/derived/appended_sbm_' + modelname + '.p')
+    appended.to_pickle('./Data/derived/appended_sbm_' + modelname + '.p', protocol=4)
 
 ################################################################################################
 # Run SBM
@@ -235,9 +244,20 @@ gammas = pd.read_csv('./Data/derived/sbm_output/model_'+modelname+'_jblocks.csv'
 iotas = pd.read_csv('./Data/derived/sbm_output/model_'+modelname+'_wblocks.csv', usecols=['wid','worker_blocks_level_0'], dtype={'wid': object}).rename(columns={'worker_blocks_level_0':'iota'})
 
 
+
+################################################################################################
+# Create earnings panel that we can use for the MLE
+
+if run_create_earnings_panel==True:
+    print('Starting create_earnings_panel() section at ', datetime.now())
+    create_earnings_panel_trade_shock(modelname, appended, 1987, 1990, sbm_modelname='trade_shock_mcmc', sector_var='subs_ibge')
+    print('create_earnings_panel() section finished  at ', datetime.now())
+
+
+
 #####################
 # Testing some stuff for compatibility with Dix-Carneiro and Kovak (2017)
-
+'''
 gammas = pd.read_csv('./Data/derived/sbm_output/model_'+modelname+'_jblocks.csv', usecols=['jid','job_blocks_level_0']).rename(columns={'job_blocks_level_0':'gamma'})
 iotas = pd.read_csv('./Data/derived/sbm_output/model_'+modelname+'_wblocks.csv', usecols=['wid','worker_blocks_level_0'], dtype={'wid': object}).rename(columns={'worker_blocks_level_0':'iota'})
 
@@ -251,18 +271,7 @@ appended._merge_iota.value_counts()
 appended = appended.merge(gammas, on='jid', how='left', indicator='_merge_gamma')
 appended._merge_gamma.value_counts()
 
-
-
-################################################################################################
-# Create earnings panel that we can use for the MLE
-
-if run_create_earnings_panel==True:
-    print('Starting create_earnings_panel() section at ', datetime.now())
-    create_earnings_panel(modelname, appended, 2009, 2014)
-    print('create_earnings_panel() section finished  at ', datetime.now())
-
-
-
+'''
 
 
 ################################################################
@@ -301,9 +310,12 @@ if 1==1:
 #--------------------------
 # LOAD sector-level production and other related info
 #--------------------------
+# Temp definition of parameters just to make the code run
+S = 15
+pre=2009
 exec(open(root + 'Code/load_model_parameters.py').read())
 
-
+classification_list = [('iota','gamma')]
 if run_all==True:
     for idx in classification_list: #
         # using wtype_var and jtype_Var instead of worker_type_var and job_type_var so we don't reset the master versions set in do_all.py
@@ -316,7 +328,7 @@ if run_all==True:
         est_psi_and_k_file         = root + "Data/derived/MLE_estimates/" + filename_stub + "_psi_normalized_" + suffix + "_eta_" + str(eta) + ".p"
         est_alphas_file            = root + "Data/derived/MLE_estimates/" + filename_stub + "_alphas_" + suffix + ".p"
         if run_query_sums == 1:
-            mle_load_fulldata(est_mle_data_filename, est_mle_data_sums_filename, wtype_var, jtype_var, 'real_hrly_wage_dec', est_alphas_file, mle_firstyear=firstyear_sbm, mle_lastyear=lastyear_sbm)
+            mle_load_fulldata(est_mle_data_filename, est_mle_data_sums_filename, wtype_var, jtype_var, 'real_hrly_wage_dec', est_alphas_file, mle_firstyear=firstyear_sbm, mle_lastyear=lastyear_sbm, sector_var='subs_ibge')
         if run_mle == True:
             if wtype_var != jtype_var:
                 torch_mle(est_mle_data_sums_filename, est_mle_estimates_filename, wtype_var, jtype_var, level)

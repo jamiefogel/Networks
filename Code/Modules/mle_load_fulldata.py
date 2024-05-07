@@ -16,7 +16,7 @@ from os.path import expanduser
 
 ### Values to be defined elsewhere
 
-def mle_load_fulldata(mle_data_filename, mle_data_sums_filename, worker_type_var, job_type_var, alphas_earnings_var, alphas_file, mle_firstyear=np.nan, mle_lastyear=np.nan, worker_type_min_count=None, job_type_min_count=None):
+def mle_load_fulldata(mle_data_filename, mle_data_sums_filename, worker_type_var, job_type_var, alphas_earnings_var, alphas_file, mle_firstyear=np.nan, mle_lastyear=np.nan, worker_type_min_count=None, job_type_min_count=None, sector_var='sector_IBGE', recode_earnings_less_than_one=False):
     print('Computing sums for ' + worker_type_var + ' and ' + job_type_var)
 
     # Confirm that worker_type_var and job_type_var exist in the data frame before fully loading it
@@ -26,7 +26,7 @@ def mle_load_fulldata(mle_data_filename, mle_data_sums_filename, worker_type_var
     if missing_columns:
         raise ValueError(f"The following columns are missing in the CSV file: {', '.join(missing_columns)}")
     
-    data_full = pd.read_csv(mle_data_filename,usecols=['wid_masked', 'jid_masked', 'year', 'sector_IBGE', 'c', 'ln_real_hrly_wage_dec', alphas_earnings_var, 'iota', 'gamma', worker_type_var, job_type_var])
+    data_full = pd.read_csv(mle_data_filename,usecols=['year', sector_var, 'c', 'ln_real_hrly_wage_dec', alphas_earnings_var, 'iota', 'gamma', worker_type_var, job_type_var])
 
     if np.isnan(mle_firstyear)==False and np.isnan(mle_lastyear)==False:
         data_full = data_full.loc[(data_full['year']>=mle_firstyear) & (data_full['year']<=mle_lastyear)]
@@ -46,6 +46,13 @@ def mle_load_fulldata(mle_data_filename, mle_data_sums_filename, worker_type_var
    
     data_full.loc[data_full['gamma']==0, 'job_type'] = 0 #Make sure the job type is set to 0 for non-employed
 
+    # When we define wages relative to the minimum wage, a small number of people have wages <1, which lead to log wages <0, which creates a failure when we take the log of log wages when computing the MLE
+    if recode_earnings_less_than_one==True:
+        recode_count = (data_full['real_hrly_wage_dec']<=1).sum()
+        print(f'Recoding {recode_count} values of earnings variables that are <= 1')
+        data_full.loc[data_full['real_hrly_wage_dec']<=1, 'real_hrly_wage_dec'] = 1.01
+        data_full['ln_real_hrly_wage_dec'] = np.log(data_full['real_hrly_wage_dec'])
+        
     # Drop small worker and job types. Failing to do this can cause conformability errors later if very small types end up getting dropped by subsequent sample restrictions
     if worker_type_min_count is not None and job_type_min_count is None:
         worker_type_counts = data_full.groupby('worker_type')['worker_type'].transform('count')
@@ -58,15 +65,15 @@ def mle_load_fulldata(mle_data_filename, mle_data_sums_filename, worker_type_var
         job_type_counts = data_full.groupby('job_type')['job_type'].transform('count')
         data_full = data_full.loc[(worker_type_counts>=worker_type_min_count) & (job_type_counts>=job_type_min_count)]
     
-    # JSF: I think we want to keep gamma and iota hard-coded here because we're going to want to keep using this restriction for sample definition, but subsequently we will allow the user to specify worker and job type vars.
+    # JSF: I think we want to keep gamma and iota hard-coded here because were going to want to keep using this restriction for sample definition, but subsequently we will allow the user to specify worker and job type vars.
     data_full_levels = data_full.loc[(data_full['gamma']!=-1) & (data_full['iota']!=-1) & (data_full['job_type']!=-1) & (data_full['worker_type']!=-1)]  #This is sloppy but for now I'm adding this so that we can set occ4_first_recode=-1 for occ4s that appear very rarely
 
     # Compute the alphas in this file since they should be run on exactly the same data
-    gs_sum = data_full_levels.groupby(['job_type','sector_IBGE'])[alphas_earnings_var].sum().to_frame().reset_index().rename(columns={alphas_earnings_var:"gs"})
-    s_sum = data_full_levels.groupby(['sector_IBGE'])[alphas_earnings_var].sum().to_frame().reset_index().rename(columns={alphas_earnings_var:"s"})
-    temp = gs_sum.merge(s_sum, on='sector_IBGE')
+    gs_sum = data_full_levels.groupby(['job_type',sector_var])[alphas_earnings_var].sum().to_frame().reset_index().rename(columns={alphas_earnings_var:"gs"})
+    s_sum = data_full_levels.groupby([sector_var])[alphas_earnings_var].sum().to_frame().reset_index().rename(columns={alphas_earnings_var:"s"})
+    temp = gs_sum.merge(s_sum, on=sector_var)
     temp['alpha'] = temp['gs']/temp['s']
-    alphas = temp[['job_type','sector_IBGE','alpha']]
+    alphas = temp[['job_type',sector_var,'alpha']]
     if alphas_file is not None:
         alphas.to_pickle(alphas_file)
 

@@ -36,7 +36,27 @@ def torch_mle(mle_sums_data, estimates_file, worker_type_var='', job_type_var=''
     # Load data
     mle_data = pickle.load(open(mle_sums_data, "rb"), encoding='bytes')
     print(mle_data.keys())
-    
+
+    '''
+    I don't think this check is actually necessary. We are getting an NAN in the first element of mean_wage_g but that object isn't actually used in the MLE so it doesn't matter.
+    # Check for tensors with NANs
+    nan_tensors = []
+    for key, tensor in mle_data.items():
+        if torch.isnan(tensor).any():
+            nan_tensors.append(key)
+
+    # Handle detection of NaNs
+    if nan_tensors:
+        if replace_nan_with is None:
+            print(f"NaN detected in the following tensors: {', '.join(nan_tensors)}")
+            raise ValueError("Input tensors contain NaN values and no replacement value has been specified.")
+        else:
+            for key in nan_tensors:
+                mle_data[key] = torch.where(torch.isnan(mle_data[key]), torch.tensor(replace_nan_with, dtype=mle_data[key].dtype), mle_data[key])
+                print(f"NaNs in '{key}' have been replaced with {replace_nan_with}.")
+    '''
+
+        
     # Define a couple necessary objects
     phi_outopt = np.reshape(np.repeat(phi_outopt_scalar, mle_data['I']), (-1,1))
     
