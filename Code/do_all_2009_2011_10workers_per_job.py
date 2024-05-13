@@ -117,7 +117,7 @@ run_occ_counts = False
 run_shock_case_study=False
 run_reduced_form=True
 run_model_fit=False
-run_concentration_figures=False
+run_concentration_figures=True
 run_correlograms=False
 run_predictions=False
 run_gamma_summary_stats=False
@@ -350,6 +350,9 @@ if run_concentration_figures==True:
     concentration_figures(data_full_concfigs, 'gamma', 'Markets (sorted by hiring HHI)',    ['occ2Xmeso_first','iota'], {'occ2Xmeso_first':'Occ2 X Meso Region','iota':'Worker Type'}, figuredir+'concentration_figures/concentration_figures__gamma__occ2Xmeso_first__iota.png',weighted=True)
     concentration_figures(data_full_concfigs, 'gamma', 'Markets (sorted by hiring HHI)',    ['occ4_first','iota'],      {'occ4_first':'4-Digit Occupation','iota':'Worker Type'},      figuredir+'concentration_figures/concentration_figures__gamma__occ4_first__iota.png',weighted=True)
     print('Finished concentration figures')
+    
+    concentration_figures(data_full_concfigs, 'iota', 'Workers (sorted by employment HHI)', ['occ4','gamma'],    {'occ4':'4-Digit Occupation','gamma':'Market'},                     figuredir+'concentration_figures/concentration_figures__iota__occ4__gamma.png',weighted=True)
+
 
 # Gamma summary stats including binscatters and meso_plots
 if run_gamma_summary_stats==True:

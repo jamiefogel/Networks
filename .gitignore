@@ -31,3 +31,6 @@ Code/DixCarneiro_Kovak_2017/ProcessedData_RAIS/RegionalEarnPremia/*.dtaCode/DixC
 Code/DixCarneiro_Kovak_2017/ProcessedData_RAIS/Panel_1986_2010/*.dta
 Code/DixCarneiro_Kovak_2017/ProcessedData_RAIS/RegionalEarnPremia/*.dta
 Code/DixCarneiro_Kovak_2017/ProcessedData_RAIS/**/*.dta
+Results/trade_shock/trade_shock_regression_results.p
+Code/DixCarneiro_Kovak_2017/temp.dta
+Code/DixCarneiro_Kovak_2017/temp2.dta

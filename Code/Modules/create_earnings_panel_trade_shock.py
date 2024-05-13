@@ -11,7 +11,7 @@ import numpy as np
 #import bisbm
 
 
-def create_earnings_panel_trade_shock(modelname, appended, firstyear_panel, lastyear_panel, sbm_modelname=None, sector_var='sector_IBGE'):
+def create_earnings_panel_trade_shock(modelname, appended, sbm_modelname=None, sector_var='sector_IBGE'):
     if sbm_modelname==None:
         sbm_modelname=modelname
     # Because dates aren't stored correctly in some years. Also we had a very small number of invalid dates (5 out of hundreds of millions) and this sets them to missing rather than failing.
@@ -34,7 +34,7 @@ def create_earnings_panel_trade_shock(modelname, appended, firstyear_panel, last
     #appended = appended.loc[drop==False]
     
     # Only keep jobs that pay on a monthly basis (most jobs)
-    appended = appended.loc[appended['nat_vinculo']==1]
+    #appended = appended.loc[appended['nat_vinculo']==1]
     # Restrict to positive earnings
     appended = appended.loc[appended['rem_dez_sm']>0]
     # Drop military occupations
@@ -55,8 +55,14 @@ def create_earnings_panel_trade_shock(modelname, appended, firstyear_panel, last
     # Create a balanced panel
     # First create a 'spine' with one row for each worker-year pair.
     # Second merge the appended onto this spine. For now treat all variable as time-varying but may want to edit this and do two merges: one for time-varying and one for time-invariant
-    unique_wids=appended['wid'].unique()
-    spine = pd.DataFrame({'wid':np.tile(unique_wids, lastyear_panel+1-firstyear_panel), 'year':np.repeat(np.arange(firstyear_panel,lastyear_panel+1),unique_wids.shape[0])})        
+    # Step 1: Extract unique wids and unique years
+    unique_wids = appended['wid'].unique()
+    unique_years = appended['year'].unique()
+
+    cross_product = pd.MultiIndex.from_product([unique_wids, unique_years], names=['wid', 'year'])
+    spine = pd.DataFrame(index=cross_product).reset_index()
+    del cross_product
+
     balanced = spine.merge(appended, how='left', on=['wid','year'], indicator=True, validate='1:1')
     del spine          
     # Why aren't these equal? Look into it later
