@@ -18,6 +18,8 @@ import getpass
 from linearmodels.iv import AbsorbingLS
 from linearmodels.panel import PanelOLS
 import statsmodels.api as sm
+import matplotlib.pyplot as plt
+
 
 nrows = None
 pull_raw = True
@@ -53,6 +55,8 @@ if getpass.getuser()=='jfogel':
     root = homedir + '/NetworksGit/'
     sys.path.append(root + 'Code/Modules')
 
+
+from merge_aguinaldo_onet import merge_aguinaldo_onet
 
 import re
 def convert_dates(date_series):
@@ -289,8 +293,9 @@ if load_iotas_gammas == True:
     iotas['wid'] = iotas['wid'].astype(str)
     
     # Load data that was used for the SBM so I can compute P_gi
+    # Available columns: ['cbo2002', 'clas_cnae20', 'codemun', 'data_adm', 'data_deslig', 'data_nasc', 'horas_contr', 'id_estab', 'idade', 'ind2', 'jid', 'occ4', 'rem_dez_r', 'sector_IBGE', 'tipo_salario', 'tipo_vinculo', 'wid', 'year', 'yob']
     appended = pd.read_pickle(root + 'Data/derived/appended_sbm_3states_2013to2016_new.p')
-    appended = appended[['wid','jid','year','ind2','codemun','cbo2002']]
+    appended = appended[['wid','jid','year','ind2','codemun','cbo2002','clas_cnae20']]
     
     # Merge on gammas
     appended = appended.merge(gammas, how='inner', validate='m:1', on='jid',indicator='_merge_gammas')
@@ -304,27 +309,106 @@ if load_iotas_gammas == True:
     print(appended._merge_iotas.value_counts())
     appended.drop(columns=['_merge_iotas'], inplace=True)
     
-    N_gamma = appended['gamma'].value_counts()
-    N_iota  = appended['iota'].value_counts()
+    N_gamma = appended['gamma'].value_counts().reset_index().rename(columns={'count': 'N_gamma'})
+    N_iota  = appended['iota'].value_counts().reset_index().rename(columns={'count': 'N_iota'})
     N_iota_gamma = appended.groupby(['iota', 'gamma']).size()
     
     # Create a DataFrame for N_iota_gamma
     N_iota_gamma_df = N_iota_gamma.reset_index(name='N_iota_gamma')
     # Merge N_iota and N_iota_gamma to calculate P[gamma | iota]
-    N_iota_gamma_df = N_iota_gamma_df.merge(N_iota.rename('N_iota'), on='iota')
+    N_iota_gamma_df = N_iota_gamma_df.merge(N_iota, on='iota')
     N_iota_gamma_df['P_gamma_given_iota'] = N_iota_gamma_df['N_iota_gamma'] / N_iota_gamma_df['N_iota']
     # Merge N_gamma to calculate E[N_gamma | iota]
-    N_iota_gamma_df = N_iota_gamma_df.merge(N_gamma.rename('N_gamma'), on='gamma')
+    N_iota_gamma_df = N_iota_gamma_df.merge(N_gamma, on='gamma')
     N_iota_gamma_df['E_N_gamma_given_iota'] = N_iota_gamma_df['N_gamma'] * N_iota_gamma_df['P_gamma_given_iota']
     
     # Sum up E[N_gamma | iota] for each worker type
     E_N_gamma_given_iota = N_iota_gamma_df.groupby('iota')['E_N_gamma_given_iota'].sum()
-
+   
     print(E_N_gamma_given_iota)
     E_N_gamma_given_iota = E_N_gamma_given_iota.reset_index()
     E_N_gamma_given_iota['iota'] = E_N_gamma_given_iota['iota'].astype(int)
     E_N_gamma_given_iota.to_pickle(root + "Data/derived/mass_layoffs_E_N_gamma_given_iota.p")
+   
+    
+    ############################################################
+    # Compute skill and spatial variance of each iota
+    
+    # Merge on Aguinaldo's O*NET factors
+    appended['cbo2002'] = appended['cbo2002'].astype(int)
+    appended = merge_aguinaldo_onet(appended, root + 'Data/raw/' )    
+    
+    skills_columns = [
+        'Cognitive skills', 'Operational skills', 'Social and emotional skills', 'Management skills',
+        'Physical skills', 'Transportation skills', 'Social sciences skills', 'Accuracy skills',
+        'Design & engineering skills', 'Artistic skills', 'Life sciences skills',
+        'Information technology skills', 'Sales skills', 'Self-reliance skills',
+        'Information processing skills', 'Teamwork skills'
+    ]
+    # 1. Compute the variance of each of the 16 types of skills within each value of iota
+    variances = appended.groupby('iota')[skills_columns].var()
+    # 2. Compute the average of each of the 16 types of skills within each value of iota
+    averages = appended.groupby('iota')[skills_columns].mean()
+    # 3. Normalize these averages by summing all 16 averages and dividing each individual average by the overall sum
+    normalized_averages = averages.div(averages.sum(axis=1), axis=0)
+    # 4. Compute the weighted averages of the variances within each iota using the normalized averages as weights
+    weighted_variances = (variances * normalized_averages).sum(axis=1)
 
+
+    # Plotting the histogram of the weighted variances
+    plt.figure(figsize=(10, 6))
+    plt.hist(weighted_variances, bins=30, edgecolor='k', alpha=0.7)
+    plt.title('Histogram of Weighted Variances')
+    plt.xlabel('Weighted Variances')
+    plt.ylabel('Frequency')
+    plt.grid(True)
+    plt.show()
+
+    # Note that occ_counts starts iota indexing at 1 so we will need to adjust this
+    occ_counts = pd.read_csv(root + 'Data/derived/occ_counts/panel_3states_2013to2016_new_occ_counts_by_i_level_0.csv')
+    min_iota = appended.iota.min()
+    occ_counts = occ_counts.loc[occ_counts.iota!=-1]   # Drop missing iota codes
+    occ_counts['iota'] = occ_counts.iota + (min_iota - occ_counts.iota.min())
+
+    # Step 1: Identify the iota values with the 5 lowest and 5 highest weighted variances
+    lowest_iotas = weighted_variances.nsmallest(5).index
+    highest_iotas = weighted_variances.nlargest(5).index
+    selected_iotas = lowest_iotas.union(highest_iotas)
+    
+    # Step 2: Filter the occ_counts DataFrame to include only these iota values
+    filtered_occ_counts = occ_counts[occ_counts['iota'].isin(selected_iotas)]
+    
+    # Step 3: Get the top 10 most common occupations for each iota
+    top_occupations = filtered_occ_counts.groupby('iota').apply(
+        lambda x: x.nlargest(10, 'counts')[['description', 'counts']]
+    ).reset_index(level=0, drop=True)
+    
+    # Step 4: Print the results
+    for iota in selected_iotas:
+        print(f"\nIota: {iota}")
+        print(top_occupations[top_occupations.index == iota][['description', 'counts']])
+    
+    # Step 1: Identify the iota values with the 5 lowest and 5 highest weighted variances
+    lowest_iotas = weighted_variances.nsmallest(5).index
+    highest_iotas = weighted_variances.nlargest(5).index
+    selected_iotas = lowest_iotas.union(highest_iotas)
+    
+    # Step 2: Filter the occ_counts DataFrame to include only these iota values
+    filtered_occ_counts = occ_counts[occ_counts['iota'].isin(selected_iotas)]
+    
+    # Step 3: Print the top 10 most common occupations for each iota
+    for iota in highest_iotas:
+        top_occupations = filtered_occ_counts[filtered_occ_counts['iota'] == iota].nlargest(10, 'counts')
+        print(f"\nIota: {iota}")
+        print(top_occupations[['description', 'counts']])
+        
+    
+    # Step 3: Print the top 10 most common occupations for each iota
+    for iota in lowest_iotas:
+        top_occupations = filtered_occ_counts[filtered_occ_counts['iota'] == iota].nlargest(10, 'counts')
+        print(f"\nIota: {iota}")
+        print(top_occupations[['description', 'counts']])
+          
 
 if pull_raw==True:
     
@@ -474,7 +558,12 @@ if pull_raw==True:
         df['data_nasc']     = pd.to_datetime(df['data_nasc'],   format=date_formats[year], errors='raise')
         df['idade']         = df['idade'].astype(int)
         df['yob']           = df.data_nasc.dt.year
-        df['yob_impute']    = df['year']-df['idade']
+        # Restrict to people who are between 22 and 62 in 2012
+        df = df.loc[df['yob'].between(1950, 1990)]
+        # Drop job-years with average monthly earnings less than the minimum wage
+        df = df[df['rem_med_sm'] >= 1]
+        # Sometimes id_estab is defined but cnpj_raiz is not. Therefore, replace cnpj_raiz with the first 8 digits of id_estab. XX I can actually just not load cnpj_raiz to not mess with this. 
+        df['id_firm'] = df['id_estab'].astype(str).str.zfill(14).str[:8].astype(int)
         dfs.append(df)
         dfs_mkt_size.append(df_mkt_size)
     
@@ -500,8 +589,8 @@ worker_panel['jid']  = worker_panel['id_estab'].astype(str) + '_' + worker_panel
 # Step 1: Reshape to long format on wid, year, and month
 value_vars = [f'vl_rem_{i:02d}' for i in range(1, 13)]
 worker_panel_long = pd.melt(worker_panel, 
-                            id_vars=['wid', 'id_estab', 'cnpj_raiz', 'data_adm', 'data_deslig', 'genero',
-                                     'causa_deslig', 'clas_cnae20', 'cbo2002', 'codemun', 'code_micro', 'yob', 'yob_impute',  
+                            id_vars=['wid', 'id_estab', 'id_firm', 'data_adm', 'data_deslig', 'genero',
+                                     'causa_deslig', 'clas_cnae20', 'cbo2002', 'codemun', 'code_micro', 'yob',
                                      'grau_instr', 'salario', 'rem_med_sm', 'rem_med_r', 'year', 'raca_cor', 'nacionalidad'],
                             value_vars=value_vars, 
                             var_name='month', 
@@ -510,8 +599,16 @@ worker_panel_long = pd.melt(worker_panel,
 # Convert month from 'vl_rem_{i:02d}' to integer
 worker_panel_long['month'] = worker_panel_long['month'].str.extract('(\d+)').astype(int)
 
-# Drop rows with 0 monthly earnings?
-#worker_panel_long = worker_panel_long.loc[worker_panel_long.vl_rem>0]
+# Restrict to people with at least 24 months of positive earnings
+valid_months = (worker_panel_long['vl_rem'] > 0)
+valid_month_counts = worker_panel_long[valid_months].groupby('wid').size()
+workers_to_keep = valid_month_counts[valid_month_counts >= 24].index
+worker_panel_long = worker_panel_long[worker_panel_long['wid'].isin(workers_to_keep)]
+
+
+# Print the shape of the resulting dataframe
+print(f"Resulting dataframe shape: {worker_panel_long.shape}")
+
 
 # Step 2: Keep only the job with the highest earnings for each worker-month. But also compute the sum of earnings across all jobs. 
 worker_panel_long['total_earnings_month'] = worker_panel_long.groupby(['wid', 'year', 'month'])['vl_rem'].transform('sum')
@@ -553,7 +650,7 @@ worker_panel_long = worker_panel_long.loc[worker_panel_long['mass_layoff_ever']=
 worker_panel_long['event_time'] = (worker_panel_long['calendar_date'].dt.to_period('M') -worker_panel_long['mass_layoff_month'].dt.to_period('M')).apply(lambda x: x.n if pd.notna(x) else np.nan)
 
 # Identify characteristics of the firm that closes
-pre_layoff_obs = worker_panel_long.loc[(worker_panel_long['mass_layoff_month']==worker_panel_long['calendar_date']), ['wid', 'id_estab', 'cnpj_raiz', 'clas_cnae20', 'cbo2002', 'codemun', 'code_micro', 'salario', 'calendar_date']]
+pre_layoff_obs = worker_panel_long.loc[(worker_panel_long['mass_layoff_month']==worker_panel_long['calendar_date']), ['wid', 'id_estab', 'id_firm', 'clas_cnae20', 'cbo2002', 'codemun', 'code_micro', 'salario', 'calendar_date']]
 pre_layoff_obs = pre_layoff_obs.rename(columns={col: col + '_pre' for col in df.columns if col != 'wid'})
 
 
@@ -562,8 +659,8 @@ pre_layoff_obs = pre_layoff_obs.rename(columns={col: col + '_pre' for col in df.
 ############################################################################################################
 # Create a balanced worker panel where time is measured by event time
 
-invariant = ['wid', 'genero', 'grau_instr', 'yob', 'yob_impute','nacionalidad', 'raca_cor']
-variant = ['id_estab', 'cnpj_raiz', 'data_adm', 'data_deslig', 'causa_deslig', 'clas_cnae20', 'cbo2002', 'codemun', 'code_micro', 'salario', 'rem_med_sm', 'rem_med_r', 'vl_rem', 'total_earnings_month', 'num_jobs_month', 'calendar_date',  'employment_indicator', 'data_encerramento', 'mass_layoff_month']
+invariant = ['wid', 'genero', 'grau_instr', 'yob', 'nacionalidad', 'raca_cor']
+variant = ['id_estab', 'id_firm', 'data_adm', 'data_deslig', 'causa_deslig', 'clas_cnae20', 'cbo2002', 'codemun', 'code_micro', 'salario', 'rem_med_sm', 'rem_med_r', 'vl_rem', 'total_earnings_month', 'num_jobs_month', 'calendar_date',  'employment_indicator', 'data_encerramento', 'mass_layoff_month']
 
 unique_wids=worker_panel_long['wid'].unique()
 spine = pd.DataFrame({'wid':np.tile(unique_wids, 49), 'event_time':np.repeat(np.arange(-12,36+1),unique_wids.shape[0])})        
@@ -580,9 +677,7 @@ adjusted_dates = dates + np.array(worker_panel_balanced['event_time'], dtype='ti
 worker_panel_balanced['calendar_date'] = adjusted_dates
 
 
-# Fill missing values in 'yob' with values from 'yob_impute'
-worker_panel_balanced['yob'] = worker_panel_balanced['yob'].fillna(worker_panel_balanced['yob_impute'])
-
+# Check for people who are employed at the pre-layoff firm post-layoff. Drop these people. Also also identify each worker's first post-layoff firm and identify layoff firms where >50% of laid off workers end up at the same post-layoff firm. These should not be counted as true layoffs. 
 
 
 # Merge on iotas and then E_N_gamma_given_iota
@@ -591,42 +686,120 @@ worker_panel_balanced = worker_panel_balanced.merge(iotas, how='inner', validate
 worker_panel_balanced = worker_panel_balanced.merge(E_N_gamma_given_iota, how='inner', validate='m:1', on='iota')
 
 
-
+''' I don't see what the point of this code is. Probably delete it
 # XX need to do this for everyone in the 3 states in 2013-2016, not just the mass layoff sample
 worker_panel['wid'] = worker_panel.wid.astype('Int64').astype(str)
 worker_panel = worker_panel.merge(iotas, how='inner', validate='m:1', on='wid',indicator='_merge_iotas')
 print('Merge stats for iotas')
 print(worker_panel._merge_iotas.value_counts())
 worker_panel.drop(columns=['_merge_iotas'], inplace=True)
-
-
-
-
 '''
-Not necessary anymore, I think 
-# Define a function to find the mode of a Series
-def mode_with_ties(series):
-    mode = series.mode()
-    if not mode.empty:
-        return mode.iloc[0]  # If there is a tie, return the first mode
-    else:
-        return np.nan  # Handle the case where there is no mode (e.g., all NaNs)
 
 
-# Ensure everyone has a constant YOB    
+######
+# Create variables for regression in Moretti and Yi's equation 3
 
-worker_panel_balanced['yob'] = worker_panel_balanced.groupby('wid')['yob'].transform(mode_with_ties)
-worker_panel_balanced['yob_impute'] = worker_panel_balanced.groupby('wid')['yob_impute'].transform(mode_with_ties)
-worker_panel_balanced['yob'].fillna(worker_panel_balanced['yob_impute'], inplace=True)
+# Some workers have multiple YOBs listed so I'll just take the mode
+worker_panel_balanced['age']    = (worker_panel_balanced['calendar_date'].dt.to_period('Y') - pd.to_datetime(worker_panel_balanced['yob'], format='%Y').dt.to_period('Y') ).apply(lambda x: x.n if pd.notna(x) else np.nan)
+worker_panel_balanced['age_sq'] = worker_panel_balanced['age']**2
+worker_panel_balanced['foreign']= (worker_panel_balanced['nacionalidad']!=10)
+worker_panel_balanced['raca_cor'] = pd.Categorical(worker_panel_balanced['raca_cor'])
+worker_panel_balanced['genero'] = pd.Categorical(worker_panel_balanced['genero'])
 
 
-# Display the final DataFrame
-print(worker_panel_balanced.head())
+
+###################
+# Create pre- and post-layoff variables as well as indicators for changing jobs, occs, industries, etc
+
+# Get pre-layoff values
+pre_layoff = worker_panel_balanced[worker_panel_balanced['event_time'] == -1].set_index('wid')
+worker_panel_balanced['pre_layoff_firm'] = worker_panel_balanced['wid'].map(pre_layoff['id_firm'])
+worker_panel_balanced['pre_layoff_occ'] = worker_panel_balanced['wid'].map(pre_layoff['cbo2002'])
+worker_panel_balanced['pre_layoff_ind5'] = worker_panel_balanced['wid'].map(pre_layoff['clas_cnae20'])
+worker_panel_balanced['pre_layoff_ind2'] = worker_panel_balanced['wid'].map(pre_layoff['ind2'])
+
+# Get first post-layoff values
+post_layoff = worker_panel_balanced[(worker_panel_balanced['event_time'] > 0) & 
+                                    (worker_panel_balanced['employment_indicator'] == 1)].groupby('wid').first()
+worker_panel_balanced['post_layoff_firm'] = worker_panel_balanced['wid'].map(post_layoff['id_firm'])
+worker_panel_balanced['post_layoff_occ'] = worker_panel_balanced['wid'].map(post_layoff['cbo2002'])
+worker_panel_balanced['post_layoff_ind5'] = worker_panel_balanced['wid'].map(post_layoff['clas_cnae20'])
+worker_panel_balanced['post_layoff_ind2'] = worker_panel_balanced['wid'].map(post_layoff['ind2'])
+
+
+worker_panel_balanced['same_firm'] = (worker_panel_balanced['pre_layoff_firm'] == worker_panel_balanced['post_layoff_firm']).astype(int)
+worker_panel_balanced['same_occ'] = (worker_panel_balanced['pre_layoff_occ'] == worker_panel_balanced['post_layoff_occ']).astype(int)
+worker_panel_balanced['same_ind5'] = (worker_panel_balanced['pre_layoff_ind5'] == worker_panel_balanced['post_layoff_ind5']).astype(int)
+worker_panel_balanced['same_ind2'] = (worker_panel_balanced['pre_layoff_ind2'] == worker_panel_balanced['post_layoff_ind2']).astype(int)
+
+first_reemployment = worker_panel_balanced[(worker_panel_balanced['event_time'] > 0) & 
+                                           (worker_panel_balanced['employment_indicator'] == 1)].groupby('wid')['event_time'].min()
+worker_panel_balanced['first_reemployment_time'] = worker_panel_balanced['wid'].map(first_reemployment)
+
+
+
+#  Display new variables to check everything is working
+print("\nNew variables:")
+vars = ['id_firm', 'cbo2002', 'clas_cnae20', 'ind2', 'pre_layoff_firm', 'post_layoff_firm', 'same_firm',
+            'pre_layoff_occ', 'post_layoff_occ', 'same_occ',
+            'pre_layoff_ind5', 'post_layoff_ind5', 'same_ind5',
+            'pre_layoff_ind2', 'post_layoff_ind2', 'same_ind2',
+            'first_reemployment_time']
+print(worker_panel_balanced[['wid', 'event_time'] + vars].head(50))
+
+
+#####
+# Identify firms where >50% of people end up reemployed at the same firm (some of this may be the firm closure dates occurring before people actually leave the firm)
+# Drop people who are employed at the same firm right after layoff. This will include some poeple who seem to continue to be employed after the layoff date. 
+
+# Step 1: Compute the fraction of people with same_firm == 1 for each pre-layoff firm
+firm_fractions = worker_panel_balanced.groupby('pre_layoff_firm')['same_firm'].mean()
+# Step 2: Identify firms where more than 50% of people have same_firm == 1
+firms_to_drop = firm_fractions[firm_fractions > 0.5].index
+
+# Step 3: Drop all rows corresponding to these firms
+worker_panel_balanced = worker_panel_balanced[~worker_panel_balanced['pre_layoff_firm'].isin(firms_to_drop)]
+
+''' XX I don't trust this section yet. Need to debug
+# Supplementary steps to identify and drop firms where >80% of laid off workers end up employed at the same firm as each other post-layoff
+
+# Step 4: Compute the fraction of people reemployed at the same firm post-layoff
+post_layoff_firm_counts = worker_panel_balanced.groupby(['pre_layoff_firm', 'post_layoff_firm']).size()
+pre_layoff_firm_counts = worker_panel_balanced.groupby('pre_layoff_firm').size()
+
+# Calculate the fraction of people reemployed at the same firm post-layoff for each pre-layoff firm
+reemployment_fractions = post_layoff_firm_counts / pre_layoff_firm_counts
+
+# Step 5: Identify pre-layoff firms where more than 80% of people are reemployed at the same firm post-layoff
+# Unstack to get the fractions as columns, then apply the threshold check
+reemployed_firms_to_drop = reemployment_fractions.unstack().max(axis=1)
+reemployed_firms_to_drop = reemployed_firms_to_drop[reemployed_firms_to_drop > 0.8].index
+
+# Step 6: Drop all rows corresponding to these firms where >50% of laid off workers are reemployed at the same firm
+worker_panel_balanced = worker_panel_balanced[~worker_panel_balanced['pre_layoff_firm'].isin(reemployed_firms_to_drop)]
 '''
+
+
+# Recode the 'grau_instr' variable into coarser bins
+bins = [0, 4, 6, 7, 8, 11]
+labels = ['Less than middle school', 'Less than HS', 'HS', 'Some college', 'College']
+worker_panel_balanced['educ'] = pd.cut(worker_panel_balanced['grau_instr'], bins=bins, labels=labels, right=True)
+
+
+worker_panel_balanced['ind2'] = worker_panel_balanced['clas_cnae20'] // 1000
+t_minus_1 = worker_panel_balanced[worker_panel_balanced['event_time'] == -1][['wid', 'code_micro','ind2']]
+worker_panel_balanced = worker_panel_balanced.merge(t_minus_1, on='wid', suffixes=('', '_t_minus_1'))
+
+worker_panel_balanced['educ_micro']         = pd.Categorical(worker_panel_balanced.educ.astype(str) + '_' + worker_panel_balanced.code_micro_t_minus_1.astype(str)) 
+worker_panel_balanced['educ_ind2']          = pd.Categorical(worker_panel_balanced.educ.astype(str) + '_' + worker_panel_balanced.ind2_t_minus_1.astype(str))
+worker_panel_balanced['educ_layoff_date']   = pd.Categorical(worker_panel_balanced.educ.astype(str) + '_' + worker_panel_balanced.mass_layoff_month.astype(str)) 
+
+
+
+
 
 #######################################
 # Preliminary figures
-import matplotlib.pyplot as plt
 
 
 # Replace NAs with 0 for earnings and employment
@@ -648,6 +821,7 @@ plt.xlabel('Event Time (Months)')
 plt.ylabel('Mean Employment Indicator')
 plt.title('Mean Employment Indicator by Event Time')
 plt.grid(True)
+plt.savefig(root + 'Results/employment_after_layoff.pdf', format='pdf')
 plt.show()
 
 
@@ -658,6 +832,7 @@ plt.xlabel('Event Time (Months)')
 plt.ylabel('Mean Total Monthly Earnings')
 plt.title('Mean Total Monthly Earnings by Event Time')
 plt.grid(True)
+plt.savefig(root + 'Results/primary_job_earnings_after_layoff.pdf', format='pdf')
 plt.show()
 
 
@@ -668,6 +843,7 @@ plt.xlabel('Event Time (Months)')
 plt.ylabel('Mean Primary Job Monthly Earnings')
 plt.title('Mean Primary Job Monthly Earnings by Event Time')
 plt.grid(True)
+plt.savefig(root + 'Results/earnings_after_layoff.pdf', format='pdf')
 plt.show()
 
 
@@ -731,27 +907,9 @@ plt.show()
 # Vector of education-time dummies defined by the quarter-year of closure. 
 # SEs clustered at CZ-level
 
-# Some workers have multiple YOBs listed so I'll just take the mode
-worker_panel_balanced['age']    = (worker_panel_balanced['calendar_date'].dt.to_period('Y') - pd.to_datetime(worker_panel_balanced['yob'], format='%Y').dt.to_period('Y') ).apply(lambda x: x.n if pd.notna(x) else np.nan)
-worker_panel_balanced['age_sq'] = worker_panel_balanced['age']**2
-worker_panel_balanced['foreign']= (worker_panel_balanced['nacionalidad']!=10)
-worker_panel_balanced['raca_cor'] = pd.Categorical(worker_panel_balanced['raca_cor'])
-worker_panel_balanced['genero'] = pd.Categorical(worker_panel_balanced['genero'])
 
 
-# Recode the 'grau_instr' variable into coarser bins
-bins = [0, 4, 6, 7, 8, 11]
-labels = ['Less than middle school', 'Less than HS', 'HS', 'Some college', 'College']
-worker_panel_balanced['educ'] = pd.cut(worker_panel_balanced['grau_instr'], bins=bins, labels=labels, right=True)
 
-
-worker_panel_balanced['ind2'] = worker_panel_balanced['clas_cnae20'] // 1000
-t_minus_1 = worker_panel_balanced[worker_panel_balanced['event_time'] == -1][['wid', 'code_micro','ind2']]
-worker_panel_balanced = worker_panel_balanced.merge(t_minus_1, on='wid', suffixes=('', '_t_minus_1'))
-
-worker_panel_balanced['educ_micro']         = pd.Categorical(worker_panel_balanced.educ.astype(str) + '_' + worker_panel_balanced.code_micro_t_minus_1.astype(str)) 
-worker_panel_balanced['educ_ind2']          = pd.Categorical(worker_panel_balanced.educ.astype(str) + '_' + worker_panel_balanced.ind2_t_minus_1.astype(str))
-worker_panel_balanced['educ_layoff_date']   = pd.Categorical(worker_panel_balanced.educ.astype(str) + '_' + worker_panel_balanced.mass_layoff_month.astype(str)) 
 
 
 # Create dummy variables for event_time
@@ -767,6 +925,16 @@ X = pd.concat([event_time_dummies, worker_panel_balanced[['age','age_sq']]], axi
 
 # Define the fixed effects to absorb
 fixed_effects =worker_panel_balanced[['educ_micro','educ_ind2','educ_layoff_date','foreign','genero','raca_cor']]
+
+print(fixed_effects.shape)
+print(y.shape)
+print(X.shape)
+
+# There are a few missing values of X
+missing_indices = X.isna().any(axis=1)
+y = y.loc[~missing_indices]
+X = X.loc[~missing_indices]
+fixed_effects = fixed_effects.loc[~missing_indices]
 
 # Run the model with AbsorbingLS
 model_absorbed = AbsorbingLS(y, X, absorb=fixed_effects, drop_absorbed=True)
@@ -812,6 +980,13 @@ X = pd.concat([event_time_dummies, worker_panel_balanced[['age','age_sq']]], axi
 
 # Define the fixed effects to absorb
 fixed_effects =worker_panel_balanced[['educ_micro','educ_ind2','educ_layoff_date','foreign','genero','raca_cor']]
+
+
+# There are a few missing values of X
+missing_indices = X.isna().any(axis=1)
+y = y.loc[~missing_indices]
+X = X.loc[~missing_indices]
+fixed_effects = fixed_effects.loc[~missing_indices]
 
 # Run the model with AbsorbingLS
 model_absorbed = AbsorbingLS(y, X, absorb=fixed_effects, drop_absorbed=True)
@@ -881,6 +1056,13 @@ y = worker_panel_balanced['employment_indicator']
 # Define the fixed effects to absorb
 fixed_effects = worker_panel_balanced[['educ_micro', 'educ_ind2', 'educ_layoff_date', 'foreign', 'genero', 'raca_cor']]
 
+
+# There are a few missing values of X
+missing_indices = X.isna().any(axis=1)
+y = y.loc[~missing_indices]
+X = X.loc[~missing_indices]
+fixed_effects = fixed_effects.loc[~missing_indices]
+
 # Run the model with AbsorbingLS
 model_absorbed = AbsorbingLS(y, X, absorb=fixed_effects, drop_absorbed=True)
 results_absorbed = model_absorbed.fit(cov_type='unadjusted')
@@ -916,11 +1098,12 @@ plt.figure(figsize=(10, 6))
 plt.errorbar(coefficients_df_low.index, coefficients_df_low['coef'], yerr=coefficients_df_low['std_err'], fmt='o', linestyle='-', capsize=5, label='Low (Tercile)')
 plt.errorbar(coefficients_df_high.index, coefficients_df_high['coef'], yerr=coefficients_df_high['std_err'], fmt='o', linestyle='-', capsize=5, label='High (Tercile)')
 plt.axhline(0, color='black', linewidth=1, linestyle='--')
-plt.xlabel('Event Time')
+plt.xlabel('Months Since Firm Closure')
 plt.ylabel('Coefficient')
 plt.title('Employment by Tercile')
 plt.grid(True)
 plt.legend()
+plt.savefig(root + 'Results/employment_after_layoff_by_market_size_tercile.pdf', format='pdf')
 plt.show()
 
 
