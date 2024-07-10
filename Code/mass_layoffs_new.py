@@ -58,198 +58,82 @@ if getpass.getuser()=='jfogel':
 
 from merge_aguinaldo_onet import merge_aguinaldo_onet
 
-import re
-def convert_dates(date_series):
-    """
-    Convert a series of mixed-format date strings into pandas datetime objects.
-    
-    Parameters:
-    date_series (pd.Series): Series containing date strings in mixed formats.
-    
-    Returns:
-    pd.Series: Series containing the converted datetime objects.
-    """
-    
-    def split_date(date_str):
-        if pd.isna(date_str):
-            return [np.nan, np.nan, np.nan]
-        return re.split(r'\D+', date_str)
-    
-    # Create a DataFrame from the date_series to manipulate the data
-    df = date_series.to_frame(name='date_str')
-    
-    # Split the date string into three parts
-    df[['part1', 'part2', 'part3']] = df['date_str'].apply(split_date).apply(pd.Series)
-    
-    # Convert parts to integers
-    df[['part1', 'part2', 'part3']] = df[['part1', 'part2', 'part3']].astype('Int64')
-    
-    part1_max = df['part1'].max()
-    part2_max = df['part2'].max()
-    if part1_max in range(1, 13):
-        df['month'] = df['part1']
-        if part2_max in range(13, 32):
-            df['day']  = df['part2']
-            df['year'] = df['part3']
-        else:
-            df['year']  = df['part2']
-            df['day']   = df['part3']    
-    elif part1_max in range(13, 32):
-        df['day'] = df['part1']
-        if part2_max in range(1, 13):
-            df['month'] = df['part2']
-            df['year']  = df['part3']
-        else:
-            df['year']  = df['part2']
-            df['month'] = df['part3']  
-    else:
-        df['year'] = df['part1']
-        if part2_max in range(13, 32):
-            df['month'] = df['part2']
-            df['day']  = df['part3']
-        else:
-            df['day']  = df['part2']
-            df['month'] = df['part3']  
 
-    df.drop(columns=['part1', 'part2', 'part3'], inplace=True)
+def load_iotas_gammas(root):
+    # Load iotas and gammas                    
+    jcolumns = ['jid']     
+    wcolumns = ['wid']
+    jrename = {}
+    wrename = {}
+    for l in range(0,1):
+        jcolumns = jcolumns + ['job_blocks_level_'+str(l)]
+        jrename['job_blocks_level_'+str(l)] = 'gamma'
+        wcolumns = wcolumns + ['worker_blocks_level_'+str(l)]
+        wrename['worker_blocks_level_'+str(l)] = 'iota'
+    
+    gammas = pd.read_csv(root + '/Data/derived/sbm_output/model_3states_2013to2016_mcmc_jblocks.csv', usecols=jcolumns).rename(columns=jrename)
+    iotas  = pd.read_csv(root + '/Data/derived/sbm_output/model_3states_2013to2016_mcmc_wblocks.csv', usecols=wcolumns).rename(columns=wrename)
+    iotas['wid'] = iotas['wid'].astype(str)
+    return iotas, gammas
 
-    # Combine the parts into a proper date string
-    df['date_combined'] = df['day'].astype(str).str.zfill(2) + '-' + df['month'].astype(str).str.zfill(2) + '-' + df['year'].astype(str)
-    
-    # Convert the combined string to a datetime object
-    df['date_converted'] = pd.to_datetime(df['date_combined'], format='%d-%m-%Y', errors='coerce')
-    
-    return df['date_converted']
 
-# Old code for exloring the data
-if 1==0:
-    '''
-    keepcols = ['id_estab','cnpj_raiz','data_abertura', 'data_baixa', 'data_encerramento', 'ind_atividade', 'ind_rais_neg', 'qt_vinc_ativos', 'qt_vinc_clt', 'qt_vinc_estat', 'regiao_metro',  'subativ_ibge', 'subs_ibge', 'tamestab', 'tipo_estab', 'uf']
+def process_iotas_gammas(root, iotas, gammas):
+
+    # Load data that was used for the SBM so I can compute P_gi
+    # Available columns: ['cbo2002', 'clas_cnae20', 'codemun', 'data_adm', 'data_deslig', 'data_nasc', 'horas_contr', 'id_estab', 'idade', 'ind2', 'jid', 'occ4', 'rem_dez_r', 'sector_IBGE', 'tipo_salario', 'tipo_vinculo', 'wid', 'year', 'yob']
+    appended = pd.read_pickle(root + 'Data/derived/appended_sbm_3states_2013to2016_new.p')
+    appended = appended[['wid','jid','year','ind2','codemun','cbo2002','clas_cnae20']]
     
-    # Pull establishment data to flag mass layoffs
-    nrows = None
-    df2013 = pd.read_csv(rais + '/csv/estab2013.csv', delimiter=';', nrows=nrows, usecols=keepcols, encoding='latin1')
-    df2014 = pd.read_csv(rais + '/csv/estab2014.csv', delimiter=';', nrows=nrows, usecols=keepcols, encoding='latin1')
-    df2015 = pd.read_csv(rais + '/csv/estab2015.csv', delimiter=';', nrows=nrows, usecols=keepcols, encoding='latin1')
-    df2016 = pd.read_csv(rais + '/csv/estab2016.csv', delimiter=';', nrows=nrows, usecols=keepcols, encoding='latin1')
-    
-    df2013['year'] = 2013
-    df2014['year'] = 2014
-    df2015['year'] = 2015
-    df2016['year'] = 2016
+    # Merge on gammas
+    appended = appended.merge(gammas, how='inner', validate='m:1', on='jid')
+    # Merge on iotas
+    appended = appended.merge(iotas,  how='inner', validate='m:1', on='wid')
     
     
-    # 58% of establishments with 0 active employees on Dec 31
-    # tamestab seems to be categorical indicator for establishment size. 
-    (df2013.qt_vinc_ativos==0).mean()
-    (df2013.tamestab==0).mean()
-    (df2013.tamestab==df2013.qt_vinc_ativos).mean()
-    df2013[['tamestab','qt_vinc_ativos']].corr()
-    df2013[['tamestab','qt_vinc_ativos']]
-    df2013.loc[df2013.tamestab==1].qt_vinc_ativos.value_counts().sort_index() #1-4
-    df2013.loc[df2013.tamestab==2].qt_vinc_ativos.value_counts().sort_index() #5-9
-    df2013.loc[df2013.tamestab==3].qt_vinc_ativos.value_counts().sort_index() #10-19
-    df2013.loc[df2013.tamestab==4].qt_vinc_ativos.value_counts().sort_index() #20-49
-    df2013.loc[df2013.tamestab==8].qt_vinc_ativos.value_counts().sort_index() #500-999
-    df2013.loc[df2013.tamestab==9].qt_vinc_ativos.value_counts().sort_index() #>=1000
+    # Calculate probabilites
+    N_gamma = appended['gamma'].value_counts().reset_index().rename(columns={'count': 'N_gamma'})
+    N_iota  = appended['iota'].value_counts().reset_index().rename(columns={'count': 'N_iota'})
+    N_iota_gamma = appended.groupby(['iota', 'gamma']).size()
     
-    estab_df = pd.concat([df2013, df2014, df2015, df2016], ignore_index=True)
+    # Create a DataFrame for N_iota_gamma
+    N_iota_gamma_df = N_iota_gamma.reset_index(name='N_iota_gamma')
+    # Merge N_iota and N_iota_gamma to calculate P[gamma | iota]
+    N_iota_gamma_df = N_iota_gamma_df.merge(N_iota, on='iota')
+    N_iota_gamma_df['P_gamma_given_iota'] = N_iota_gamma_df['N_iota_gamma'] / N_iota_gamma_df['N_iota']
+    # Merge N_gamma to calculate E[N_gamma | iota]
+    N_iota_gamma_df = N_iota_gamma_df.merge(N_gamma, on='gamma')
+    N_iota_gamma_df['E_N_gamma_given_iota'] = N_iota_gamma_df['N_gamma'] * N_iota_gamma_df['P_gamma_given_iota']
     
-    #####################
-    # Diagnostics
+    # Sum up E[N_gamma | iota] for each worker type
+    E_N_gamma_given_iota = N_iota_gamma_df.groupby('iota')['E_N_gamma_given_iota'].sum()
+   
+    E_N_gamma_given_iota = E_N_gamma_given_iota.reset_index()
+    E_N_gamma_given_iota['iota'] = E_N_gamma_given_iota['iota'].astype(int)
+    return E_N_gamma_given_iota, appended
+  
+def compute_skill_variance(appended, root):
+    # Merge on Aguinaldo's O*NET factors
+    appended['cbo2002'] = appended['cbo2002'].astype(int)
+    appended = merge_aguinaldo_onet(appended, root + 'Data/raw/' )    
     
-    # 10% of firms have 0 employees on December 31
-    # (a.emp_31dez==0).mean()
-    #Out[13]: 0.10501055345281181
-    
-    # There are some id_estabs that are duplicated and have different counts but the counts sum to the value of emp_31dez in the corresponding firm data. THerefore I am collapsing as below. For example:
-    estab_df.loc[estab_df.id_estab==16058000123]
-    
-    # Group by id_estab and year, summing specific columns and taking the first value for others
-    estab_df = estab_df.groupby(
-        ['id_estab', 'year'],
-        as_index=False).agg({
-        'tipo_estab': 'first',
-        'cnpj_raiz': 'first',
-        'uf': 'first',
-        'regiao_metro': 'first',
-        'subs_ibge': 'first',
-        'subativ_ibge': 'first',
-        'data_abertura': 'first',
-        'data_baixa': 'first',
-        'data_encerramento': 'first',
-        'ind_atividade': 'first',
-        'ind_rais_neg': 'first',
-        'qt_vinc_ativos': 'sum',
-        'qt_vinc_clt': 'sum',
-        'qt_vinc_estat': 'sum'
-    })
-    
-    
-    #########################
-    # Check if counts from firm and worker data align
-    
-    
-    merged = pd.merge(estab_df[['id_estab','year','qt_vinc_ativos']], estab_df_from_worker_data[['id_estab','year','emp_31dez']], on=['id_estab','year'], how = 'outer', validate='1:1', indicator=True)
-    pd.crosstab(merged['_merge'], merged['year'])
-    
-    # Almost all non-merged observations are those with 0 employment
-    merged.groupby('_merge').qt_vinc_ativos.describe()
-    (merged.loc[merged._merge=='left_only'].qt_vinc_ativos>0).sum()
-    
-    # There is still some zero employment in the worker DF. I'm guessing these are for employment spells in small firms that ended before the end of the year
-    (estab_df_from_worker_data.emp_31dez==0).mean()
-    
-    # The employment counts from the worker and firm data agree in 99.8% of observations with a successful match
-    (merged.loc[merged._merge=='both'].qt_vinc_ativos==merged.loc[merged._merge=='both'].emp_31dez).mean()
-    
-    # Most of the other 0.2% have emp_31dez = 0
-    merged.loc[(merged._merge=='both') & (merged.qt_vinc_ativos!=merged.emp_31dez)].emp_31dez.value_counts()
-                  
-     
-    # XX Next step merge to dfYYYY to understand why so many rows have 0 employees
-    
-    
-    df2013 = df2013.merge(id_estab_counts[0], on='id_estab', how='outer',validate='m:1', indicator=True)
-    (df2013.loc[df2013._merge=='left_only'].qt_vinc_ativos==0).mean()   # Every firm that employs someone on Dec 31 in the employee data also shows up in the firm data
-    (df2013.loc[df2013._merge=='both'].qt_vinc_ativos==0).mean()        # 10% of firms that show up in employee data don't have an employee on Dec 31
-    
-                    
-    
-    #########################
-    # Make a balanced panel
-    
-    # Identify the range of years and unique cnpj_raiz
-    years = range(firm_df['year'].min(), firm_df['year'].max() + 1)
-    cnpj_raiz_unique = firm_df['cnpj_raiz'].unique()
-    # Create a multi-index dataframe using all combinations of cnpj_raiz and years
-    index = pd.MultiIndex.from_product([cnpj_raiz_unique, years], names=['cnpj_raiz', 'year'])
-    balanced_panel = pd.DataFrame(index=index).reset_index()
-    # Merge the original dataframe with the multi-index dataframe
-    firm_df = pd.merge(balanced_panel, firm_df, on=['cnpj_raiz', 'year'], how='left')
-    # Fill missing emp_31dez values with 0
-    firm_df['emp_31dez'] = firm_df['emp_31dez'].fillna(0)
-    
-    
-    #########################
-    # Different definitions of mass layoffs
-    
-    # Assuming firm_df is your dataframe
-    firm_df = firm_df.sort_values(by=['cnpj_raiz', 'year'])
-    # Compute year-over-year changes
-    firm_df['abs_change'] = firm_df.groupby('cnpj_raiz')['emp_31dez'].diff()
-    firm_df['pct_change'] = firm_df.groupby('cnpj_raiz')['emp_31dez'].pct_change()
-    
-    # Replace NaNs resulting from the diff and pct_change methods with appropriate values
-    firm_df['abs_change'] = firm_df['abs_change'].fillna(0)
-    firm_df['pct_change'] = firm_df['pct_change'].fillna(0)
-    
-    # Display the resulting dataframe
-    firm_df
-    
-    
-    
-    '''
+    skills_columns = [
+        'Cognitive skills', 'Operational skills', 'Social and emotional skills', 'Management skills',
+        'Physical skills', 'Transportation skills', 'Social sciences skills', 'Accuracy skills',
+        'Design & engineering skills', 'Artistic skills', 'Life sciences skills',
+        'Information technology skills', 'Sales skills', 'Self-reliance skills',
+        'Information processing skills', 'Teamwork skills'
+    ]
+    # 1. Compute the variance of each of the 16 types of skills within each value of iota
+    variances = appended.groupby('iota')[skills_columns].var()
+    # 2. Compute the average of each of the 16 types of skills within each value of iota
+    averages = appended.groupby('iota')[skills_columns].mean()
+    # 3. Normalize these averages by summing all 16 averages and dividing each individual average by the overall sum
+    normalized_averages = averages.div(averages.sum(axis=1), axis=0)
+    # 4. Compute the weighted averages of the variances within each iota using the normalized averages as weights
+    weighted_variances = (variances * normalized_averages).sum(axis=1)
+
+    return weighted_variances
+
 
 date_formats ={    
     2004:"%m/%d/%Y",
@@ -275,149 +159,28 @@ date_formats ={
 region_codes = pd.read_csv(root + '/Data/raw/munic_microregion_rm.csv', encoding='latin1')
 muni_micro_cw = pd.DataFrame({'code_micro':region_codes.code_micro,'codemun':region_codes.code_munic//10})
 
+# Load iotas and gammas and compute the expected number of jobs for each iota
 
-if load_iotas_gammas == True:
-    # Load iotas and gammas                    
-    jcolumns = ['jid']     
-    wcolumns = ['wid']
-    jrename = {}
-    wrename = {}
-    for l in range(0,1):
-        jcolumns = jcolumns + ['job_blocks_level_'+str(l)]
-        jrename['job_blocks_level_'+str(l)] = 'gamma'
-        wcolumns = wcolumns + ['worker_blocks_level_'+str(l)]
-        wrename['worker_blocks_level_'+str(l)] = 'iota'
-    
-    gammas = pd.read_csv(root + '/Data/derived/sbm_output/model_3states_2013to2016_mcmc_jblocks.csv', usecols=jcolumns).rename(columns=jrename)
-    iotas  = pd.read_csv(root + '/Data/derived/sbm_output/model_3states_2013to2016_mcmc_wblocks.csv', usecols=wcolumns).rename(columns=wrename)
-    iotas['wid'] = iotas['wid'].astype(str)
-    
-    # Load data that was used for the SBM so I can compute P_gi
-    # Available columns: ['cbo2002', 'clas_cnae20', 'codemun', 'data_adm', 'data_deslig', 'data_nasc', 'horas_contr', 'id_estab', 'idade', 'ind2', 'jid', 'occ4', 'rem_dez_r', 'sector_IBGE', 'tipo_salario', 'tipo_vinculo', 'wid', 'year', 'yob']
-    appended = pd.read_pickle(root + 'Data/derived/appended_sbm_3states_2013to2016_new.p')
-    appended = appended[['wid','jid','year','ind2','codemun','cbo2002','clas_cnae20']]
-    
-    # Merge on gammas
-    appended = appended.merge(gammas, how='inner', validate='m:1', on='jid',indicator='_merge_gammas')
-    print('Merge stats for gammas')
-    print(appended._merge_gammas.value_counts())
-    appended.drop(columns=['_merge_gammas'], inplace=True)
-  
-    # Merge on iotas
-    appended = appended.merge(iotas, how='inner', validate='m:1', on='wid',indicator='_merge_iotas')
-    print('Merge stats for iotas')
-    print(appended._merge_iotas.value_counts())
-    appended.drop(columns=['_merge_iotas'], inplace=True)
-    
-    N_gamma = appended['gamma'].value_counts().reset_index().rename(columns={'count': 'N_gamma'})
-    N_iota  = appended['iota'].value_counts().reset_index().rename(columns={'count': 'N_iota'})
-    N_iota_gamma = appended.groupby(['iota', 'gamma']).size()
-    
-    # Create a DataFrame for N_iota_gamma
-    N_iota_gamma_df = N_iota_gamma.reset_index(name='N_iota_gamma')
-    # Merge N_iota and N_iota_gamma to calculate P[gamma | iota]
-    N_iota_gamma_df = N_iota_gamma_df.merge(N_iota, on='iota')
-    N_iota_gamma_df['P_gamma_given_iota'] = N_iota_gamma_df['N_iota_gamma'] / N_iota_gamma_df['N_iota']
-    # Merge N_gamma to calculate E[N_gamma | iota]
-    N_iota_gamma_df = N_iota_gamma_df.merge(N_gamma, on='gamma')
-    N_iota_gamma_df['E_N_gamma_given_iota'] = N_iota_gamma_df['N_gamma'] * N_iota_gamma_df['P_gamma_given_iota']
-    
-    # Sum up E[N_gamma | iota] for each worker type
-    E_N_gamma_given_iota = N_iota_gamma_df.groupby('iota')['E_N_gamma_given_iota'].sum()
-   
-    print(E_N_gamma_given_iota)
-    E_N_gamma_given_iota = E_N_gamma_given_iota.reset_index()
-    E_N_gamma_given_iota['iota'] = E_N_gamma_given_iota['iota'].astype(int)
-    E_N_gamma_given_iota.to_pickle(root + "Data/derived/mass_layoffs_E_N_gamma_given_iota.p")
-   
-    
-    ############################################################
-    # Compute skill and spatial variance of each iota
-    
-    # Merge on Aguinaldo's O*NET factors
-    appended['cbo2002'] = appended['cbo2002'].astype(int)
-    appended = merge_aguinaldo_onet(appended, root + 'Data/raw/' )    
-    
-    skills_columns = [
-        'Cognitive skills', 'Operational skills', 'Social and emotional skills', 'Management skills',
-        'Physical skills', 'Transportation skills', 'Social sciences skills', 'Accuracy skills',
-        'Design & engineering skills', 'Artistic skills', 'Life sciences skills',
-        'Information technology skills', 'Sales skills', 'Self-reliance skills',
-        'Information processing skills', 'Teamwork skills'
-    ]
-    # 1. Compute the variance of each of the 16 types of skills within each value of iota
-    variances = appended.groupby('iota')[skills_columns].var()
-    # 2. Compute the average of each of the 16 types of skills within each value of iota
-    averages = appended.groupby('iota')[skills_columns].mean()
-    # 3. Normalize these averages by summing all 16 averages and dividing each individual average by the overall sum
-    normalized_averages = averages.div(averages.sum(axis=1), axis=0)
-    # 4. Compute the weighted averages of the variances within each iota using the normalized averages as weights
-    weighted_variances = (variances * normalized_averages).sum(axis=1)
+iotas, gammas = load_iotas_gammas(root)
+
+E_N_gamma_given_iota, appended = process_iotas_gammas(root, iotas, gammas)
+E_N_gamma_given_iota.to_pickle(root + "Data/derived/mass_layoffs_E_N_gamma_given_iota.p")   
+
+ 
+# Compute skill and spatial variance of each iota
+weighted_variances = compute_skill_variance(appended, root)
+weighted_variances.to_pickle(root + "Data/derived/mass_layoffs_weighted_variances.p")  
+
+# XX Need to compute spatial variance
 
 
-    # Plotting the histogram of the weighted variances
-    plt.figure(figsize=(10, 6))
-    plt.hist(weighted_variances, bins=30, edgecolor='k', alpha=0.7)
-    plt.title('Histogram of Weighted Variances')
-    plt.xlabel('Weighted Variances')
-    plt.ylabel('Frequency')
-    plt.grid(True)
-    plt.show()
-
-    # Note that occ_counts starts iota indexing at 1 so we will need to adjust this
-    occ_counts = pd.read_csv(root + 'Data/derived/occ_counts/panel_3states_2013to2016_new_occ_counts_by_i_level_0.csv')
-    min_iota = appended.iota.min()
-    occ_counts = occ_counts.loc[occ_counts.iota!=-1]   # Drop missing iota codes
-    occ_counts['iota'] = occ_counts.iota + (min_iota - occ_counts.iota.min())
-
-    # Step 1: Identify the iota values with the 5 lowest and 5 highest weighted variances
-    lowest_iotas = weighted_variances.nsmallest(5).index
-    highest_iotas = weighted_variances.nlargest(5).index
-    selected_iotas = lowest_iotas.union(highest_iotas)
     
-    # Step 2: Filter the occ_counts DataFrame to include only these iota values
-    filtered_occ_counts = occ_counts[occ_counts['iota'].isin(selected_iotas)]
+##########################################################
+# Pulling firm data to replicate Moretti and Yi
+#
+# - Identify establishment closures using data_encerramento in the establishment data. Also extract the year of the closure. Then create variables for the year before and the year after closure. We will use these to merge to worker employment dates to allow for some messiness of the timing of firm closure and endings of job spells, especially those that occurred at the beginning or end of a year.
     
-    # Step 3: Get the top 10 most common occupations for each iota
-    top_occupations = filtered_occ_counts.groupby('iota').apply(
-        lambda x: x.nlargest(10, 'counts')[['description', 'counts']]
-    ).reset_index(level=0, drop=True)
-    
-    # Step 4: Print the results
-    for iota in selected_iotas:
-        print(f"\nIota: {iota}")
-        print(top_occupations[top_occupations.index == iota][['description', 'counts']])
-    
-    # Step 1: Identify the iota values with the 5 lowest and 5 highest weighted variances
-    lowest_iotas = weighted_variances.nsmallest(5).index
-    highest_iotas = weighted_variances.nlargest(5).index
-    selected_iotas = lowest_iotas.union(highest_iotas)
-    
-    # Step 2: Filter the occ_counts DataFrame to include only these iota values
-    filtered_occ_counts = occ_counts[occ_counts['iota'].isin(selected_iotas)]
-    
-    # Step 3: Print the top 10 most common occupations for each iota
-    for iota in highest_iotas:
-        top_occupations = filtered_occ_counts[filtered_occ_counts['iota'] == iota].nlargest(10, 'counts')
-        print(f"\nIota: {iota}")
-        print(top_occupations[['description', 'counts']])
-        
-    
-    # Step 3: Print the top 10 most common occupations for each iota
-    for iota in lowest_iotas:
-        top_occupations = filtered_occ_counts[filtered_occ_counts['iota'] == iota].nlargest(10, 'counts')
-        print(f"\nIota: {iota}")
-        print(top_occupations[['description', 'counts']])
-          
-
-if pull_raw==True:
-    
-    ##########################################################
-    # Pulling firm data to replicate Moretti and Yi
-    #
-    # - Identify establishment closures using data_encerramento in the establishment data. Also extract the year of the closure. Then create variables for the year before and the year after closure. We will use these to merge to worker employment dates to allow for some messiness of the timing of firm closure and endings of job spells, especially those that occurred at the beginning or end of a year.
-    
-    
+def process_estab_data(rais):
     keepcols = ['id_estab','cnpj_raiz', 'clas_cnae20', 'data_abertura', 'data_baixa', 'data_encerramento', 'ind_atividade', 'ind_rais_neg', 'qt_vinc_ativos', 'qt_vinc_clt', 'qt_vinc_estat', 'regiao_metro', 'codemun', 'subativ_ibge', 'subs_ibge', 'tamestab', 'tipo_estab', 'uf']
     
     dfs = []
@@ -436,7 +199,6 @@ if pull_raw==True:
     # Create a data set of establishment closures
     closure_df = estab_df.loc[estab_df.data_encerramento.notna(),['id_estab','cnpj_raiz','data_encerramento','qt_vinc_ativos']]
     
-    
     # Drop establishments that close more than once. XX Can eventually do this over a longer time window b/c this data is small
     # Identify all rows that are duplicates in the 'id_estab' column
     duplicated_rows = closure_df[closure_df.duplicated(subset='id_estab', keep=False)]
@@ -444,38 +206,41 @@ if pull_raw==True:
     
     # Convert estab end date to python date format
     closure_df['data_encerramento'] = pd.to_datetime(closure_df['data_encerramento'], dayfirst=True)
-    closure_df['closure_year'] = closure_df['data_encerramento'].dt.year
+    closure_df['closure_year']      = closure_df['data_encerramento'].dt.year
     closure_df['closure_year_lag']  = closure_df['closure_year'] - 1
     closure_df['closure_year_lead'] = closure_df['closure_year'] + 1
     
     
-    closure_df.to_pickle(root + "Data/derived/mass_layoffs_closure_df.p")
     
     # Create a data set of market sizes
     mkt_size_df = estab_df[['clas_cnae20','code_micro','qt_vinc_ativos']]
     mkt_size_df['ind2'] = mkt_size_df['clas_cnae20'] // 1000
     mkt_size_df = mkt_size_df.groupby(['ind2','code_micro'])['qt_vinc_ativos'].sum()
     
+    return closure_df, mkt_size_df
+
+closure_df, mkt_size_df = process_estab_data(rais)
+closure_df.to_pickle(root + "Data/derived/mass_layoffs_closure_df.p")
+ 
     
-    
-    
-    ##########################################################
-    # Pulling worker data to replicate Moretti and Yi
-    #
-    #   - Pull all workers in the relevant states for the years 2013-2019. Keep wid, id_estab, cnpj_raiz, wid, jid, data_deslig, causa_deslig, clas_cnae20, cbo2002, codemun, idade, genero, grau_instr, salario, rem_med_sm, rem_med_r, vl_rem_01, ..., vl_rem_12. Then add a variable for year. 
-    #   - Merge to the firm layoff data above on id_estab and year (merging to year_t-1, year_t, year_t+1) and keep only workers possibly mass laid-off
-    #   - Then among this subset of workers create a monthly panel that uses data_adm and data_deslig to identify employment spells, also keep monthly earnings. Then we narrow down laid off workers to those who were employed within 3 months of the data_encerramento. 
-    #
-    # Variables we need:
-    #   - Measures of market size (CZ-industry and gamma and probability-weighted averages of gamma) 
-    #   - From the firm data we need to identify a list of firms that had a closure or mass layoff along with the date of the closure. Then we can merge this to worker data. 
-    #   - Worker panel that has employment and earnings and firm and market in each period. But we only need this for workers hit by mass layoff. So we can first identify workers hit by a mass layoff and then build the balanced panel on that subset. (Moretti and Yi only study workers who have been displaced.)
-    ##########################################################
-    
-    
-    ############################################################################
-    # Identify workers employed at closed estab in year it closed, or year before or after
-    
+##########################################################
+# Pulling worker data to replicate Moretti and Yi
+#
+#   - Pull all workers in the relevant states for the years 2013-2019. Keep wid, id_estab, cnpj_raiz, wid, jid, data_deslig, causa_deslig, clas_cnae20, cbo2002, codemun, idade, genero, grau_instr, salario, rem_med_sm, rem_med_r, vl_rem_01, ..., vl_rem_12. Then add a variable for year. 
+#   - Merge to the firm layoff data above on id_estab and year (merging to year_t-1, year_t, year_t+1) and keep only workers possibly mass laid-off
+#   - Then among this subset of workers create a monthly panel that uses data_adm and data_deslig to identify employment spells, also keep monthly earnings. Then we narrow down laid off workers to those who were employed within 3 months of the data_encerramento. 
+#
+# Variables we need:
+#   - Measures of market size (CZ-industry and gamma and probability-weighted averages of gamma) 
+#   - From the firm data we need to identify a list of firms that had a closure or mass layoff along with the date of the closure. Then we can merge this to worker data. 
+#   - Worker panel that has employment and earnings and firm and market in each period. But we only need this for workers hit by mass layoff. So we can first identify workers hit by a mass layoff and then build the balanced panel on that subset. (Moretti and Yi only study workers who have been displaced.)
+##########################################################
+  
+############################################################################
+# Identify workers employed at closed estab in year it closed, or year before or after  
+
+def identify_laid_off_workers(rais, date_formats, closure_df):
+
     dfs = []
     for year in range(2013,2016+1):
         print(year)
@@ -484,7 +249,6 @@ if pull_raw==True:
         else:
             sep = ','
         df = pd.read_csv(rais + f'/csv/brasil{year}.csv', delimiter=sep, usecols=['pis', 'id_estab','data_adm','data_deslig'], encoding='latin1', nrows=nrows)
-        #df = pd.read_stata(rais + f'/Stata/brasil{year}.dta', columns=['pis', 'id_estab','data_adm','data_deslig'])
         df['data_adm']      = pd.to_datetime(df['data_adm'],    format=date_formats[year], errors='raise')
         df['data_deslig']   = pd.to_datetime(df['data_deslig'], format=date_formats[year], errors='raise')
         df.rename(columns={'pis':'wid'}, inplace=True)
@@ -494,37 +258,27 @@ if pull_raw==True:
     worker_estab_panel = pd.concat(dfs)
     
     worker_estab_panel = worker_estab_panel.merge(closure_df[['id_estab','closure_year']],      left_on=['id_estab','year'], right_on=['id_estab','closure_year'],      how='left', validate='m:1', indicator='_merge_year')
-    #worker_estab_panel = worker_estab_panel.merge(closure_df[['id_estab','closure_year_lag']],  left_on=['id_estab','year'], right_on=['id_estab','closure_year_lag'],  how='left', validate='m:1', indicator='_merge_year_lag')
-    #worker_estab_panel = worker_estab_panel.merge(closure_df[['id_estab','closure_year_lead']], left_on=['id_estab','year'], right_on=['id_estab','closure_year_lead'], how='left', validate='m:1', indicator='_merge_year_lead')
     
-    
-    
-    # Create a flag for rows where any of the _merge variables are 'both'
-    #worker_estab_panel['flag'] = (
-    #    (worker_estab_panel['_merge_year'] == 'both') | (worker_estab_panel['_merge_year_lag'] == 'both') | (worker_estab_panel['_merge_year_lead'] == 'both'))
-    
-    worker_estab_panel['flag'] = (worker_estab_panel['_merge_year'] == 'both')
-    
-    
-    # Keep only the rows where the flag is True
+    # Create a flag for rows where any of the _merge variables are 'both'. Keep only the rows where the flag is True.
+    worker_estab_panel['flag'] = (worker_estab_panel['_merge_year'] == 'both') 
     worker_estab_panel = worker_estab_panel[worker_estab_panel['flag']]
     
     # Drop the _merge variables and any columns from the right DataFrame
-    columns_to_drop = ['_merge_year', 'closure_year', 'flag'] # '_merge_year_lag', '_merge_year_lead', 'closure_year_lag', 'closure_year_lead'
+    columns_to_drop = ['_merge_year', 'closure_year', 'flag']
     worker_estab_panel = worker_estab_panel.drop(columns=columns_to_drop)
-    
     possible_laid_off_worker_list = worker_estab_panel.wid.drop_duplicates()
+    return possible_laid_off_worker_list
     
+possible_laid_off_worker_list = identify_laid_off_workers(rais, date_formats, closure_df)
+possible_laid_off_worker_list.to_pickle(root + "Data/derived/mass_layoffs_possible_laid_off_worker_listf.p")
+
+
+
+############################################################################
+# Load data for workers at risk of layoff, make a balanced monthly panel based on data_adm, data_deslig, and monthly earnings. 
+# Extend to 2019 sowe have at least 3 years of a post-period for all layoffs occurring in 2013-2016
     
-    
-    
-    ############################################################################
-    # Load data for workers at risk of layoff, make a balanced monthly panel based on data_adm, data_deslig, and monthly earnings. 
-    
-    # Extend to 2019 sowe have at least 3 years of a post-period for all layoffs occurring in 2013-2016
-    
-    # XX Still need to restrict to our 3 states, drop public sector (although that's probably irrelevant when keeping only closed estabs), make wid and jid, age restrictions, etc. 
-    
+def process_worker_data(rais, date_formats, possible_laid_off_worker_list):    
     # List of columns to keep
     columns_to_keep = [
         'pis', 'id_estab', 'cnpj_raiz', 'data_adm', 'data_deslig', 'causa_deslig',
@@ -544,14 +298,24 @@ if pull_raw==True:
         df = pd.read_csv(rais + f'/csv/brasil{year}.csv', delimiter=sep, usecols=columns_to_keep, encoding='latin1', nrows=nrows)
         df = df[~df['tipo_vinculo'].isin([30,31,35])]
         df = df[df['codemun'].fillna(99).astype(str).str[:2].astype('int').isin([31, 33, 35])]
+        
+        # Need to make wid and jid
+        df.rename(columns={'pis':'wid'}, inplace=True)   
+        df['occ4'] = df['cbo2002'].astype(str).str[0:4]
+        df['jid']  = df['id_estab'].astype(str) + '_' + df['occ4']
+        
+        # Merge on iotas and gammas
+        df = df.merge(gammas, how='left', validate='m:1', on='jid')
+        # Merge on iotas
+        df = df.merge(iotas,  how='left', validate='m:1', on='wid')
+        
         # Create a separate df for defining market size
         df['ind2']          = df['clas_cnae20'] // 1000
         df['year'] = year
         df = df.merge(muni_micro_cw[['codemun','code_micro']], on='codemun', how='left', validate='m:1')
-        df_mkt_size = df[['year','ind2','code_micro']]
+        # Store a few variables that we can use for defining markets before subsetting to laid-off workers
+        df_mkt_size = df[['year','wid','jid','iota','gamma','ind2','code_micro','codemun']]
         df = df[df['pis'].isin(possible_laid_off_worker_list)]
-        # Need to make wid and jid
-        df.rename(columns={'pis':'wid'}, inplace=True)
         # Date formats are not consistent across data sets so convert to dates here. 
         df['data_adm']      = pd.to_datetime(df['data_adm'],    format=date_formats[year], errors='raise')
         df['data_deslig']   = pd.to_datetime(df['data_deslig'], format=date_formats[year], errors='raise')
@@ -567,6 +331,8 @@ if pull_raw==True:
         dfs.append(df)
         dfs_mkt_size.append(df_mkt_size)
     
+    
+    # XX Edit this to add returns in the function and move pickling outside
     worker_panel_mkt_size = pd.concat(dfs_mkt_size)
     mkt_size_df_worker = worker_panel_mkt_size.groupby(['ind2','code_micro','year']).size()
     mkt_size_df_worker.to_pickle(root + "Data/derived/mass_layoffs_mkt_size_df_worker.p")
@@ -581,8 +347,6 @@ worker_panel = pd.read_pickle(root + "Data/derived/mass_layoffs_worker_panel.p")
 E_N_gamma_given_iota = pd.read_pickle(root + "Data/derived/mass_layoffs_E_N_gamma_given_iota.p")
 
 
-worker_panel['occ4'] = worker_panel['cbo2002'].astype(str).str[0:4]
-worker_panel['jid']  = worker_panel['id_estab'].astype(str) + '_' + worker_panel['occ4']
 
 
 
@@ -590,7 +354,7 @@ worker_panel['jid']  = worker_panel['id_estab'].astype(str) + '_' + worker_panel
 value_vars = [f'vl_rem_{i:02d}' for i in range(1, 13)]
 worker_panel_long = pd.melt(worker_panel, 
                             id_vars=['wid', 'id_estab', 'id_firm', 'data_adm', 'data_deslig', 'genero',
-                                     'causa_deslig', 'clas_cnae20', 'cbo2002', 'codemun', 'code_micro', 'yob',
+                                     'causa_deslig', 'clas_cnae20', 'ind2', 'cbo2002', 'codemun', 'code_micro', 'yob',
                                      'grau_instr', 'salario', 'rem_med_sm', 'rem_med_r', 'year', 'raca_cor', 'nacionalidad'],
                             value_vars=value_vars, 
                             var_name='month', 
@@ -651,7 +415,9 @@ worker_panel_long['event_time'] = (worker_panel_long['calendar_date'].dt.to_peri
 
 # Identify characteristics of the firm that closes
 pre_layoff_obs = worker_panel_long.loc[(worker_panel_long['mass_layoff_month']==worker_panel_long['calendar_date']), ['wid', 'id_estab', 'id_firm', 'clas_cnae20', 'cbo2002', 'codemun', 'code_micro', 'salario', 'calendar_date']]
-pre_layoff_obs = pre_layoff_obs.rename(columns={col: col + '_pre' for col in df.columns if col != 'wid'})
+pre_layoff_obs = pre_layoff_obs.rename(columns={col: col + '_pre' for col in pre_layoff_obs.columns if col != 'wid'})
+
+
 
 
 
@@ -832,7 +598,7 @@ plt.xlabel('Event Time (Months)')
 plt.ylabel('Mean Total Monthly Earnings')
 plt.title('Mean Total Monthly Earnings by Event Time')
 plt.grid(True)
-plt.savefig(root + 'Results/primary_job_earnings_after_layoff.pdf', format='pdf')
+plt.savefig(root + 'Results/earnings_after_layoff.pdf', format='pdf')
 plt.show()
 
 
@@ -843,7 +609,7 @@ plt.xlabel('Event Time (Months)')
 plt.ylabel('Mean Primary Job Monthly Earnings')
 plt.title('Mean Primary Job Monthly Earnings by Event Time')
 plt.grid(True)
-plt.savefig(root + 'Results/earnings_after_layoff.pdf', format='pdf')
+plt.savefig(root + 'Results/primary_job_earnings_after_layoff.pdf', format='pdf')
 plt.show()
 
 
@@ -856,8 +622,6 @@ plt.ylabel('Mean Calendar Date')
 plt.title('Mean Calendar Date by Event Time')
 plt.grid(True)
 plt.show()
-
-
 
 
 
@@ -906,8 +670,6 @@ plt.show()
 # Vector of education-specific indicators for the industry of employment at t=-1. 2-digit.
 # Vector of education-time dummies defined by the quarter-year of closure. 
 # SEs clustered at CZ-level
-
-
 
 
 
@@ -1027,95 +789,228 @@ plt.show()
 
 # Merge on P_ig and E_N
 E_N_gamma_given_iota['market_size_tercile'] = pd.qcut(E_N_gamma_given_iota['E_N_gamma_given_iota'], q=3, labels=['low', 'medium', 'high'])
-
-
 worker_panel_balanced = worker_panel_balanced.merge(E_N_gamma_given_iota, on='iota', how='left', validate='m:1')
 
 
-# Create dummy variables for terciles and event_time
-tercile_dummies = pd.get_dummies(worker_panel_balanced['market_size_tercile'], prefix='tercile', drop_first=False)
-event_time_dummies = pd.get_dummies(worker_panel_balanced['event_time'], prefix='event_time').drop(columns=['event_time_0'])
+def event_studies_by_mkt_size(worker_panel_balanced, y_var, continuous_controls, fixed_effects_cols, 
+                              market_size_var, omitted_category, print_regression=False, savefig=None):
+    """
+    Perform event studies by market size.
+    
+    Parameters:
+    - worker_panel_balanced: DataFrame containing the worker panel data
+    - y_var: str, name of the dependent variable column
+    - continuous_controls: list of str, names of continuous control variable columns
+    - fixed_effects_cols: list of str, names of columns to use as fixed effects
+    - market_size_var: str, name of the market size variable column
+    - omitted_category: str, category to be omitted from the market size dummies
+    - E_N_gamma_given_iota: DataFrame, optional. If provided, will be merged with worker_panel_balanced
+    
+    Returns:
+    - results_absorbed: regression results
+    - coefficients_df_low: DataFrame of coefficients for low market size
+    - coefficients_df_high: DataFrame of coefficients for high market size
+    """
+    
+    
+    # Create dummy variables for market size and event_time
+    market_size_dummies = pd.get_dummies(worker_panel_balanced[market_size_var], prefix='market_size', drop_first=False)
+    market_size_dummies = market_size_dummies.drop(columns=[f'market_size_{omitted_category}'])
+    event_time_dummies = pd.get_dummies(worker_panel_balanced['event_time'], prefix='event_time').drop(columns=['event_time_0'])
+    
+    # Get the names of the non-omitted categories
+    non_omitted_categories = [col.replace('market_size_', '') for col in market_size_dummies.columns]
+    
+    # Interact event_time dummies with market size dummies
+    interaction_terms = {category: event_time_dummies.multiply(market_size_dummies[f'market_size_{category}'], axis=0)
+                         for category in non_omitted_categories}
+    
+    # Rename the interaction columns for clarity
+    for category in non_omitted_categories:
+        interaction_terms[category] = interaction_terms[category].add_prefix(f'{category}_')
+    
+    # Combine all independent variables
+    X = pd.concat([*interaction_terms.values(), worker_panel_balanced[continuous_controls]], axis=1)
+    
+    # Add a constant
+    X = sm.add_constant(X)
+    
+    # Define the dependent variable
+    y = worker_panel_balanced[y_var]
+    
+    # Define the fixed effects to absorb
+    fixed_effects = worker_panel_balanced[fixed_effects_cols]
+    
+    # Handle missing values
+    missing_indices = X.isna().any(axis=1)
+    y = y.loc[~missing_indices]
+    X = X.loc[~missing_indices]
+    fixed_effects = fixed_effects.loc[~missing_indices]
+    
+    # Run the model with AbsorbingLS
+    model_absorbed = AbsorbingLS(y, X, absorb=fixed_effects, drop_absorbed=True)
+    results_absorbed = model_absorbed.fit(cov_type='unadjusted')
+    if print_regression==True:
+        print(results_absorbed)
+    
+    # Extract coefficients and standard errors for event_time dummies
+    coefficients = {category: results_absorbed.params.filter(like=f'{category}_event_time')
+                    for category in non_omitted_categories}
+    standard_errors = {category: results_absorbed.std_errors.filter(like=f'{category}_event_time')
+                       for category in non_omitted_categories}
+    
+    # Create DataFrames for plotting
+    coefficients_df = {category: pd.DataFrame({'coef': coefficients[category], 
+                                               'std_err': standard_errors[category]})
+                       for category in non_omitted_categories}
+    
+    for category in non_omitted_categories:
+        coefficients_df[category].index = coefficients_df[category].index.str.replace(f'{category}_event_time_', '').astype(int)
+        coefficients_df[category] = coefficients_df[category].sort_index()
+        #print(f"{category.capitalize()} Market Size Coefficients")
+        #print(coefficients_df[category])
+    
+    # Plot the coefficients
+    plt.figure(figsize=(10, 6))
+    for category in non_omitted_categories:
+        plt.errorbar(coefficients_df[category].index, coefficients_df[category]['coef'], 
+                     yerr=coefficients_df[category]['std_err'], fmt='o', linestyle='-', 
+                     capsize=5, label=f'{category.capitalize()}')
+    
+    plt.axhline(0, color='black', linewidth=1, linestyle='--')
+    plt.xlabel('Months Since Firm Closure')
+    plt.ylabel('Coefficient')
+    plt.title(f'{y_var} by {market_size_var}')
+    plt.grid(True)
+    plt.legend()
+    if savefig is not None:
+        plt.savefig(savefig, format='pdf')
+    else:
+        plt.savefig(f'{root}Results/{y_var}_after_layoff_by_{market_size_var}.pdf', format='pdf')
+    plt.show()
+    
+    return results_absorbed, coefficients_df
 
-# Interact event_time dummies with tercile dummies
-interaction_terms_low = event_time_dummies.multiply(tercile_dummies['tercile_low'], axis=0)
-interaction_terms_high = event_time_dummies.multiply(tercile_dummies['tercile_high'], axis=0)
+# Make figure for employment:
+results, coef_df = event_studies_by_mkt_size(
+    worker_panel_balanced,
+    y_var='employment_indicator',
+    continuous_controls=['age', 'age_sq'],
+    fixed_effects_cols=['educ_micro', 'educ_ind2', 'educ_layoff_date', 'foreign', 'genero', 'raca_cor'],
+    market_size_var='market_size_tercile',
+    omitted_category='medium'
+)
 
-# Rename the interaction columns for clarity
-interaction_terms_low = interaction_terms_low.add_prefix('low_')
-interaction_terms_high = interaction_terms_high.add_prefix('high_')
+# Make figure for total earnings:
+results, coef_df = event_studies_by_mkt_size(
+    worker_panel_balanced,
+    y_var='total_earnings_month_sm',
+    continuous_controls=['age', 'age_sq'],
+    fixed_effects_cols=['educ_micro', 'educ_ind2', 'educ_layoff_date', 'foreign', 'genero', 'raca_cor'],
+    market_size_var='market_size_tercile',
+    omitted_category='medium'
+)
 
-# Combine all independent variables
-X = pd.concat([interaction_terms_low, interaction_terms_high, worker_panel_balanced[['age', 'age_sq']]], axis=1)
+# Make figure for earnings at primary job, restricting to those with earnings between 1 and 100x the minimum wage
+worker_panel_balanced['earnings_primary_job'] = worker_panel_balanced['vl_rem_sm'].fillna(0)
+#mask = worker_panel_balanced['total_earnings_month_sm'].between(1, 100, inclusive='both')
+mask = worker_panel_balanced['total_earnings_month_sm']<20
 
-# Add a constant
-X = sm.add_constant(X)
+results, coef_df = event_studies_by_mkt_size(
+    worker_panel_balanced[mask],
+    y_var='earnings_primary_job',
+    continuous_controls=['age', 'age_sq'],
+    fixed_effects_cols=['educ_micro', 'educ_ind2', 'educ_layoff_date', 'foreign', 'genero', 'raca_cor'],
+    market_size_var='market_size_tercile',
+    omitted_category='medium'
+)
 
-# Define the dependent variable
-y = worker_panel_balanced['employment_indicator']
 
-# Define the fixed effects to absorb
-fixed_effects = worker_panel_balanced[['educ_micro', 'educ_ind2', 'educ_layoff_date', 'foreign', 'genero', 'raca_cor']]
+# Restricted to college-educated workers only
+results, coef_df = event_studies_by_mkt_size(
+    worker_panel_balanced.loc[( worker_panel_balanced['total_earnings_month_sm']<20) & (worker_panel_balanced['educ']=='College')],
+    y_var='earnings_primary_job',
+    continuous_controls=['age', 'age_sq'],
+    fixed_effects_cols=['educ_micro', 'educ_ind2', 'educ_layoff_date', 'foreign', 'genero', 'raca_cor'],
+    market_size_var='market_size_tercile',
+    omitted_category='medium',
+    savefig=root + 'Results/earnings_primary_job_after_layoff_by_market_size_tercile_college.pdf'
+)
 
 
-# There are a few missing values of X
-missing_indices = X.isna().any(axis=1)
-y = y.loc[~missing_indices]
-X = X.loc[~missing_indices]
-fixed_effects = fixed_effects.loc[~missing_indices]
+# Restricted to high school-educated workers only
+results, coef_df = event_studies_by_mkt_size(
+    worker_panel_balanced.loc[( worker_panel_balanced['total_earnings_month_sm']<20) & (worker_panel_balanced['educ']=='HS')],
+    y_var='earnings_primary_job',
+    continuous_controls=['age', 'age_sq'],
+    fixed_effects_cols=['educ_micro', 'educ_ind2', 'educ_layoff_date', 'foreign', 'genero', 'raca_cor'],
+    market_size_var='market_size_tercile',
+    omitted_category='medium',
+    savefig=root + 'Results/earnings_primary_job_after_layoff_by_market_size_tercile_college.pdf'
+)
 
-# Run the model with AbsorbingLS
-model_absorbed = AbsorbingLS(y, X, absorb=fixed_effects, drop_absorbed=True)
-results_absorbed = model_absorbed.fit(cov_type='unadjusted')
-print(results_absorbed)
 
-# Extract coefficients and standard errors for event_time dummies
-coefficients_low = results_absorbed.params.filter(like='low_event_time')
-coefficients_high = results_absorbed.params.filter(like='high_event_time')
-conf_int_low = results_absorbed.conf_int().filter(like='low_event_time', axis=0)
-conf_int_high = results_absorbed.conf_int().filter(like='high_event_time', axis=0)
-standard_errors_low = results_absorbed.std_errors.filter(like='low_event_time')
-standard_errors_high = results_absorbed.std_errors.filter(like='high_event_time')
 
-# Set pandas display options for 4 decimal points
-pd.options.display.float_format = '{:.4f}'.format
 
-# Create DataFrames for plotting
-coefficients_df_low = pd.DataFrame({'coef': coefficients_low, 'std_err': standard_errors_low})
-coefficients_df_high = pd.DataFrame({'coef': coefficients_high, 'std_err': standard_errors_high})
-coefficients_df_low.index = coefficients_df_low.index.str.replace('low_event_time_', '').astype(int)
-coefficients_df_high.index = coefficients_df_high.index.str.replace('high_event_time_', '').astype(int)
-coefficients_df_low = coefficients_df_low.sort_index()
-coefficients_df_high = coefficients_df_high.sort_index()
+###########################################################################
+# Summary stats for the weighted skill variances
 
-# Print the coefficients DataFrames
-print("Low Tercile Coefficients")
-print(coefficients_df_low)
-print("High Tercile Coefficients")
-print(coefficients_df_high)
-
-# Plot the coefficients
+# Plotting the histogram of the weighted variances
 plt.figure(figsize=(10, 6))
-plt.errorbar(coefficients_df_low.index, coefficients_df_low['coef'], yerr=coefficients_df_low['std_err'], fmt='o', linestyle='-', capsize=5, label='Low (Tercile)')
-plt.errorbar(coefficients_df_high.index, coefficients_df_high['coef'], yerr=coefficients_df_high['std_err'], fmt='o', linestyle='-', capsize=5, label='High (Tercile)')
-plt.axhline(0, color='black', linewidth=1, linestyle='--')
-plt.xlabel('Months Since Firm Closure')
-plt.ylabel('Coefficient')
-plt.title('Employment by Tercile')
+plt.hist(weighted_variances, bins=30, edgecolor='k', alpha=0.7)
+plt.title('Histogram of Weighted Variances')
+plt.xlabel('Weighted Variances')
+plt.ylabel('Frequency')
 plt.grid(True)
-plt.legend()
-plt.savefig(root + 'Results/employment_after_layoff_by_market_size_tercile.pdf', format='pdf')
 plt.show()
 
+# Note that occ_counts starts iota indexing at 1 so we will need to adjust this
+occ_counts = pd.read_csv(root + 'Data/derived/occ_counts/panel_3states_2013to2016_new_occ_counts_by_i_level_0.csv')
+min_iota = appended.iota.min()
+occ_counts = occ_counts.loc[occ_counts.iota!=-1]   # Drop missing iota codes
+occ_counts['iota'] = occ_counts.iota + (min_iota - occ_counts.iota.min())
+
+# Step 1: Identify the iota values with the 5 lowest and 5 highest weighted variances
+lowest_iotas = weighted_variances.nsmallest(5).index
+highest_iotas = weighted_variances.nlargest(5).index
+selected_iotas = lowest_iotas.union(highest_iotas)
+
+# Step 2: Filter the occ_counts DataFrame to include only these iota values
+filtered_occ_counts = occ_counts[occ_counts['iota'].isin(selected_iotas)]
+
+# Step 3: Get the top 10 most common occupations for each iota
+top_occupations = filtered_occ_counts.groupby('iota').apply(
+    lambda x: x.nlargest(10, 'counts')[['description', 'counts']]
+).reset_index(level=0, drop=True)
+
+# Step 4: Print the results
+for iota in selected_iotas:
+    print(f"\nIota: {iota}")
+    print(top_occupations[top_occupations.index == iota][['description', 'counts']])
+
+# Step 1: Identify the iota values with the 5 lowest and 5 highest weighted variances
+lowest_iotas = weighted_variances.nsmallest(5).index
+highest_iotas = weighted_variances.nlargest(5).index
+selected_iotas = lowest_iotas.union(highest_iotas)
+
+# Step 2: Filter the occ_counts DataFrame to include only these iota values
+filtered_occ_counts = occ_counts[occ_counts['iota'].isin(selected_iotas)]
+
+# Step 3: Print the top 10 most common occupations for each iota
+for iota in highest_iotas:
+    top_occupations = filtered_occ_counts[filtered_occ_counts['iota'] == iota].nlargest(10, 'counts')
+    print(f"\nIota: {iota}")
+    print(top_occupations[['description', 'counts']])
+    
+
+# Step 3: Print the top 10 most common occupations for each iota
+for iota in lowest_iotas:
+    top_occupations = filtered_occ_counts[filtered_occ_counts['iota'] == iota].nlargest(10, 'counts')
+    print(f"\nIota: {iota}")
+    print(top_occupations[['description', 'counts']])
+      
 
 
-
-
-# XX still need to try clustering and 
-
-
-# Maybe we just need to do reghdfe. From the documentation: "Model supports at most 2 effects. These can be entity-time, entity-other, time-other or 2 other." https://bashtage.github.io/linearmodels/panel/panel/linearmodels.panel.model.PanelOLS.html#linearmodels.panel.model.PanelOLS.__init__.other_effects
-
-# Actually, this may work: https://bashtage.github.io/linearmodels/iv/absorbing/linearmodels.iv.absorbing.AbsorbingLS.html
 
 
 # Characterize the distribution of calendar_date
@@ -1143,16 +1038,161 @@ characterize_distribution(filtered_df, 'calendar_date')
 
 
 
-# Absorbed FEs example
+
+
+
+##########################################################################################
+##########################################################################################
+# Old code I'm not currently using but want to keep as a reference
+##########################################################################################
+##########################################################################################
+
+
+# Old code for exloring the data
+if 1==0:
+    
+    '''
+    keepcols = ['id_estab','cnpj_raiz','data_abertura', 'data_baixa', 'data_encerramento', 'ind_atividade', 'ind_rais_neg', 'qt_vinc_ativos', 'qt_vinc_clt', 'qt_vinc_estat', 'regiao_metro',  'subativ_ibge', 'subs_ibge', 'tamestab', 'tipo_estab', 'uf']
+    
+    # Pull establishment data to flag mass layoffs
+    nrows = None
+    df2013 = pd.read_csv(rais + '/csv/estab2013.csv', delimiter=';', nrows=nrows, usecols=keepcols, encoding='latin1')
+    df2014 = pd.read_csv(rais + '/csv/estab2014.csv', delimiter=';', nrows=nrows, usecols=keepcols, encoding='latin1')
+    df2015 = pd.read_csv(rais + '/csv/estab2015.csv', delimiter=';', nrows=nrows, usecols=keepcols, encoding='latin1')
+    df2016 = pd.read_csv(rais + '/csv/estab2016.csv', delimiter=';', nrows=nrows, usecols=keepcols, encoding='latin1')
+    
+    df2013['year'] = 2013
+    df2014['year'] = 2014
+    df2015['year'] = 2015
+    df2016['year'] = 2016
+    
+    
+    # 58% of establishments with 0 active employees on Dec 31
+    # tamestab seems to be categorical indicator for establishment size. 
+    (df2013.qt_vinc_ativos==0).mean()
+    (df2013.tamestab==0).mean()
+    (df2013.tamestab==df2013.qt_vinc_ativos).mean()
+    df2013[['tamestab','qt_vinc_ativos']].corr()
+    df2013[['tamestab','qt_vinc_ativos']]
+    df2013.loc[df2013.tamestab==1].qt_vinc_ativos.value_counts().sort_index() #1-4
+    df2013.loc[df2013.tamestab==2].qt_vinc_ativos.value_counts().sort_index() #5-9
+    df2013.loc[df2013.tamestab==3].qt_vinc_ativos.value_counts().sort_index() #10-19
+    df2013.loc[df2013.tamestab==4].qt_vinc_ativos.value_counts().sort_index() #20-49
+    df2013.loc[df2013.tamestab==8].qt_vinc_ativos.value_counts().sort_index() #500-999
+    df2013.loc[df2013.tamestab==9].qt_vinc_ativos.value_counts().sort_index() #>=1000
+    
+    estab_df = pd.concat([df2013, df2014, df2015, df2016], ignore_index=True)
+    
+    #####################
+    # Diagnostics
+    
+    # 10% of firms have 0 employees on December 31
+    # (a.emp_31dez==0).mean()
+    #Out[13]: 0.10501055345281181
+    
+    # There are some id_estabs that are duplicated and have different counts but the counts sum to the value of emp_31dez in the corresponding firm data. THerefore I am collapsing as below. For example:
+    estab_df.loc[estab_df.id_estab==16058000123]
+    
+    # Group by id_estab and year, summing specific columns and taking the first value for others
+    estab_df = estab_df.groupby(
+        ['id_estab', 'year'],
+        as_index=False).agg({
+        'tipo_estab': 'first',
+        'cnpj_raiz': 'first',
+        'uf': 'first',
+        'regiao_metro': 'first',
+        'subs_ibge': 'first',
+        'subativ_ibge': 'first',
+        'data_abertura': 'first',
+        'data_baixa': 'first',
+        'data_encerramento': 'first',
+        'ind_atividade': 'first',
+        'ind_rais_neg': 'first',
+        'qt_vinc_ativos': 'sum',
+        'qt_vinc_clt': 'sum',
+        'qt_vinc_estat': 'sum'
+    })
+    
+    
+    #########################
+    # Check if counts from firm and worker data align
+    
+    
+    merged = pd.merge(estab_df[['id_estab','year','qt_vinc_ativos']], estab_df_from_worker_data[['id_estab','year','emp_31dez']], on=['id_estab','year'], how = 'outer', validate='1:1', indicator=True)
+    pd.crosstab(merged['_merge'], merged['year'])
+    
+    # Almost all non-merged observations are those with 0 employment
+    merged.groupby('_merge').qt_vinc_ativos.describe()
+    (merged.loc[merged._merge=='left_only'].qt_vinc_ativos>0).sum()
+    
+    # There is still some zero employment in the worker DF. I'm guessing these are for employment spells in small firms that ended before the end of the year
+    (estab_df_from_worker_data.emp_31dez==0).mean()
+    
+    # The employment counts from the worker and firm data agree in 99.8% of observations with a successful match
+    (merged.loc[merged._merge=='both'].qt_vinc_ativos==merged.loc[merged._merge=='both'].emp_31dez).mean()
+    
+    # Most of the other 0.2% have emp_31dez = 0
+    merged.loc[(merged._merge=='both') & (merged.qt_vinc_ativos!=merged.emp_31dez)].emp_31dez.value_counts()
+                  
+     
+    # XX Next step merge to dfYYYY to understand why so many rows have 0 employees
+    
+    
+    df2013 = df2013.merge(id_estab_counts[0], on='id_estab', how='outer',validate='m:1', indicator=True)
+    (df2013.loc[df2013._merge=='left_only'].qt_vinc_ativos==0).mean()   # Every firm that employs someone on Dec 31 in the employee data also shows up in the firm data
+    (df2013.loc[df2013._merge=='both'].qt_vinc_ativos==0).mean()        # 10% of firms that show up in employee data don't have an employee on Dec 31
+    
+                    
+    
+    #########################
+    # Make a balanced panel
+    
+    # Identify the range of years and unique cnpj_raiz
+    years = range(firm_df['year'].min(), firm_df['year'].max() + 1)
+    cnpj_raiz_unique = firm_df['cnpj_raiz'].unique()
+    # Create a multi-index dataframe using all combinations of cnpj_raiz and years
+    index = pd.MultiIndex.from_product([cnpj_raiz_unique, years], names=['cnpj_raiz', 'year'])
+    balanced_panel = pd.DataFrame(index=index).reset_index()
+    # Merge the original dataframe with the multi-index dataframe
+    firm_df = pd.merge(balanced_panel, firm_df, on=['cnpj_raiz', 'year'], how='left')
+    # Fill missing emp_31dez values with 0
+    firm_df['emp_31dez'] = firm_df['emp_31dez'].fillna(0)
+    
+    
+    #########################
+    # Different definitions of mass layoffs
+    
+    # Assuming firm_df is your dataframe
+    firm_df = firm_df.sort_values(by=['cnpj_raiz', 'year'])
+    # Compute year-over-year changes
+    firm_df['abs_change'] = firm_df.groupby('cnpj_raiz')['emp_31dez'].diff()
+    firm_df['pct_change'] = firm_df.groupby('cnpj_raiz')['emp_31dez'].pct_change()
+    
+    # Replace NaNs resulting from the diff and pct_change methods with appropriate values
+    firm_df['abs_change'] = firm_df['abs_change'].fillna(0)
+    firm_df['pct_change'] = firm_df['pct_change'].fillna(0)
+    
+    # Display the resulting dataframe
+    firm_df
+    
+    
+    
+    '''
+
+    
+    
+
+
+# Absorbed FEs example to understand the difference between PanelOLS and AbsorbingLS
 # The coefs align between the two methods but the standard errors, F-stats, etc. do not
 if 1==0:
+
+   '''
    import pandas as pd
    import numpy as np
    from linearmodels.iv import AbsorbingLS
    from linearmodels.panel import PanelOLS
    import statsmodels.api as sm
-
-
    # Example DataFrame setup with 20 rows
    data = {
        'wid': [1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5],
@@ -1214,3 +1254,6 @@ if 1==0:
    # Print the results from PanelOLS with dummies
    print("\nResults from PanelOLS with dummies:")
    print(results_dummies)
+   '''
+
+   
