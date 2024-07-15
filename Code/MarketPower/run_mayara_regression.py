@@ -55,6 +55,9 @@ figuredir = root + 'Results/'
 region_codes = pd.read_csv(root + '/Data/raw/munic_microregion_rm.csv', encoding='latin1')
 muni_micro_cw = pd.DataFrame({'code_micro':region_codes.code_micro,'codemun':region_codes.code_munic//10})
 
+manaus_codemun_list = [130260, 130250, 130255, 130185, 130030, 130110, 130115, 230395, 230945, 230195]
+
+
 # Load Mayara's aggregation of cbo1994 into Occ2s
 cbo1994_occ2_cw = pd.read_excel(root + 'Code/MarketPower/valid_cbo94.xlsx', sheet_name='fix_plus_ggregation', engine='openpyxl')
 cbo1994_occ2_cw = cbo1994_occ2_cw.drop(columns='cbo942d').rename(columns={'aggregate':'occ2'})
@@ -94,7 +97,7 @@ if run_worker_pull==True:
         filename = rais + 'csv/brasil' + str(year) + '.csv'
         raw_data = pd.read_csv(filename, usecols=cols, nrows=nrows, sep=sep)
         # Drop Manaus
-        raw_data = raw_data.loc[raw_data.codemun!=130260]
+        raw_data = raw_data[~raw_data['codemun'].isin(manaus_codemun_list)]
         raw_data['year'] = year
         raw_data = raw_data.merge(muni_micro_cw, on='codemun', how='left', validate='m:1', indicator=True)
         raw_data['female'] = np.where(raw_data.genero==2, 1, np.where(raw_data.genero==1, 0, np.nan))
@@ -332,17 +335,17 @@ for year in [fyear,lyear]:
     firm_market_year_fes.drop(columns='firm_market_fe_year', inplace=True)
     # Reshape to wide format on 'year'
     firm_market_year_fes.reset_index(drop=True, inplace=True)
-    dict_firm_market_year_fes[year] = firm_market_year_fes.rename(columns={'estimated_effects':f'estimated_effects_{year}'}).drop(columns='year')
+    dict_firm_market_year_fes[year] = firm_market_year_fes.rename(columns={'estimated_effects':f'w_zm{year}'}).drop(columns='year')
 
 # Print the summary of the regression
 print(model.summary)
 
 firm_market_year_fes = pd.merge(dict_firm_market_year_fes[fyear], dict_firm_market_year_fes[lyear], on='firm_market_fe', validate='1:1', how='inner')
 
-omega_zmt = pd.melt(firm_market_year_fes.rename(columns={f'estimated_effects_{fyear}':fyear,f'estimated_effects_{lyear}':lyear}), id_vars=['firm_market_fe'], var_name='year', value_name='omega_zmt')
+omega_zmt = pd.melt(firm_market_year_fes.rename(columns={f'w_zm{fyear}':fyear,f'w_zm{lyear}':lyear}), id_vars=['firm_market_fe'], var_name='year', value_name='omega_zmt')
 
 # XX 78% of rows are NAN, presumably because many small firm-markets don't exist in both years
-firm_market_year_fes['d_ln_w_zm'] = firm_market_year_fes[f'estimated_effects_{lyear}'] - firm_market_year_fes[f'estimated_effects_{fyear}']
+firm_market_year_fes['d_ln_w_zm'] = firm_market_year_fes[f'w_zm{lyear}'] - firm_market_year_fes[f'w_zm{fyear}']
 
 d_ln_w_zm = firm_market_year_fes[['firm_market_fe','d_ln_w_zm']]
 d_ln_w_zm['cnpj_raiz'] = d_ln_w_zm['firm_market_fe'].str.split('_').str[0].astype(float)
@@ -440,8 +443,8 @@ d_delta_m.drop_duplicates(subset=['market_fe'],keep='last', inplace=True)
 eta_hat = 1 / model_M15.params.values[0]
 
 
-
-# I think this estimate of 1.4673 should be compared to Mayara's estimate of 0.985 in Panel C of Table 2 on page 48
+print(model_M15.params.values[0])
+# I think this estimate of 0.292 should be compared to Mayara's estimate of 0.985 in Panel C of Table 2 on page 48
 
 
 
@@ -455,6 +458,11 @@ step3_df['lhs'] = step3_df['omega_zmt'] - (1/eta_hat) * np.log(step3_df['l_zmt']
 step3_df['market_year_fe'] = step3_df['firm_market_fe'].str.split('_').str[1] + '_' + step3_df['firm_market_fe'].str.split('_').str[2] + '_' + step3_df['year'].astype(str)
 step3_df['cnpj_raiz'] = step3_df['firm_market_fe'].str.split('_').str[0].astype(float)
 step3_df.set_index(['market_year_fe','cnpj_raiz'], inplace=True)
+
+# Export to Stata to check if xtreg replicates PanelOLS [it does]
+temp = step3_df.reset_index()
+temp['year'] = temp['year'].astype(int)
+temp.to_stata(root + "Data/derived/step3_df.dta")
 
 # Specify the dependent variable and independent variables
 y = step3_df[['lhs']]
@@ -545,7 +553,7 @@ inv_theta_minus_inv_eta_hat = model.params[1]
 theta_hat = 1/(inv_theta_minus_inv_eta_hat + (1/eta_hat))
 
 
-print(theta_hat) # -6.074
+print(theta_hat) # -3.005
 print(eta_hat)   #  3.423
 
 # Check that shares always equal 1
@@ -556,9 +564,6 @@ merged.groupby('market_fe')['s_zm'].sum().max()
 # First stage: regress d_ln_L_m on d_ICE_m
 
 
-
-
-df['has_nan']
 
 ###############################
 # Diagnostics
