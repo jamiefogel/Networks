@@ -76,7 +76,6 @@ def load_iotas_gammas(root):
     iotas['wid'] = iotas['wid'].astype(str)
     return iotas, gammas
 
-
 def process_iotas_gammas(root, iotas, gammas):
 
     # Load data that was used for the SBM so I can compute P_gi
@@ -270,7 +269,7 @@ def identify_laid_off_workers(rais, date_formats, closure_df):
     return possible_laid_off_worker_list
     
 possible_laid_off_worker_list = identify_laid_off_workers(rais, date_formats, closure_df)
-possible_laid_off_worker_list.to_pickle(root + "Data/derived/mass_layoffs_possible_laid_off_worker_listf.p")
+possible_laid_off_worker_list.to_pickle(root + "Data/derived/mass_layoffs_possible_laid_off_worker_list.p")
 
 
 
@@ -278,8 +277,12 @@ possible_laid_off_worker_list.to_pickle(root + "Data/derived/mass_layoffs_possib
 # Load data for workers at risk of layoff, make a balanced monthly panel based on data_adm, data_deslig, and monthly earnings. 
 # Extend to 2019 sowe have at least 3 years of a post-period for all layoffs occurring in 2013-2016
     
-def process_worker_data(rais, date_formats, possible_laid_off_worker_list):    
+possible_laid_off_worker_list = pd.read_pickle(root + "Data/derived/mass_layoffs_possible_laid_off_worker_list.p")
+
+def process_worker_data(rais, date_formats, possible_laid_off_worker_list, nrows=None):    
     # List of columns to keep
+    # Initialize df to store worker bdays
+    worker_dob = pd.DataFrame()
     columns_to_keep = [
         'pis', 'id_estab', 'cnpj_raiz', 'data_adm', 'data_deslig', 'causa_deslig',
         'clas_cnae20', 'cbo2002', 'codemun', 'data_nasc', 'idade', 'genero', 'grau_instr', 
@@ -296,18 +299,25 @@ def process_worker_data(rais, date_formats, possible_laid_off_worker_list):
         else:
             sep = ','
         df = pd.read_csv(rais + f'/csv/brasil{year}.csv', delimiter=sep, usecols=columns_to_keep, encoding='latin1', nrows=nrows)
-        df = df[~df['tipo_vinculo'].isin([30,31,35])]
-        df = df[df['codemun'].fillna(99).astype(str).str[:2].astype('int').isin([31, 33, 35])]
         
         # Need to make wid and jid
-        df.rename(columns={'pis':'wid'}, inplace=True)   
+        df['wid'] = df.pis.astype(str)
+        df['wid'] = df.pis.astype('Int64').astype(str)
         df['occ4'] = df['cbo2002'].astype(str).str[0:4]
-        df['jid']  = df['id_estab'].astype(str) + '_' + df['occ4']
+        df['jid'] = df['id_estab'].astype(str).str.zfill(14) + '_' + df['occ4']
+
+        # Save DOBs in a separate df
+        year_dob = df[['wid', 'data_nasc']].drop_duplicates()
+        year_dob['data_nasc']     = pd.to_datetime(year_dob['data_nasc'],   format=date_formats[year], errors='raise')
+        worker_dob = pd.concat([worker_dob, year_dob])
+        
+        df = df[~df['tipo_vinculo'].isin([30,31,35])]
+        df = df[df['codemun'].fillna(99).astype(str).str[:2].astype('int').isin([31, 33, 35])]
         
         # Merge on iotas and gammas
         df = df.merge(gammas, how='left', validate='m:1', on='jid')
         # Merge on iotas
-        df = df.merge(iotas,  how='left', validate='m:1', on='wid')
+        df = df.merge(iotas,  how='left', validate='m:1', on='wid', indicator='_merge_iota')
         
         # Create a separate df for defining market size
         df['ind2']          = df['clas_cnae20'] // 1000
@@ -319,11 +329,7 @@ def process_worker_data(rais, date_formats, possible_laid_off_worker_list):
         # Date formats are not consistent across data sets so convert to dates here. 
         df['data_adm']      = pd.to_datetime(df['data_adm'],    format=date_formats[year], errors='raise')
         df['data_deslig']   = pd.to_datetime(df['data_deslig'], format=date_formats[year], errors='raise')
-        df['data_nasc']     = pd.to_datetime(df['data_nasc'],   format=date_formats[year], errors='raise')
         df['idade']         = df['idade'].astype(int)
-        df['yob']           = df.data_nasc.dt.year
-        # Restrict to people who are between 22 and 62 in 2012
-        df = df.loc[df['yob'].between(1950, 1990)]
         # Drop job-years with average monthly earnings less than the minimum wage
         df = df[df['rem_med_sm'] >= 1]
         # Sometimes id_estab is defined but cnpj_raiz is not. Therefore, replace cnpj_raiz with the first 8 digits of id_estab. XX I can actually just not load cnpj_raiz to not mess with this. 
@@ -331,21 +337,37 @@ def process_worker_data(rais, date_formats, possible_laid_off_worker_list):
         dfs.append(df)
         dfs_mkt_size.append(df_mkt_size)
     
-    
+    # Group by worker ID and get the most common non-null date of birth
+    worker_dob['yob']           = worker_dob.data_nasc.dt.year
+    worker_dob = worker_dob[['wid','yob']]
+    worker_dob = worker_dob.groupby('wid').agg({'yob': lambda x: x.mode().iloc[0] if not x.mode().empty else pd.NaT})
+    # Check for workers with multiple unique non-null dates of birth
+    multiple_dob = worker_dob.groupby('wid').filter(lambda x: x['yob'].nunique() > 1)
+    if not multiple_dob.empty:
+        print(f"Warning: {len(multiple_dob)} workers have multiple unique dates of birth.")
+        # You might want to handle these cases separately
+    # Remove workers with no date of birth
+    worker_dob = worker_dob.dropna()
+        
     # XX Edit this to add returns in the function and move pickling outside
     worker_panel_mkt_size = pd.concat(dfs_mkt_size)
-    mkt_size_df_worker = worker_panel_mkt_size.groupby(['ind2','code_micro','year']).size()
+    mkt_size_df_worker = worker_panel_mkt_size.groupby(['ind2','code_micro']).size()
+    mkt_size_df_worker = mkt_size_df_worker.reset_index(name='count')
     mkt_size_df_worker.to_pickle(root + "Data/derived/mass_layoffs_mkt_size_df_worker.p")
     worker_panel = pd.concat(dfs)
+    # data_nasc is missing for some years so process these separately
+    # Restrict to people who are between 22 and 62 in 2012
+    worker_panel = worker_panel.merge(worker_dob, on='wid', validate='m:1', how='left',indicator='_merge_yob')
+    worker_panel = worker_panel.loc[worker_panel['yob'].between(1950, 1990)]
     worker_panel.to_pickle(root + "Data/derived/mass_layoffs_worker_panel.p")
     del worker_panel_mkt_size
 
+process_worker_data(rais, date_formats, possible_laid_off_worker_list)
 
-
-closure_df   = pd.read_pickle(root + "Data/derived/mass_layoffs_closure_df.p")
-worker_panel = pd.read_pickle(root + "Data/derived/mass_layoffs_worker_panel.p")
-E_N_gamma_given_iota = pd.read_pickle(root + "Data/derived/mass_layoffs_E_N_gamma_given_iota.p")
-
+closure_df          = pd.read_pickle(root + "Data/derived/mass_layoffs_closure_df.p")
+worker_panel        = pd.read_pickle(root + "Data/derived/mass_layoffs_worker_panel.p")
+E_N_gamma_given_iota= pd.read_pickle(root + "Data/derived/mass_layoffs_E_N_gamma_given_iota.p")
+mkt_size_df_worker  = pd.read_pickle(root + "Data/derived/mass_layoffs_mkt_size_df_worker.p")
 
 
 
@@ -353,7 +375,7 @@ E_N_gamma_given_iota = pd.read_pickle(root + "Data/derived/mass_layoffs_E_N_gamm
 # Step 1: Reshape to long format on wid, year, and month
 value_vars = [f'vl_rem_{i:02d}' for i in range(1, 13)]
 worker_panel_long = pd.melt(worker_panel, 
-                            id_vars=['wid', 'id_estab', 'id_firm', 'data_adm', 'data_deslig', 'genero',
+                            id_vars=['wid', 'id_estab', 'id_firm', 'data_adm', 'data_deslig', 'genero', 'iota','gamma',
                                      'causa_deslig', 'clas_cnae20', 'ind2', 'cbo2002', 'codemun', 'code_micro', 'yob',
                                      'grau_instr', 'salario', 'rem_med_sm', 'rem_med_r', 'year', 'raca_cor', 'nacionalidad'],
                             value_vars=value_vars, 
@@ -421,12 +443,11 @@ pre_layoff_obs = pre_layoff_obs.rename(columns={col: col + '_pre' for col in pre
 
 
 
-
 ############################################################################################################
 # Create a balanced worker panel where time is measured by event time
 
-invariant = ['wid', 'genero', 'grau_instr', 'yob', 'nacionalidad', 'raca_cor']
-variant = ['id_estab', 'id_firm', 'data_adm', 'data_deslig', 'causa_deslig', 'clas_cnae20', 'cbo2002', 'codemun', 'code_micro', 'salario', 'rem_med_sm', 'rem_med_r', 'vl_rem', 'total_earnings_month', 'num_jobs_month', 'calendar_date',  'employment_indicator', 'data_encerramento', 'mass_layoff_month']
+invariant = ['wid', 'iota', 'genero', 'grau_instr', 'yob', 'nacionalidad', 'raca_cor']
+variant = ['id_estab', 'id_firm', 'gamma', 'data_adm', 'data_deslig', 'causa_deslig', 'clas_cnae20', 'ind2', 'cbo2002', 'codemun', 'code_micro', 'salario', 'rem_med_sm', 'rem_med_r', 'vl_rem', 'total_earnings_month', 'num_jobs_month', 'calendar_date',  'employment_indicator', 'data_encerramento', 'mass_layoff_month']
 
 unique_wids=worker_panel_long['wid'].unique()
 spine = pd.DataFrame({'wid':np.tile(unique_wids, 49), 'event_time':np.repeat(np.arange(-12,36+1),unique_wids.shape[0])})        
@@ -447,9 +468,10 @@ worker_panel_balanced['calendar_date'] = adjusted_dates
 
 
 # Merge on iotas and then E_N_gamma_given_iota
-worker_panel_balanced['wid'] = worker_panel_balanced.wid.astype('Int64').astype(str)
-worker_panel_balanced = worker_panel_balanced.merge(iotas, how='inner', validate='m:1', on='wid',indicator='_merge_iotas')
-worker_panel_balanced = worker_panel_balanced.merge(E_N_gamma_given_iota, how='inner', validate='m:1', on='iota')
+# XX This should no longer be necessary as of 7/11 because I am keeping iota and gamma when creating the panel now
+#worker_panel_balanced['wid'] = worker_panel_balanced.wid.astype('Int64').astype(str)
+#worker_panel_balanced = worker_panel_balanced.merge(iotas, how='inner', validate='m:1', on='wid',indicator='_merge_iotas')
+#worker_panel_balanced = worker_panel_balanced.merge(E_N_gamma_given_iota, how='inner', validate='m:1', on='iota')
 
 
 ''' I don't see what the point of this code is. Probably delete it
@@ -466,7 +488,7 @@ worker_panel.drop(columns=['_merge_iotas'], inplace=True)
 # Create variables for regression in Moretti and Yi's equation 3
 
 # Some workers have multiple YOBs listed so I'll just take the mode
-worker_panel_balanced['age']    = (worker_panel_balanced['calendar_date'].dt.to_period('Y') - pd.to_datetime(worker_panel_balanced['yob'], format='%Y').dt.to_period('Y') ).apply(lambda x: x.n if pd.notna(x) else np.nan)
+worker_panel_balanced['age']    = (worker_panel_balanced['calendar_date'].dt.to_period('Y') - pd.to_datetime(worker_panel_balanced['yob'].astype(int), format='%Y').dt.to_period('Y') ).apply(lambda x: x.n if pd.notna(x) else np.nan)
 worker_panel_balanced['age_sq'] = worker_panel_balanced['age']**2
 worker_panel_balanced['foreign']= (worker_panel_balanced['nacionalidad']!=10)
 worker_panel_balanced['raca_cor'] = pd.Categorical(worker_panel_balanced['raca_cor'])
@@ -479,39 +501,26 @@ worker_panel_balanced['genero'] = pd.Categorical(worker_panel_balanced['genero']
 
 # Get pre-layoff values
 pre_layoff = worker_panel_balanced[worker_panel_balanced['event_time'] == -1].set_index('wid')
-worker_panel_balanced['pre_layoff_firm'] = worker_panel_balanced['wid'].map(pre_layoff['id_firm'])
-worker_panel_balanced['pre_layoff_occ'] = worker_panel_balanced['wid'].map(pre_layoff['cbo2002'])
-worker_panel_balanced['pre_layoff_ind5'] = worker_panel_balanced['wid'].map(pre_layoff['clas_cnae20'])
-worker_panel_balanced['pre_layoff_ind2'] = worker_panel_balanced['wid'].map(pre_layoff['ind2'])
 
 # Get first post-layoff values
 post_layoff = worker_panel_balanced[(worker_panel_balanced['event_time'] > 0) & 
                                     (worker_panel_balanced['employment_indicator'] == 1)].groupby('wid').first()
-worker_panel_balanced['post_layoff_firm'] = worker_panel_balanced['wid'].map(post_layoff['id_firm'])
-worker_panel_balanced['post_layoff_occ'] = worker_panel_balanced['wid'].map(post_layoff['cbo2002'])
-worker_panel_balanced['post_layoff_ind5'] = worker_panel_balanced['wid'].map(post_layoff['clas_cnae20'])
-worker_panel_balanced['post_layoff_ind2'] = worker_panel_balanced['wid'].map(post_layoff['ind2'])
+# Loop over the specified variables
+variables = ['id_firm', 'cbo2002', 'clas_cnae20', 'ind2', 'code_micro', 'gamma']
+for var in variables:
+    pre_col = f'pre_layoff_{var}'
+    post_col = f'post_layoff_{var}'
+    same_col = f'same_{var}'
+    
+    worker_panel_balanced[pre_col] = worker_panel_balanced['wid'].map(pre_layoff[var])
+    worker_panel_balanced[post_col] = worker_panel_balanced['wid'].map(post_layoff[var])
+    worker_panel_balanced[same_col] = (worker_panel_balanced[pre_col] == worker_panel_balanced[post_col]).astype(int)
 
-
-worker_panel_balanced['same_firm'] = (worker_panel_balanced['pre_layoff_firm'] == worker_panel_balanced['post_layoff_firm']).astype(int)
-worker_panel_balanced['same_occ'] = (worker_panel_balanced['pre_layoff_occ'] == worker_panel_balanced['post_layoff_occ']).astype(int)
-worker_panel_balanced['same_ind5'] = (worker_panel_balanced['pre_layoff_ind5'] == worker_panel_balanced['post_layoff_ind5']).astype(int)
-worker_panel_balanced['same_ind2'] = (worker_panel_balanced['pre_layoff_ind2'] == worker_panel_balanced['post_layoff_ind2']).astype(int)
-
+# Get first reemployment time
 first_reemployment = worker_panel_balanced[(worker_panel_balanced['event_time'] > 0) & 
                                            (worker_panel_balanced['employment_indicator'] == 1)].groupby('wid')['event_time'].min()
 worker_panel_balanced['first_reemployment_time'] = worker_panel_balanced['wid'].map(first_reemployment)
 
-
-
-#  Display new variables to check everything is working
-print("\nNew variables:")
-vars = ['id_firm', 'cbo2002', 'clas_cnae20', 'ind2', 'pre_layoff_firm', 'post_layoff_firm', 'same_firm',
-            'pre_layoff_occ', 'post_layoff_occ', 'same_occ',
-            'pre_layoff_ind5', 'post_layoff_ind5', 'same_ind5',
-            'pre_layoff_ind2', 'post_layoff_ind2', 'same_ind2',
-            'first_reemployment_time']
-print(worker_panel_balanced[['wid', 'event_time'] + vars].head(50))
 
 
 #####
@@ -519,22 +528,22 @@ print(worker_panel_balanced[['wid', 'event_time'] + vars].head(50))
 # Drop people who are employed at the same firm right after layoff. This will include some poeple who seem to continue to be employed after the layoff date. 
 
 # Step 1: Compute the fraction of people with same_firm == 1 for each pre-layoff firm
-firm_fractions = worker_panel_balanced.groupby('pre_layoff_firm')['same_firm'].mean()
+firm_fractions = worker_panel_balanced.groupby('pre_layoff_id_firm')['same_id_firm'].mean()
 # Step 2: Identify firms where more than 50% of people have same_firm == 1
 firms_to_drop = firm_fractions[firm_fractions > 0.5].index
 
 # Step 3: Drop all rows corresponding to these firms
-worker_panel_balanced = worker_panel_balanced[~worker_panel_balanced['pre_layoff_firm'].isin(firms_to_drop)]
+worker_panel_balanced = worker_panel_balanced[~worker_panel_balanced['pre_layoff_id_firm'].isin(firms_to_drop)]
 
 ''' XX I don't trust this section yet. Need to debug
 # Supplementary steps to identify and drop firms where >80% of laid off workers end up employed at the same firm as each other post-layoff
 
 # Step 4: Compute the fraction of people reemployed at the same firm post-layoff
-post_layoff_firm_counts = worker_panel_balanced.groupby(['pre_layoff_firm', 'post_layoff_firm']).size()
-pre_layoff_firm_counts = worker_panel_balanced.groupby('pre_layoff_firm').size()
+post_layoff_firm_counts = worker_panel_balanced.groupby(['pre_layoff_id_firm', 'post_layoff_firm']).size()
+pre_layoff_id_firm_counts = worker_panel_balanced.groupby('pre_layoff_id_firm').size()
 
 # Calculate the fraction of people reemployed at the same firm post-layoff for each pre-layoff firm
-reemployment_fractions = post_layoff_firm_counts / pre_layoff_firm_counts
+reemployment_fractions = post_layoff_firm_counts / pre_layoff_id_firm_counts
 
 # Step 5: Identify pre-layoff firms where more than 80% of people are reemployed at the same firm post-layoff
 # Unstack to get the fractions as columns, then apply the threshold check
@@ -542,7 +551,7 @@ reemployed_firms_to_drop = reemployment_fractions.unstack().max(axis=1)
 reemployed_firms_to_drop = reemployed_firms_to_drop[reemployed_firms_to_drop > 0.8].index
 
 # Step 6: Drop all rows corresponding to these firms where >50% of laid off workers are reemployed at the same firm
-worker_panel_balanced = worker_panel_balanced[~worker_panel_balanced['pre_layoff_firm'].isin(reemployed_firms_to_drop)]
+worker_panel_balanced = worker_panel_balanced[~worker_panel_balanced['pre_layoff_id_firm'].isin(reemployed_firms_to_drop)]
 '''
 
 
@@ -561,13 +570,6 @@ worker_panel_balanced['educ_ind2']          = pd.Categorical(worker_panel_balanc
 worker_panel_balanced['educ_layoff_date']   = pd.Categorical(worker_panel_balanced.educ.astype(str) + '_' + worker_panel_balanced.mass_layoff_month.astype(str)) 
 
 
-
-
-
-#######################################
-# Preliminary figures
-
-
 # Replace NAs with 0 for earnings and employment
 worker_panel_balanced['employment_indicator'].fillna(0, inplace=True)
 worker_panel_balanced['total_earnings_month'].fillna(0, inplace=True)
@@ -577,211 +579,221 @@ worker_panel_balanced['vl_rem_sm'] = worker_panel_balanced['vl_rem']/worker_pane
 worker_panel_balanced['total_earnings_month_sm'] = worker_panel_balanced['total_earnings_month']/worker_panel_balanced['deflator']
 
 
-# Collapse by event_time and take the mean of employment_indicator
-collapsed = worker_panel_balanced.groupby('event_time')[['employment_indicator','total_earnings_month','total_earnings_month_sm','vl_rem','vl_rem_sm','calendar_date']].mean().reset_index()
-
-# Create a time series plot of employment rates
-plt.figure(figsize=(10, 6))
-plt.plot(collapsed['event_time'], collapsed['employment_indicator'], marker='o', linestyle='-')
-plt.xlabel('Event Time (Months)')
-plt.ylabel('Mean Employment Indicator')
-plt.title('Mean Employment Indicator by Event Time')
-plt.grid(True)
-plt.savefig(root + 'Results/employment_after_layoff.pdf', format='pdf')
-plt.show()
-
-
-# Create a time series plot
-plt.figure(figsize=(10, 6))
-plt.plot(collapsed['event_time'], collapsed['total_earnings_month_sm'], marker='o', linestyle='-')
-plt.xlabel('Event Time (Months)')
-plt.ylabel('Mean Total Monthly Earnings')
-plt.title('Mean Total Monthly Earnings by Event Time')
-plt.grid(True)
-plt.savefig(root + 'Results/earnings_after_layoff.pdf', format='pdf')
-plt.show()
-
-
-# Create a time series plot
-plt.figure(figsize=(10, 6))
-plt.plot(collapsed['event_time'], collapsed['vl_rem_sm'], marker='o', linestyle='-')
-plt.xlabel('Event Time (Months)')
-plt.ylabel('Mean Primary Job Monthly Earnings')
-plt.title('Mean Primary Job Monthly Earnings by Event Time')
-plt.grid(True)
-plt.savefig(root + 'Results/primary_job_earnings_after_layoff.pdf', format='pdf')
-plt.show()
-
-
-# Check for changes in composition of dates. WHY DON'T WE SEE ROUGHLY SMOOTH CALENDAR DATES W.R.T. EVENT TIME. WHY DO WE SEE A SLOPE OF 1??
-# Create a time series plot
-plt.figure(figsize=(10, 6))
-plt.plot(collapsed['event_time'], collapsed['calendar_date'], marker='o', linestyle='-')
-plt.xlabel('Event Time (Months)')
-plt.ylabel('Mean Calendar Date')
-plt.title('Mean Calendar Date by Event Time')
-plt.grid(True)
-plt.show()
 
 
 
+#######################################
+# Preliminary figures
 
 
-
-
-# Define the range of years
-years = range(2013, 2017)
-
-# Create a plot
-plt.figure(figsize=(12, 8))
-
-for year in years:
-    # Filter data for the current year
-    year_data = worker_panel_balanced[worker_panel_balanced['mass_layoff_month'].dt.year == year]
+run_preliminary_figures=False
+if run_preliminary_figures==True:
     
-    # Replace NAs with 0 for earnings and employment
-    year_data['employment_indicator'].fillna(0, inplace=True)
-    year_data['total_earnings_month'].fillna(0, inplace=True)
-    year_data['total_earnings_month_sm'].fillna(0, inplace=True)
-
-
     # Collapse by event_time and take the mean of employment_indicator
-    collapsed = year_data.groupby('event_time')[['employment_indicator', 'total_earnings_month_sm']].mean().reset_index()
+    collapsed = worker_panel_balanced.groupby('event_time')[['employment_indicator','total_earnings_month','total_earnings_month_sm','vl_rem','vl_rem_sm','calendar_date']].mean().reset_index()
     
-    # Plot the employment rates
-    plt.plot(collapsed['event_time'], collapsed['total_earnings_month_sm'], marker='o', linestyle='-', label=f'Year {year}')
-
-# Customize the plot
-plt.xlabel('Event Time (Months)')
-plt.ylabel('Mean Employment Indicator')
-plt.title('Mean Employment Indicator by Event Time for Each Year')
-plt.legend(title='Year')
-plt.grid(True)
-plt.show()
-
-
-	
-
-###################################################################################
-# Moretti and Yi equation 3
-#
-# Controls: age, age^2, gender, race, foreign-born. 
-# Vector of education-specific indicators for the CZ of residence at t=-1
-# Vector of education-specific indicators for the industry of employment at t=-1. 2-digit.
-# Vector of education-time dummies defined by the quarter-year of closure. 
-# SEs clustered at CZ-level
-
-
-
-
-# Create dummy variables for event_time
-event_time_dummies = pd.get_dummies(worker_panel_balanced['event_time'], prefix='event_time')
-event_time_dummies.drop(columns='event_time_0', inplace=True)
-
-####################################################################
-# Employment
-
-# Define the dependent variable and the independent variables
-y = worker_panel_balanced['employment_indicator']
-X = pd.concat([event_time_dummies, worker_panel_balanced[['age','age_sq']]], axis=1)  # Include the event_time dummies
-
-# Define the fixed effects to absorb
-fixed_effects =worker_panel_balanced[['educ_micro','educ_ind2','educ_layoff_date','foreign','genero','raca_cor']]
-
-print(fixed_effects.shape)
-print(y.shape)
-print(X.shape)
-
-# There are a few missing values of X
-missing_indices = X.isna().any(axis=1)
-y = y.loc[~missing_indices]
-X = X.loc[~missing_indices]
-fixed_effects = fixed_effects.loc[~missing_indices]
-
-# Run the model with AbsorbingLS
-model_absorbed = AbsorbingLS(y, X, absorb=fixed_effects, drop_absorbed=True)
-#results_absorbed = model_absorbed.fit(cov_type='clustered', clusters=df.index.get_level_values('wid'))  # Clustered standard errors by entity
-results_absorbed = model_absorbed.fit(cov_type='unadjusted') 
-print(results_absorbed)
-
-
-# Extract coefficients and standard errors for event_time dummies
-coefficients = results_absorbed.params.filter(like='event_time')
-conf_int = results_absorbed.conf_int().filter(like='event_time', axis=0)
-conf_int.columns = ['lower', 'upper']
-standard_errors = results_absorbed.std_errors.filter(like='event_time')
-
-# Set pandas display options for 4 decimal points
-pd.options.display.float_format = '{:.4f}'.format
-
-# Create a DataFrame for plotting
-coefficients_df = pd.DataFrame({'coef': coefficients, 'std_err': standard_errors})
-coefficients_df.index = coefficients_df.index.str.replace('event_time_', '').astype(int)
-coefficients_df = coefficients_df.sort_index()
-
-
-# Plot the coefficients
-plt.figure(figsize=(10, 6))
-plt.errorbar(coefficients_df.index, coefficients_df['coef'], yerr=coefficients_df['std_err'], fmt='o', linestyle='-', capsize=5)
-plt.axhline(0, color='black', linewidth=1, linestyle='--')
-plt.xlabel('Event Time')
-plt.ylabel('Coefficient')
-plt.title('Employment')
-plt.grid(True)
-plt.show()
-
-
-####################################################################
-# Earnings
-
-worker_panel_balanced['total_earnings_month_sm'].fillna(0, inplace=True)
-
-# Define the dependent variable and the independent variables
-y = worker_panel_balanced['total_earnings_month_sm']
-X = pd.concat([event_time_dummies, worker_panel_balanced[['age','age_sq']]], axis=1)  # Include the event_time dummies
-
-# Define the fixed effects to absorb
-fixed_effects =worker_panel_balanced[['educ_micro','educ_ind2','educ_layoff_date','foreign','genero','raca_cor']]
-
-
-# There are a few missing values of X
-missing_indices = X.isna().any(axis=1)
-y = y.loc[~missing_indices]
-X = X.loc[~missing_indices]
-fixed_effects = fixed_effects.loc[~missing_indices]
-
-# Run the model with AbsorbingLS
-model_absorbed = AbsorbingLS(y, X, absorb=fixed_effects, drop_absorbed=True)
-#results_absorbed = model_absorbed.fit(cov_type='clustered', clusters=df.index.get_level_values('wid'))  # Clustered standard errors by entity
-results_absorbed = model_absorbed.fit(cov_type='unadjusted') 
-print(results_absorbed)
-
-
-# Extract coefficients and standard errors for event_time dummies
-coefficients = results_absorbed.params.filter(like='event_time')
-conf_int = results_absorbed.conf_int().filter(like='event_time', axis=0)
-conf_int.columns = ['lower', 'upper']
-standard_errors = results_absorbed.std_errors.filter(like='event_time')
-
-# Set pandas display options for 4 decimal points
-pd.options.display.float_format = '{:.4f}'.format
-
-# Create a DataFrame for plotting
-coefficients_df = pd.DataFrame({'coef': coefficients, 'std_err': standard_errors})
-coefficients_df.index = coefficients_df.index.str.replace('event_time_', '').astype(int)
-coefficients_df = coefficients_df.sort_index()
-
-
-# Plot the coefficients
-plt.figure(figsize=(10, 6))
-plt.errorbar(coefficients_df.index, coefficients_df['coef'], yerr=coefficients_df['std_err'], fmt='o', linestyle='-', capsize=5)
-plt.axhline(0, color='black', linewidth=1, linestyle='--')
-plt.xlabel('Event Time')
-plt.ylabel('Coefficient')
-plt.title('Earnings')
-plt.grid(True)
-plt.show()
-
+    # Create a time series plot of employment rates
+    plt.figure(figsize=(10, 6))
+    plt.plot(collapsed['event_time'], collapsed['employment_indicator'], marker='o', linestyle='-')
+    plt.xlabel('Event Time (Months)')
+    plt.ylabel('Mean Employment Indicator')
+    plt.title('Mean Employment Indicator by Event Time')
+    plt.grid(True)
+    plt.savefig(root + 'Results/employment_after_layoff.pdf', format='pdf')
+    plt.show()
+    
+    
+    # Create a time series plot
+    plt.figure(figsize=(10, 6))
+    plt.plot(collapsed['event_time'], collapsed['total_earnings_month_sm'], marker='o', linestyle='-')
+    plt.xlabel('Event Time (Months)')
+    plt.ylabel('Mean Total Monthly Earnings')
+    plt.title('Mean Total Monthly Earnings by Event Time')
+    plt.grid(True)
+    plt.savefig(root + 'Results/earnings_after_layoff.pdf', format='pdf')
+    plt.show()
+    
+    
+    # Create a time series plot
+    plt.figure(figsize=(10, 6))
+    plt.plot(collapsed['event_time'], collapsed['vl_rem_sm'], marker='o', linestyle='-')
+    plt.xlabel('Event Time (Months)')
+    plt.ylabel('Mean Primary Job Monthly Earnings')
+    plt.title('Mean Primary Job Monthly Earnings by Event Time')
+    plt.grid(True)
+    plt.savefig(root + 'Results/primary_job_earnings_after_layoff.pdf', format='pdf')
+    plt.show()
+    
+    
+    # Check for changes in composition of dates. WHY DON'T WE SEE ROUGHLY SMOOTH CALENDAR DATES W.R.T. EVENT TIME. WHY DO WE SEE A SLOPE OF 1??
+    # Create a time series plot
+    plt.figure(figsize=(10, 6))
+    plt.plot(collapsed['event_time'], collapsed['calendar_date'], marker='o', linestyle='-')
+    plt.xlabel('Event Time (Months)')
+    plt.ylabel('Mean Calendar Date')
+    plt.title('Mean Calendar Date by Event Time')
+    plt.grid(True)
+    plt.show()
+    
+    
+    
+    
+    
+    
+    
+    # Define the range of years
+    years = range(2013, 2017)
+    
+    # Create a plot
+    plt.figure(figsize=(12, 8))
+    
+    for year in years:
+        # Filter data for the current year
+        year_data = worker_panel_balanced[worker_panel_balanced['mass_layoff_month'].dt.year == year]
+        
+        # Replace NAs with 0 for earnings and employment
+        year_data['employment_indicator'].fillna(0, inplace=True)
+        year_data['total_earnings_month'].fillna(0, inplace=True)
+        year_data['total_earnings_month_sm'].fillna(0, inplace=True)
+    
+    
+        # Collapse by event_time and take the mean of employment_indicator
+        collapsed = year_data.groupby('event_time')[['employment_indicator', 'total_earnings_month_sm']].mean().reset_index()
+        
+        # Plot the employment rates
+        plt.plot(collapsed['event_time'], collapsed['total_earnings_month_sm'], marker='o', linestyle='-', label=f'Year {year}')
+    
+    # Customize the plot
+    plt.xlabel('Event Time (Months)')
+    plt.ylabel('Mean Employment Indicator')
+    plt.title('Mean Employment Indicator by Event Time for Each Year')
+    plt.legend(title='Year')
+    plt.grid(True)
+    plt.show()
+    
+    
+    	
+    
+    ###################################################################################
+    # Moretti and Yi equation 3
+    #
+    # Controls: age, age^2, gender, race, foreign-born. 
+    # Vector of education-specific indicators for the CZ of residence at t=-1
+    # Vector of education-specific indicators for the industry of employment at t=-1. 2-digit.
+    # Vector of education-time dummies defined by the quarter-year of closure. 
+    # SEs clustered at CZ-level
+    
+    
+    
+    
+    # Create dummy variables for event_time
+    event_time_dummies = pd.get_dummies(worker_panel_balanced['event_time'], prefix='event_time')
+    event_time_dummies.drop(columns='event_time_0', inplace=True)
+    
+    ####################################################################
+    # Employment
+    
+    # Define the dependent variable and the independent variables
+    y = worker_panel_balanced['employment_indicator']
+    X = pd.concat([event_time_dummies, worker_panel_balanced[['age','age_sq']]], axis=1)  # Include the event_time dummies
+    
+    # Define the fixed effects to absorb
+    fixed_effects =worker_panel_balanced[['educ_micro','educ_ind2','educ_layoff_date','foreign','genero','raca_cor']]
+    
+    print(fixed_effects.shape)
+    print(y.shape)
+    print(X.shape)
+    
+    # There are a few missing values of X
+    missing_indices = X.isna().any(axis=1)
+    y = y.loc[~missing_indices]
+    X = X.loc[~missing_indices]
+    fixed_effects = fixed_effects.loc[~missing_indices]
+    
+    # Run the model with AbsorbingLS
+    model_absorbed = AbsorbingLS(y, X, absorb=fixed_effects, drop_absorbed=True)
+    #results_absorbed = model_absorbed.fit(cov_type='clustered', clusters=df.index.get_level_values('wid'))  # Clustered standard errors by entity
+    results_absorbed = model_absorbed.fit(cov_type='unadjusted') 
+    print(results_absorbed)
+    
+    
+    # Extract coefficients and standard errors for event_time dummies
+    coefficients = results_absorbed.params.filter(like='event_time')
+    conf_int = results_absorbed.conf_int().filter(like='event_time', axis=0)
+    conf_int.columns = ['lower', 'upper']
+    standard_errors = results_absorbed.std_errors.filter(like='event_time')
+    
+    # Set pandas display options for 4 decimal points
+    pd.options.display.float_format = '{:.4f}'.format
+    
+    # Create a DataFrame for plotting
+    coefficients_df = pd.DataFrame({'coef': coefficients, 'std_err': standard_errors})
+    coefficients_df.index = coefficients_df.index.str.replace('event_time_', '').astype(int)
+    coefficients_df = coefficients_df.sort_index()
+    
+    
+    # Plot the coefficients
+    plt.figure(figsize=(10, 6))
+    plt.errorbar(coefficients_df.index, coefficients_df['coef'], yerr=coefficients_df['std_err'], fmt='o', linestyle='-', capsize=5)
+    plt.axhline(0, color='black', linewidth=1, linestyle='--')
+    plt.xlabel('Event Time')
+    plt.ylabel('Coefficient')
+    plt.title('Employment')
+    plt.grid(True)
+    plt.show()
+    
+    
+    ####################################################################
+    # Earnings
+    
+    worker_panel_balanced['total_earnings_month_sm'].fillna(0, inplace=True)
+    
+    # Define the dependent variable and the independent variables
+    y = worker_panel_balanced['total_earnings_month_sm']
+    X = pd.concat([event_time_dummies, worker_panel_balanced[['age','age_sq']]], axis=1)  # Include the event_time dummies
+    
+    # Define the fixed effects to absorb
+    fixed_effects =worker_panel_balanced[['educ_micro','educ_ind2','educ_layoff_date','foreign','genero','raca_cor']]
+    
+    
+    # There are a few missing values of X
+    missing_indices = X.isna().any(axis=1)
+    y = y.loc[~missing_indices]
+    X = X.loc[~missing_indices]
+    fixed_effects = fixed_effects.loc[~missing_indices]
+    
+    # Run the model with AbsorbingLS
+    model_absorbed = AbsorbingLS(y, X, absorb=fixed_effects, drop_absorbed=True)
+    #results_absorbed = model_absorbed.fit(cov_type='clustered', clusters=df.index.get_level_values('wid'))  # Clustered standard errors by entity
+    results_absorbed = model_absorbed.fit(cov_type='unadjusted') 
+    print(results_absorbed)
+    
+    
+    # Extract coefficients and standard errors for event_time dummies
+    coefficients = results_absorbed.params.filter(like='event_time')
+    conf_int = results_absorbed.conf_int().filter(like='event_time', axis=0)
+    conf_int.columns = ['lower', 'upper']
+    standard_errors = results_absorbed.std_errors.filter(like='event_time')
+    
+    # Set pandas display options for 4 decimal points
+    pd.options.display.float_format = '{:.4f}'.format
+    
+    # Create a DataFrame for plotting
+    coefficients_df = pd.DataFrame({'coef': coefficients, 'std_err': standard_errors})
+    coefficients_df.index = coefficients_df.index.str.replace('event_time_', '').astype(int)
+    coefficients_df = coefficients_df.sort_index()
+    
+    
+    # Plot the coefficients
+    plt.figure(figsize=(10, 6))
+    plt.errorbar(coefficients_df.index, coefficients_df['coef'], yerr=coefficients_df['std_err'], fmt='o', linestyle='-', capsize=5)
+    plt.axhline(0, color='black', linewidth=1, linestyle='--')
+    plt.xlabel('Event Time')
+    plt.ylabel('Coefficient')
+    plt.title('Earnings')
+    plt.grid(True)
+    plt.show()
+    
 
 
 ############################################################################
@@ -789,11 +801,15 @@ plt.show()
 
 # Merge on P_ig and E_N
 E_N_gamma_given_iota['market_size_tercile'] = pd.qcut(E_N_gamma_given_iota['E_N_gamma_given_iota'], q=3, labels=['low', 'medium', 'high'])
+mkt_size_df_worker['market_size_tercile_ind2_micro'] = pd.qcut(mkt_size_df_worker['count'], q=3, labels=['low', 'medium', 'high'])
+
 worker_panel_balanced = worker_panel_balanced.merge(E_N_gamma_given_iota, on='iota', how='left', validate='m:1')
+worker_panel_balanced = worker_panel_balanced.merge(mkt_size_df_worker.drop(columns='count'), left_on=['ind2','code_micro'], right_on=['ind2','code_micro'], how='left', validate='m:1')
+
 
 
 def event_studies_by_mkt_size(worker_panel_balanced, y_var, continuous_controls, fixed_effects_cols, 
-                              market_size_var, omitted_category, print_regression=False, savefig=None):
+                              market_size_var, omitted_category, baseline_category = 'low', print_regression=False, savefig=None):
     """
     Perform event studies by market size.
     
@@ -812,11 +828,13 @@ def event_studies_by_mkt_size(worker_panel_balanced, y_var, continuous_controls,
     - coefficients_df_high: DataFrame of coefficients for high market size
     """
     
+    # Exclude rows where event_time = 0
+    worker_panel_filtered = worker_panel_balanced[worker_panel_balanced['event_time'] != 0].copy()
     
     # Create dummy variables for market size and event_time
-    market_size_dummies = pd.get_dummies(worker_panel_balanced[market_size_var], prefix='market_size', drop_first=False)
+    market_size_dummies = pd.get_dummies(worker_panel_filtered[market_size_var], prefix='market_size', drop_first=False)
     market_size_dummies = market_size_dummies.drop(columns=[f'market_size_{omitted_category}'])
-    event_time_dummies = pd.get_dummies(worker_panel_balanced['event_time'], prefix='event_time').drop(columns=['event_time_0'])
+    event_time_dummies = pd.get_dummies(worker_panel_filtered['event_time'], prefix='event_time')
     
     # Get the names of the non-omitted categories
     non_omitted_categories = [col.replace('market_size_', '') for col in market_size_dummies.columns]
@@ -830,16 +848,16 @@ def event_studies_by_mkt_size(worker_panel_balanced, y_var, continuous_controls,
         interaction_terms[category] = interaction_terms[category].add_prefix(f'{category}_')
     
     # Combine all independent variables
-    X = pd.concat([*interaction_terms.values(), worker_panel_balanced[continuous_controls]], axis=1)
+    X = pd.concat([*interaction_terms.values(), worker_panel_filtered[continuous_controls]], axis=1)
     
     # Add a constant
     X = sm.add_constant(X)
     
     # Define the dependent variable
-    y = worker_panel_balanced[y_var]
+    y = worker_panel_filtered[y_var]
     
     # Define the fixed effects to absorb
-    fixed_effects = worker_panel_balanced[fixed_effects_cols]
+    fixed_effects = worker_panel_filtered[fixed_effects_cols]
     
     # Handle missing values
     missing_indices = X.isna().any(axis=1)
@@ -850,7 +868,7 @@ def event_studies_by_mkt_size(worker_panel_balanced, y_var, continuous_controls,
     # Run the model with AbsorbingLS
     model_absorbed = AbsorbingLS(y, X, absorb=fixed_effects, drop_absorbed=True)
     results_absorbed = model_absorbed.fit(cov_type='unadjusted')
-    if print_regression==True:
+    if print_regression:
         print(results_absorbed)
     
     # Extract coefficients and standard errors for event_time dummies
@@ -864,11 +882,14 @@ def event_studies_by_mkt_size(worker_panel_balanced, y_var, continuous_controls,
                                                'std_err': standard_errors[category]})
                        for category in non_omitted_categories}
     
+    # Normalize coefficients
+    baseline_coef = coefficients_df[baseline_category].loc[f'{baseline_category}_event_time_-1', 'coef']
+    
     for category in non_omitted_categories:
         coefficients_df[category].index = coefficients_df[category].index.str.replace(f'{category}_event_time_', '').astype(int)
         coefficients_df[category] = coefficients_df[category].sort_index()
-        #print(f"{category.capitalize()} Market Size Coefficients")
-        #print(coefficients_df[category])
+        # Normalize coefficients
+        coefficients_df[category]['coef'] -= baseline_coef
     
     # Plot the coefficients
     plt.figure(figsize=(10, 6))
@@ -891,6 +912,7 @@ def event_studies_by_mkt_size(worker_panel_balanced, y_var, continuous_controls,
     
     return results_absorbed, coefficients_df
 
+
 # Make figure for employment:
 results, coef_df = event_studies_by_mkt_size(
     worker_panel_balanced,
@@ -901,13 +923,26 @@ results, coef_df = event_studies_by_mkt_size(
     omitted_category='medium'
 )
 
+
+
+# Make figure for employment (MY mkt size def'n):
+results, coef_df = event_studies_by_mkt_size(
+    worker_panel_balanced,
+    y_var='employment_indicator',
+    continuous_controls=['age', 'age_sq'],
+    fixed_effects_cols=['educ_micro', 'educ_ind2', 'educ_layoff_date', 'foreign', 'genero', 'raca_cor'],
+    market_size_var='market_size_tercile_ind2_micro',
+    omitted_category='medium'
+)
+
+
 # Make figure for total earnings:
 results, coef_df = event_studies_by_mkt_size(
     worker_panel_balanced,
     y_var='total_earnings_month_sm',
     continuous_controls=['age', 'age_sq'],
     fixed_effects_cols=['educ_micro', 'educ_ind2', 'educ_layoff_date', 'foreign', 'genero', 'raca_cor'],
-    market_size_var='market_size_tercile',
+    market_size_var='market_size_tercile_ind2_micro',
     omitted_category='medium'
 )
 
