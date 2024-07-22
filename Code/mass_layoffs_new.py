@@ -510,11 +510,13 @@ variables = ['id_firm', 'cbo2002', 'clas_cnae20', 'ind2', 'code_micro', 'gamma']
 for var in variables:
     pre_col = f'pre_layoff_{var}'
     post_col = f'post_layoff_{var}'
+    same_first_col = f'same_first_{var}'
     same_col = f'same_{var}'
     
     worker_panel_balanced[pre_col] = worker_panel_balanced['wid'].map(pre_layoff[var])
     worker_panel_balanced[post_col] = worker_panel_balanced['wid'].map(post_layoff[var])
-    worker_panel_balanced[same_col] = (worker_panel_balanced[pre_col] == worker_panel_balanced[post_col]).astype(int)
+    worker_panel_balanced[same_first_col] = (worker_panel_balanced[pre_col] == worker_panel_balanced[post_col]).astype(int)
+    worker_panel_balanced[same_col] = (worker_panel_balanced[pre_col] == worker_panel_balanced[var]).astype(int)
 
 # Get first reemployment time
 first_reemployment = worker_panel_balanced[(worker_panel_balanced['event_time'] > 0) & 
@@ -528,8 +530,8 @@ worker_panel_balanced['first_reemployment_time'] = worker_panel_balanced['wid'].
 # Drop people who are employed at the same firm right after layoff. This will include some poeple who seem to continue to be employed after the layoff date. 
 
 # Step 1: Compute the fraction of people with same_firm == 1 for each pre-layoff firm
-firm_fractions = worker_panel_balanced.groupby('pre_layoff_id_firm')['same_id_firm'].mean()
-# Step 2: Identify firms where more than 50% of people have same_firm == 1
+firm_fractions = worker_panel_balanced.groupby('pre_layoff_id_firm')['same_first_id_firm'].mean()
+# Step 2: Identify firms where more than 50% of people have same_first_firm == 1
 firms_to_drop = firm_fractions[firm_fractions > 0.5].index
 
 # Step 3: Drop all rows corresponding to these firms
@@ -551,7 +553,6 @@ reemployed_firms_to_drop = reemployment_fractions.unstack().max(axis=1)
 reemployed_firms_to_drop = reemployed_firms_to_drop[reemployed_firms_to_drop > 0.8].index
 
 # Step 6: Drop all rows corresponding to these firms where >50% of laid off workers are reemployed at the same firm
-worker_panel_balanced = worker_panel_balanced[~worker_panel_balanced['pre_layoff_id_firm'].isin(reemployed_firms_to_drop)]
 '''
 
 
@@ -573,8 +574,14 @@ worker_panel_balanced['educ_layoff_date']   = pd.Categorical(worker_panel_balanc
 # Replace NAs with 0 for earnings and employment
 worker_panel_balanced['employment_indicator'].fillna(0, inplace=True)
 worker_panel_balanced['total_earnings_month'].fillna(0, inplace=True)
+worker_panel_balanced['vl_rem'].fillna(0, inplace=True)
 
-worker_panel_balanced['deflator'] = worker_panel_balanced['rem_med_r'] / worker_panel_balanced['rem_med_sm']
+# Compute the ratio of actual wages to wages in terms of the minimum wage to get a deflator to convert vl_rem to vl_rem_sm
+worker_panel_balanced['ratio'] = worker_panel_balanced['rem_med_r'] / worker_panel_balanced['rem_med_sm']
+deflator = worker_panel_balanced.groupby('calendar_date')['ratio'].mean().reset_index(name='deflator')
+worker_panel_balanced.drop(columns='ratio', inplace=True)
+worker_panel_balanced = worker_panel_balanced.merge(deflator, on='calendar_date', how='left', validate='m:1')
+
 worker_panel_balanced['vl_rem_sm'] = worker_panel_balanced['vl_rem']/worker_panel_balanced['deflator']
 worker_panel_balanced['total_earnings_month_sm'] = worker_panel_balanced['total_earnings_month']/worker_panel_balanced['deflator']
 
@@ -801,6 +808,8 @@ if run_preliminary_figures==True:
 
 # Merge on P_ig and E_N
 E_N_gamma_given_iota['market_size_tercile'] = pd.qcut(E_N_gamma_given_iota['E_N_gamma_given_iota'], q=3, labels=['low', 'medium', 'high'])
+# Drop markets with fewer than 10 workers
+mkt_size_df_worker = mkt_size_df_worker.loc[mkt_size_df_worker['count']>=10]
 mkt_size_df_worker['market_size_tercile_ind2_micro'] = pd.qcut(mkt_size_df_worker['count'], q=3, labels=['low', 'medium', 'high'])
 
 worker_panel_balanced = worker_panel_balanced.merge(E_N_gamma_given_iota, on='iota', how='left', validate='m:1')
@@ -938,16 +947,16 @@ results, coef_df = event_studies_by_mkt_size(
 
 # Make figure for total earnings:
 results, coef_df = event_studies_by_mkt_size(
-    worker_panel_balanced,
+    worker_panel_balanced.loc[worker_panel_balanced.total_earnings_month_sm.notna()],
     y_var='total_earnings_month_sm',
     continuous_controls=['age', 'age_sq'],
     fixed_effects_cols=['educ_micro', 'educ_ind2', 'educ_layoff_date', 'foreign', 'genero', 'raca_cor'],
-    market_size_var='market_size_tercile_ind2_micro',
+    market_size_var='market_size_tercile',
     omitted_category='medium'
 )
 
 # Make figure for earnings at primary job, restricting to those with earnings between 1 and 100x the minimum wage
-worker_panel_balanced['earnings_primary_job'] = worker_panel_balanced['vl_rem_sm'].fillna(0)
+worker_panel_balanced['earnings_primary_job'] = worker_panel_balanced['vl_rem_sm']
 #mask = worker_panel_balanced['total_earnings_month_sm'].between(1, 100, inclusive='both')
 mask = worker_panel_balanced['total_earnings_month_sm']<20
 
@@ -961,7 +970,31 @@ results, coef_df = event_studies_by_mkt_size(
 )
 
 
+
+# Make figures for staying in the same market, ind, occ, micro, etc:
+vars = ['same_cbo2002', 'same_clas_cnae20', 'same_ind2', 'same_code_micro', 'same_gamma']
+for v in vars:
+    print(v)
+    results, coef_df = event_studies_by_mkt_size(
+        worker_panel_balanced.loc[worker_panel_balanced.total_earnings_month_sm.notna()],
+        y_var=v,
+        continuous_controls=['age', 'age_sq'],
+        fixed_effects_cols=['educ_micro', 'educ_ind2', 'educ_layoff_date', 'foreign', 'genero', 'raca_cor'],
+        market_size_var='market_size_tercile',
+        omitted_category='medium'
+    )
+
 # Restricted to college-educated workers only
+results, coef_df = event_studies_by_mkt_size(
+    worker_panel_balanced.loc[( worker_panel_balanced['total_earnings_month_sm']<20) & (worker_panel_balanced['educ']=='College')],
+    y_var='employment_indicator',
+    continuous_controls=['age', 'age_sq'],
+    fixed_effects_cols=['educ_micro', 'educ_ind2', 'educ_layoff_date', 'foreign', 'genero', 'raca_cor'],
+    market_size_var='market_size_tercile',
+    omitted_category='medium',
+    savefig=root + 'Results/employment_indicator_after_layoff_by_market_size_tercile_college.pdf'
+)
+
 results, coef_df = event_studies_by_mkt_size(
     worker_panel_balanced.loc[( worker_panel_balanced['total_earnings_month_sm']<20) & (worker_panel_balanced['educ']=='College')],
     y_var='earnings_primary_job',
@@ -972,8 +1005,17 @@ results, coef_df = event_studies_by_mkt_size(
     savefig=root + 'Results/earnings_primary_job_after_layoff_by_market_size_tercile_college.pdf'
 )
 
-
 # Restricted to high school-educated workers only
+results, coef_df = event_studies_by_mkt_size(
+    worker_panel_balanced.loc[( worker_panel_balanced['total_earnings_month_sm']<20) & (worker_panel_balanced['educ']=='HS')],
+    y_var='employment_indicator',
+    continuous_controls=['age', 'age_sq'],
+    fixed_effects_cols=['educ_micro', 'educ_ind2', 'educ_layoff_date', 'foreign', 'genero', 'raca_cor'],
+    market_size_var='market_size_tercile',
+    omitted_category='medium',
+    savefig=root + 'Results/employment_indicator_after_layoff_by_market_size_tercile_college.pdf'
+)
+
 results, coef_df = event_studies_by_mkt_size(
     worker_panel_balanced.loc[( worker_panel_balanced['total_earnings_month_sm']<20) & (worker_panel_balanced['educ']=='HS')],
     y_var='earnings_primary_job',
