@@ -118,3 +118,32 @@ def merge_aguinaldo_onet(df, aguinaldo_dir):
     )
     return df
   
+  
+
+  
+''' Explore correlations between the Aguinaldo factors
+# https://chatgpt.com/c/e64c9c7f-e448-4f53-8694-9639f859207e
+
+import pandas as pd
+
+# Assuming onet_merged is your DataFrame
+correlation_matrix = onet_merged.corr()
+
+
+from scipy.cluster.hierarchy import linkage, dendrogram
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Compute the linkage matrix
+linkage_matrix = linkage(correlation_matrix, method='ward')
+
+# Plot the dendrogram
+plt.figure(figsize=(10, 7))
+dendrogram(linkage_matrix, labels=correlation_matrix.columns, leaf_rotation=90)
+plt.title('Hierarchical Clustering Dendrogram')
+plt.xlabel('Feature')
+plt.ylabel('Distance')
+plt.show()
+
+
+'''
