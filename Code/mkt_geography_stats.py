@@ -1,34 +1,55 @@
-<<<<<<< HEAD
-=======
+
 from datetime import datetime
 import pandas as pd
 import numpy as np
 import os
 import sys
 import matplotlib.pyplot as plt
-import geobr
 import pyproj # for converting geographic degree measures of lat and lon to the UTM system (i.e. in meters)
 from scipy.integrate import simps # to calculate the AUC for the decay function
-import binsreg
 import statsmodels.api as sm
 from tqdm import tqdm # to calculate progress of some operations for geolocation
 import gc
 import glob
+import platform
+import sys
+import getpass
 
 rcounts = []
 rc = 0
 
 # DIRECTORY WHERE THE DATA IS
 # Automatically chooses the folder between windows vs linux servers
-if os.name == 'nt':
-    homedir = os.path.expanduser('//storage6/usuarios')  # for running this code on windows
-else:
-    homedir = os.path.expanduser('~/labormkt')
+homedir = os.path.expanduser('~')
+os_name = platform.system()
+if getpass.getuser()=='p13861161':
+    if os_name == 'Windows':
+        print("Running on Windows") 
+        root = "//storage6/usuarios/labormkt_rafaelpereira/NetworksGit/"
+        rais = "//storage6/bases/DADOS/RESTRITO/RAIS/"
+        sys.path.append(root + 'Code/Modules')
+    elif os_name == 'Linux':
+        print("Running on Linux") 
+        root = "/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/"
+        rais = "~/rais/RAIS/"
+        sys.path.append(root + 'Code/Modules')
+        # These all require torch
+        import torch
+        from torch_mle import torch_mle
+        import bisbm
+        from mle_load_fulldata import mle_load_fulldata
+        from normalization_k import normalization_k
+        from alphas_func import load_alphas
+        import solve_model_functions as smf
+        from correlogram import correlogram
+        import binsreg
+        import geobr
 
+if getpass.getuser()=='jfogel':
+    print("Running on Jamie's home laptop")
+    root = homedir + '/NetworksGit/'
+    sys.path.append(root + 'Code/Modules')
 
-root = homedir + '/labormkt_rafaelpereira/NetworksGit/'
-sys.path.append(root + 'Code/Modules')
-os.chdir(root)
 
 from pull_one_year import pull_one_year
 
@@ -51,7 +72,7 @@ for l in range(0,1):
     wrename['worker_blocks_level_'+str(l)] = 'iota'
 
 #modelname = '3states_2009to2011_mcmc'
-modelname = '3states_2009to2011'
+modelname = '3states_2013to2016_mcmc'
 
 gammas = pd.read_csv(root + '/Data/derived/sbm_output/model_' + modelname + '_jblocks.csv', usecols=jcolumns).rename(columns=jrename)
 iotas  = pd.read_csv(root + '/Data/derived/sbm_output/model_' + modelname + '_wblocks.csv', usecols=wcolumns).rename(columns=wrename)
@@ -66,13 +87,12 @@ run_pull=False
 run_append = False
 run_create_earnings_panel = False
 maxrows=None
-modelname = '3states_2009to2011'
 filename_stub = "panel_"+modelname
-rais_filename_stub =  '~/rais/RAIS/csv/brasil' 
+rais_filename_stub =  f'{rais}/csv/brasil' 
 #rais_filename_stub = root + './Data/raw/synthetic_data_'
 
-firstyear_sbm = 2009
-lastyear_sbm  = 2011
+firstyear_sbm = 2013
+lastyear_sbm  = 2016
 firstyear_panel = firstyear_sbm
 lastyear_panel  = lastyear_sbm
 state_codes = [31, 33, 35]
@@ -83,7 +103,7 @@ for year in range(firstyear_panel,lastyear_panel+1):
     if year==firstyear_panel:
         raw = df
     else:
-        raw = df.append(raw, sort=True)
+        raw = pd.concat([raw, df], sort=True)
     del df
 
 #raw = raw.iloc[:300000,:]
@@ -148,8 +168,8 @@ raw['sector_IBGE'].loc[(90<=raw['ind2']) & (raw['ind2'] <=97)] = 15
 # Recode education variable to approximately reflect years of schooling
 raw['grau_instr'] = raw['grau_instr'].replace({1:1, 2:3, 3:5, 4:7, 5:9, 6:10, 7:12, 8:14, 9:16, 10:18, 11:21})
 
-###raw.to_pickle(root + '/Data/derived/mkt_geography_raw.p')
-#raw = pd.read_pickle(root + '/Data/derived/mkt_geography_raw.p')
+raw.to_pickle(root + f'/Data/derived/mkt_geography_raw_{modelname}.p', protocol=4)
+raw = pd.read_pickle(root + f'/Data/derived/mkt_geography_raw_{modelname}.p')
 
 # Dropping NaNs iotas or gammas
 # 1st, printing the % of the observations with missing iota or gamma
@@ -190,6 +210,11 @@ munis = pd.concat([muni_sp, muni_rj, muni_mg], ignore_index=True)
 munis['lon_munic'] = munis.geometry.centroid.x
 munis['lat_munic'] = munis.geometry.centroid.y
 munis['codemun'] = munis.code_muni//10
+
+# geobr not installed on Stata server so I added this to allow me to run it on linux and then load it elsewhere. Also convert from geopandas to regular pandas df
+munis = pd.DataFrame(munis)
+munis.to_pickle(root + f'/Data/derived/munis_{modelname}.p')
+munis = pd.read_pickle(root + f'/Data/derived/munis_{modelname}.p')
 
 # Converting coordinates to UTM, so the units are in meters
 # Function to convert geographic coordinates to UTM using a fixed zone 23S for Sao Paulo
@@ -252,7 +277,7 @@ geo_list = []
 for year in years:
     print(str(year))
     # Read the parquet file for the given year and rename columns
-    geo = pd.read_parquet(f'~/rais/RAIS/geocode/rais_geolocalizada_{year}.parquet')
+    geo = pd.read_parquet(f'{rais}/geocode/rais_geolocalizada_{year}.parquet')
     geo['year'] = year
     geo.rename(columns={'lon': 'lon_estab', 'lat': 'lat_estab'}, inplace=True)
     # Append the DataFrame to the list
@@ -335,8 +360,8 @@ for l in ['lat_', 'lon_', 'utm_lat_', 'utm_lon_']:
     print('Missings after replacement with ' + l + 'munic, after inputation')
     print(raw[l + 'estab'].isna().sum(),'/',raw.shape[0])
 
-#raw.to_pickle(root + '/Data/derived/mkt_geography_raw.p')
-#raw = pd.read_pickle(root + '/Data/derived/mkt_geography_raw.p')
+raw.to_pickle(root + f'/Data/derived/mkt_geography_raw_{modelname}.p')
+#raw = pd.read_pickle(root + f'/Data/derived/mkt_geography_raw_{modelname}.p')
 
 
 ###########################################
@@ -591,7 +616,7 @@ def save_dataframe_in_chunks(df, file_path, chunk_size=100000):
         print(f"Saved chunk {i+1}/{num_chunks} to {chunk_file_path}")
 
 # Save the raw DataFrame in chunks
-save_dataframe_in_chunks(raw, root + '/Data/derived/mkt_geography_raw_', chunk_size=int(2e7))
+save_dataframe_in_chunks(raw, root + f'/Data/derived/mkt_geography_raw_{modelname}_', chunk_size=int(2e7))
 
 # Get a list of all chunk files
 def load_dataframe_in_chunks(file_path_pattern):
@@ -600,7 +625,7 @@ def load_dataframe_in_chunks(file_path_pattern):
     raw_chunks = [pd.read_pickle(chunk_file) for chunk_file in chunk_files]
     return pd.concat(raw_chunks, ignore_index=True)
 
-#raw = load_dataframe_in_chunks(root + '/Data/derived/mkt_geography_raw_chunk_*.p')
+#raw = load_dataframe_in_chunks(root + f'/Data/derived/mkt_geography_raw_{modelname}_chunk_*.p')
 
 
 ##########################################
@@ -953,7 +978,7 @@ rcounts.append([rc,raw.shape[0]])
 iotas_w_attributes['iota_rescaled'] = iotas_w_attributes['iota'] - iotas_w_attributes['iota'].min() + 1
 
 # load occupation tables per iota
-occ_tables = pd.read_csv(root + 'Data/derived/occ_counts/panel_3states_2009to2011_occ_counts_by_i_level_0.csv')
+occ_tables = pd.read_csv(root + 'Data/derived/occ_counts/panel_3states_2013to2016_new_occ_counts_by_i_level_0.csv')
 
 def occ_tables_print(iota_rescaled_values, qty = 5, print_table=True):
     for iota in iota_rescaled_values:
@@ -979,6 +1004,8 @@ get_extreme_iotas(var_sort= 'mean_monthly_earnings', other_var = ['modal_occ4','
 get_extreme_iotas(var_sort= 'std_distance', other_var = ['modal_occ4','mean_monthly_earnings','std_distance'], ascending=True, iota_var = 'iota_rescaled', qty =5, print_occ_count=True)
 
 get_extreme_iotas(var_sort= 'educ_years', other_var = ['modal_occ4','mean_monthly_earnings','std_distance'], ascending=True, iota_var = 'iota_rescaled', qty =5, print_occ_count=True)
+
+iotas_w_attributes.to_pickle(root + f'/Data/derived/iotas_w_attributes_temp_{modelname}.p')
 
 
 ##########################################
@@ -1020,7 +1047,7 @@ iota_counts = raw['iota'].value_counts().reset_index()
 iota_counts.columns = ['iota', 'num_wid_jids_total']
 iotas_w_attributes = pd.merge(iotas_w_attributes, iota_counts, on='iota', how='left')
 
-iotas_w_attributes.to_pickle(root + '/Data/derived/iotas_w_attributes_geo_' + geocode_unit + '.p')
+iotas_w_attributes.to_pickle(root + '/Data/derived/iotas_w_attributes_geo_' + geocode_unit + f'_{modelname}.p')
 #iotas_w_attributes = pd.read_pickle(root + '/Data/derived/iotas_w_attributes.p')
 
 
@@ -1123,8 +1150,12 @@ def generate_iota_plots(raw, iotas_w_attributes, group_column, value_column, lat
         plt.close()
 
 # output directory
-output_dir = root + 'Results/iota_summary_stats/geo_' + geocode_unit + '/maps/'
-img_path = root + 'Results/iota_summary_stats/geo_' + geocode_unit + '/decay_plots/'
+output_dir = root + 'Results/iota_summary_stats/geo_' + geocode_unit + f'/maps/{modelname}'
+img_path = root + 'Results/iota_summary_stats/geo_' + geocode_unit + f'/decay_plot/{modelname}/'
+
+# Create the directories if they don't exist
+os.makedirs(output_dir, exist_ok=True)
+os.makedirs(img_path, exist_ok=True)
 
 raw['workers'] = 1
 # Command to generate the plots
