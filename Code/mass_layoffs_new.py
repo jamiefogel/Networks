@@ -19,6 +19,9 @@ from linearmodels.iv import AbsorbingLS
 from linearmodels.panel import PanelOLS
 import statsmodels.api as sm
 import matplotlib.pyplot as plt
+from tqdm import tqdm # to calculate progress of some operations for geolocation
+import pyproj # for converting geographic degree measures of lat and lon to the UTM system (i.e. in meters)
+from scipy.integrate import simps # to calculate the AUC for the decay function
 
 
 nrows = None
@@ -109,6 +112,102 @@ def process_iotas_gammas(root, iotas, gammas):
     E_N_gamma_given_iota = E_N_gamma_given_iota.reset_index()
     E_N_gamma_given_iota['iota'] = E_N_gamma_given_iota['iota'].astype(int)
     return E_N_gamma_given_iota, appended
+  
+    
+  
+''' Exploratory code for computing spatial variances. This is taken from lines 230-300 of mkt_geography_stats.py
+
+
+
+# Converting coordinates to UTM, so the units are in meters
+# Function to convert geographic coordinates to UTM using a fixed zone 23S for Sao Paulo
+# Create the transformer object for UTM zone 23S
+transformer = pyproj.Transformer.from_crs("epsg:4326", "epsg:32723", always_xy=True)
+# Function to convert geographic coordinates to UTM
+def convert_to_utm(lon, lat):
+    return transformer.transform(lon, lat)
+
+
+GEOLOCATION FOR RAIS ESTABLISHMENTS
+
+# filepath: \\storage6\bases\DADOS\RESTRITO\RAIS\geocode
+# file of type: rais_geolocalizada_2009
+years = appended.year.unique().tolist()
+
+high_precision_cat = ['POI',
+                        'PointAddress',
+                        'StreetAddress',
+                        'StreetAddressExt',
+                        'StreetName',
+                        'street_number',
+                        'route',
+                        'airport',
+                        'amusement_park',
+                        'intersection',
+                        'premise',
+                        'town_square']
+
+# Initialize an empty list to hold the DataFrames
+geo_list = []
+
+for year in years:
+    print(str(year))
+    # Read the parquet file for the given year and rename columns
+    geo = pd.read_parquet(f'{rais}/geocode/rais_geolocalizada_{year}.parquet')
+    geo['year'] = year
+    geo.rename(columns={'lon': 'lon_estab', 'lat': 'lat_estab'}, inplace=True)
+    # Drop large columns that we don't need to save memory
+    geo.drop(columns=['Match_addr','Match_type','h3_res8','h3_res9'], inplace=True)
+    # Append the DataFrame to the list
+    geo_list.append(geo)
+
+# Concatenate all the DataFrames in the list into a single DataFrame
+geo_estab = pd.concat(geo_list, ignore_index=True)
+del geo, geo_list 
+
+
+# Initialize lists to store the UTM coordinates
+utm_lon = []
+utm_lat = []
+
+# Convert latitude and longitude to UTM with progress indicator
+for lon, lat in tqdm(zip(geo_estab['lon_estab'].values, geo_estab['lat_estab'].values), total=len(geo_estab)):
+    utm_x, utm_y = convert_to_utm(lon, lat)
+    utm_lon.append(utm_x)
+    utm_lat.append(utm_y)
+
+# Assign the UTM coordinates back to the DataFrame
+geo_estab['utm_lon_estab'] = utm_lon
+geo_estab['utm_lat_estab'] = utm_lat
+
+# Drop duplicates based on the specified columns in place
+geo_estab.drop_duplicates(subset=['year', 'id_estab', 'lat_estab', 'lon_estab', 'Addr_type', 'h3_res7'], inplace=True)
+# Optionally, reset the index in place
+geo_estab.reset_index(drop=True, inplace=True)
+
+# Group by 'year' and 'id_estab' and count the occurrences
+duplicates = geo_estab.groupby(['year','id_estab']).size().reset_index(name='count')
+print((duplicates.iloc[:,2].value_counts() /  duplicates.iloc[:,2].sum()).round(4))
+geo_estab = geo_estab.merge(duplicates, on=['year', 'id_estab'], how='left')
+
+geo_estab['is_high_precision'] = geo_estab['Addr_type'].isin(high_precision_cat).astype(int)
+
+geo_estab[(geo_estab['count'] > 1) & (geo_estab['is_high_precision'] == 0)].shape[0] / (geo_estab['count'] > 1).sum()
+
+geo_estab = geo_estab.sort_values('is_high_precision', ascending=False).drop_duplicates(subset=['year', 'id_estab'], keep='first')
+geo_estab = geo_estab.drop_duplicates(subset=['year', 'id_estab'])
+
+
+
+'''
+  
+    
+  
+    
+  
+    
+  
+    
   
 def compute_skill_variance(appended, root):
     # Merge on Aguinaldo's O*NET factors
@@ -407,7 +506,6 @@ worker_panel_long.sort_values(by=['wid', 'year', 'month'], inplace=True)
 worker_panel_long['calendar_date'] = pd.to_datetime(worker_panel_long[['year','month']].assign(day=1))
 
 
-
 # Step 3: Flag months where the worker is employed at the given establishment
 worker_panel_long['employment_indicator'] = (
     (worker_panel_long['data_adm'] <= worker_panel_long['calendar_date']) & 
@@ -421,7 +519,7 @@ worker_panel_long['employment_indicator'] = (
 worker_panel_long = worker_panel_long.merge(closure_df[['id_estab', 'data_encerramento']], on='id_estab', how='left', validate='m:1', indicator=True)
 worker_panel_long.drop(columns='_merge', inplace=True)
 
-# Create flag for worker being employed at estab in month in which mass layoff occurred
+# Create flag for worker being employed at estab in month in which mass layoff occurred. This is defined as the layoff firm being one's primary (highest earnings) firm in the month in which the firm closure occurred. 
 worker_panel_long['mass_layoff_flag'] = (worker_panel_long['calendar_date'].dt.year == worker_panel_long['data_encerramento'].dt.year) & (worker_panel_long['calendar_date'].dt.month == worker_panel_long['data_encerramento'].dt.month) & (worker_panel_long['employment_indicator']==1)
 
 # Create a variable within each wid containing the first month in which the worker was exposed to an establishment closure
@@ -463,6 +561,16 @@ dates = worker_panel_balanced['base_date'].values.astype('datetime64[M]')
 adjusted_dates = dates + np.array(worker_panel_balanced['event_time'], dtype='timedelta64[M]')
 worker_panel_balanced['calendar_date'] = adjusted_dates
 
+
+# Calculate tenure for each worker at the time of displacement
+worker_panel_balanced['tenure_years'] = (worker_panel_balanced['mass_layoff_month'] - worker_panel_balanced['data_adm']).dt.days / 365.25
+
+# Calculate tenure at event_time = -1 and merge back to all observations
+tenure_at_minus_one = worker_panel_balanced.loc[worker_panel_balanced['event_time'] == -1,['wid','mass_layoff_month','data_adm']]
+tenure_at_minus_one['tenure_years'] = (tenure_at_minus_one['mass_layoff_month'] - tenure_at_minus_one['data_adm']).dt.days / 365.25
+worker_panel_balanced = worker_panel_balanced.merge(tenure_at_minus_one[['wid', 'tenure_years']], on='wid', how='left')
+
+# Filter the sample to include only workers with at least 1 year of tenure
 
 # Check for people who are employed at the pre-layoff firm post-layoff. Drop these people. Also also identify each worker's first post-layoff firm and identify layoff firms where >50% of laid off workers end up at the same post-layoff firm. These should not be counted as true layoffs. 
 
@@ -525,35 +633,56 @@ worker_panel_balanced['first_reemployment_time'] = worker_panel_balanced['wid'].
 
 
 
+
+# Identify and workers who are employed at the "layoff firm after the layoff occurred and then drop them
+wids_to_drop = worker_panel_balanced.loc[(worker_panel_balanced['same_id_firm'] == 1) & (worker_panel_balanced['event_time'] > 0), 'wid'].unique()
+worker_panel_balanced_filtered = worker_panel_balanced[~worker_panel_balanced['wid'].isin(wids_to_drop)]
+
+
 #####
 # Identify firms where >50% of people end up reemployed at the same firm (some of this may be the firm closure dates occurring before people actually leave the firm)
 # Drop people who are employed at the same firm right after layoff. This will include some poeple who seem to continue to be employed after the layoff date. 
 
+
+worker_panel_balanced['same_id_firm']
+
 # Step 1: Compute the fraction of people with same_firm == 1 for each pre-layoff firm
-firm_fractions = worker_panel_balanced.groupby('pre_layoff_id_firm')['same_first_id_firm'].mean()
-# Step 2: Identify firms where more than 50% of people have same_first_firm == 1
+firm_fractions = worker_panel_balanced.groupby('pre_layoff_id_firm')['p_layoff_id_firm'].mean()
+# Step 2: Identify firms where more than 50% of people have same_first_id_firm == 1
 firms_to_drop = firm_fractions[firm_fractions > 0.5].index
 
 # Step 3: Drop all rows corresponding to these firms
 worker_panel_balanced = worker_panel_balanced[~worker_panel_balanced['pre_layoff_id_firm'].isin(firms_to_drop)]
 
-''' XX I don't trust this section yet. Need to debug
-# Supplementary steps to identify and drop firms where >80% of laid off workers end up employed at the same firm as each other post-layoff
 
-# Step 4: Compute the fraction of people reemployed at the same firm post-layoff
-post_layoff_firm_counts = worker_panel_balanced.groupby(['pre_layoff_id_firm', 'post_layoff_firm']).size()
-pre_layoff_id_firm_counts = worker_panel_balanced.groupby('pre_layoff_id_firm').size()
 
-# Calculate the fraction of people reemployed at the same firm post-layoff for each pre-layoff firm
-reemployment_fractions = post_layoff_firm_counts / pre_layoff_id_firm_counts
 
-# Step 5: Identify pre-layoff firms where more than 80% of people are reemployed at the same firm post-layoff
-# Unstack to get the fractions as columns, then apply the threshold check
-reemployed_firms_to_drop = reemployment_fractions.unstack().max(axis=1)
-reemployed_firms_to_drop = reemployed_firms_to_drop[reemployed_firms_to_drop > 0.8].index
 
-# Step 6: Drop all rows corresponding to these firms where >50% of laid off workers are reemployed at the same firm
-'''
+
+# Supplementary steps to identify and drop firms where >50% of laid off workers end up employed at the same firm as each other post-layoff
+
+# Step 1: Count the number of workers moving to each post_layoff_id_firm for each pre_layoff_id_firm
+grouped = worker_panel_balanced.loc[worker_panel_balanced.event_time==0].groupby(['pre_layoff_id_firm', 'post_layoff_id_firm']).size().reset_index(name='counts')
+
+# Step 2: Calculate the total number of workers for each pre_layoff_id_firm
+total_workers = grouped.groupby('pre_layoff_id_firm')['counts'].sum().reset_index(name='total')
+
+# Step 3: Merge to calculate the share of each post_layoff_id_firm
+grouped = grouped.merge(total_workers, on='pre_layoff_id_firm')
+grouped['share'] = grouped['counts'] / grouped['total']
+
+# Step 4: Flag pre_layoff_id_firm where any post_layoff_id_firm has a share > 50%
+flagged_firms = grouped[grouped['share'] > 0.5]['pre_layoff_id_firm'].unique()
+
+# Display the flagged firms
+print("Firms where a single post-layoff firm has >50% share:")
+print(flagged_firms)
+
+worker_panel_balanced = worker_panel_balanced[~worker_panel_balanced['pre_layoff_id_firm'].isin(flagged_firms)]
+
+
+
+
 
 
 # Recode the 'grau_instr' variable into coarser bins
@@ -587,8 +716,6 @@ worker_panel_balanced['total_earnings_month_sm'] = worker_panel_balanced['total_
 
 
 
-
-
 #######################################
 # Preliminary figures
 
@@ -608,6 +735,8 @@ if run_preliminary_figures==True:
     plt.grid(True)
     plt.savefig(root + 'Results/employment_after_layoff.pdf', format='pdf')
     plt.show()
+    
+    
     
     
     # Create a time series plot
@@ -644,9 +773,16 @@ if run_preliminary_figures==True:
     
     
     
-    
-    
-    
+    # Histogram of calendar_date for event_time = 0
+    plt.subplot(1, 2, 1)
+    plt.hist(worker_panel_balanced.loc[worker_panel_balanced.event_time==0,'calendar_date'], bins=30, alpha=0.7, color='blue')
+    plt.title('Histogram of calendar_date for event_time = 0')
+    plt.xlabel('Calendar Date')
+    plt.ylabel('Frequency')
+    plt.xticks(rotation=45)
+    plt.grid(True)
+        
+        
     
     # Define the range of years
     years = range(2013, 2017)
@@ -932,6 +1068,57 @@ results, coef_df = event_studies_by_mkt_size(
     omitted_category='medium'
 )
 
+results, coef_df = event_studies_by_mkt_size(
+    worker_panel_balanced.loc[worker_panel_balanced.tenure_years>=.5],
+    y_var='employment_indicator',
+    continuous_controls=['age', 'age_sq'],
+    fixed_effects_cols=['educ_micro', 'educ_ind2', 'educ_layoff_date', 'foreign', 'genero', 'raca_cor'],
+    market_size_var='market_size_tercile',
+    omitted_category='medium',
+    savefig=f'{root}Results/employment_indicator_after_layoff_by_market_size_tercile_tenure6.pdf'
+)
+
+results, coef_df = event_studies_by_mkt_size(
+    worker_panel_balanced.loc[worker_panel_balanced.tenure_years>=1],
+    y_var='employment_indicator',
+    continuous_controls=['age', 'age_sq'],
+    fixed_effects_cols=['educ_micro', 'educ_ind2', 'educ_layoff_date', 'foreign', 'genero', 'raca_cor'],
+    market_size_var='market_size_tercile',
+    omitted_category='medium',
+    savefig=f'{root}Results/employment_indicator_after_layoff_by_market_size_tercile_tenure12.pdf'
+)
+
+
+
+# Make figure for total earnings:
+results, coef_df = event_studies_by_mkt_size(
+    worker_panel_balanced,
+    y_var='total_earnings_month_sm',
+    continuous_controls=['age', 'age_sq'],
+    fixed_effects_cols=['educ_micro', 'educ_ind2', 'educ_layoff_date', 'foreign', 'genero', 'raca_cor'],
+    market_size_var='market_size_tercile',
+    omitted_category='medium'
+)
+
+results, coef_df = event_studies_by_mkt_size(
+    worker_panel_balanced.loc[worker_panel_balanced.tenure_years>=.5],
+    y_var='total_earnings_month_sm',
+    continuous_controls=['age', 'age_sq'],
+    fixed_effects_cols=['educ_micro', 'educ_ind2', 'educ_layoff_date', 'foreign', 'genero', 'raca_cor'],
+    market_size_var='market_size_tercile',
+    omitted_category='medium',
+    savefig=f'{root}Results/total_earnings_month_sm_after_layoff_by_market_size_tercile_tenure6.pdf'
+)
+
+results, coef_df = event_studies_by_mkt_size(
+    worker_panel_balanced.loc[worker_panel_balanced.tenure_years>=1],
+    y_var='total_earnings_month_sm',
+    continuous_controls=['age', 'age_sq'],
+    fixed_effects_cols=['educ_micro', 'educ_ind2', 'educ_layoff_date', 'foreign', 'genero', 'raca_cor'],
+    market_size_var='market_size_tercile',
+    omitted_category='medium',
+    savefig=f'{root}Results/total_earnings_month_sm_after_layoff_by_market_size_tercile_tenure12.pdf'
+)
 
 
 # Make figure for employment (MY mkt size def'n):
@@ -941,17 +1128,6 @@ results, coef_df = event_studies_by_mkt_size(
     continuous_controls=['age', 'age_sq'],
     fixed_effects_cols=['educ_micro', 'educ_ind2', 'educ_layoff_date', 'foreign', 'genero', 'raca_cor'],
     market_size_var='market_size_tercile_ind2_micro',
-    omitted_category='medium'
-)
-
-
-# Make figure for total earnings:
-results, coef_df = event_studies_by_mkt_size(
-    worker_panel_balanced.loc[worker_panel_balanced.total_earnings_month_sm.notna()],
-    y_var='total_earnings_month_sm',
-    continuous_controls=['age', 'age_sq'],
-    fixed_effects_cols=['educ_micro', 'educ_ind2', 'educ_layoff_date', 'foreign', 'genero', 'raca_cor'],
-    market_size_var='market_size_tercile',
     omitted_category='medium'
 )
 
