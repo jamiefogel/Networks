@@ -25,7 +25,7 @@ from scipy.integrate import simps # to calculate the AUC for the decay function
 
 
 nrows = None
-pull_raw = True
+pull_raw = False
 load_iotas_gammas = True
 pd.set_option('display.max_columns', None)
 pd.set_option('display.width', 400)
@@ -639,23 +639,6 @@ wids_to_drop = worker_panel_balanced.loc[(worker_panel_balanced['same_id_firm'] 
 worker_panel_balanced_filtered = worker_panel_balanced[~worker_panel_balanced['wid'].isin(wids_to_drop)]
 
 
-#####
-# Identify firms where >50% of people end up reemployed at the same firm (some of this may be the firm closure dates occurring before people actually leave the firm)
-# Drop people who are employed at the same firm right after layoff. This will include some poeple who seem to continue to be employed after the layoff date. 
-
-
-worker_panel_balanced['same_id_firm']
-
-# Step 1: Compute the fraction of people with same_firm == 1 for each pre-layoff firm
-firm_fractions = worker_panel_balanced.groupby('pre_layoff_id_firm')['p_layoff_id_firm'].mean()
-# Step 2: Identify firms where more than 50% of people have same_first_id_firm == 1
-firms_to_drop = firm_fractions[firm_fractions > 0.5].index
-
-# Step 3: Drop all rows corresponding to these firms
-worker_panel_balanced = worker_panel_balanced[~worker_panel_balanced['pre_layoff_id_firm'].isin(firms_to_drop)]
-
-
-
 
 
 
@@ -954,7 +937,7 @@ worker_panel_balanced = worker_panel_balanced.merge(mkt_size_df_worker.drop(colu
 
 
 def event_studies_by_mkt_size(worker_panel_balanced, y_var, continuous_controls, fixed_effects_cols, 
-                              market_size_var, omitted_category, baseline_category = 'low', print_regression=False, savefig=None):
+                              market_size_var, omitted_category, baseline_category = 'low', print_regression=False, savefig=None, title=None):
     """
     Perform event studies by market size.
     
@@ -1046,7 +1029,10 @@ def event_studies_by_mkt_size(worker_panel_balanced, y_var, continuous_controls,
     plt.axhline(0, color='black', linewidth=1, linestyle='--')
     plt.xlabel('Months Since Firm Closure')
     plt.ylabel('Coefficient')
-    plt.title(f'{y_var} by {market_size_var}')
+    if title is None:
+        plt.title(f'{y_var} by {market_size_var}')
+    else:
+        plt.title(title)
     plt.grid(True)
     plt.legend()
     if savefig is not None:
@@ -1152,7 +1138,7 @@ vars = ['same_cbo2002', 'same_clas_cnae20', 'same_ind2', 'same_code_micro', 'sam
 for v in vars:
     print(v)
     results, coef_df = event_studies_by_mkt_size(
-        worker_panel_balanced.loc[worker_panel_balanced.total_earnings_month_sm.notna()],
+        worker_panel_balanced.loc[( worker_panel_balanced.tenure_years>=.5)],
         y_var=v,
         continuous_controls=['age', 'age_sq'],
         fixed_effects_cols=['educ_micro', 'educ_ind2', 'educ_layoff_date', 'foreign', 'genero', 'raca_cor'],
@@ -1162,44 +1148,48 @@ for v in vars:
 
 # Restricted to college-educated workers only
 results, coef_df = event_studies_by_mkt_size(
-    worker_panel_balanced.loc[( worker_panel_balanced['total_earnings_month_sm']<20) & (worker_panel_balanced['educ']=='College')],
+    worker_panel_balanced.loc[( worker_panel_balanced.tenure_years>=.5) & (worker_panel_balanced['educ']=='College')],
     y_var='employment_indicator',
     continuous_controls=['age', 'age_sq'],
     fixed_effects_cols=['educ_micro', 'educ_ind2', 'educ_layoff_date', 'foreign', 'genero', 'raca_cor'],
     market_size_var='market_size_tercile',
     omitted_category='medium',
-    savefig=root + 'Results/employment_indicator_after_layoff_by_market_size_tercile_college.pdf'
+    title='employment_indicator by market size tercile (College only)',
+    savefig=root + 'Results/employment_indicator_after_layoff_by_market_size_tercile_College.pdf'
 )
 
 results, coef_df = event_studies_by_mkt_size(
-    worker_panel_balanced.loc[( worker_panel_balanced['total_earnings_month_sm']<20) & (worker_panel_balanced['educ']=='College')],
+    worker_panel_balanced.loc[( worker_panel_balanced.tenure_years>=.5) & (worker_panel_balanced['educ']=='College')],
     y_var='earnings_primary_job',
     continuous_controls=['age', 'age_sq'],
     fixed_effects_cols=['educ_micro', 'educ_ind2', 'educ_layoff_date', 'foreign', 'genero', 'raca_cor'],
     market_size_var='market_size_tercile',
     omitted_category='medium',
-    savefig=root + 'Results/earnings_primary_job_after_layoff_by_market_size_tercile_college.pdf'
+    title='earnings_primary_job by market size tercile (College only)',
+    savefig=root + 'Results/earnings_primary_job_after_layoff_by_market_size_tercile_College.pdf'
 )
 
 # Restricted to high school-educated workers only
 results, coef_df = event_studies_by_mkt_size(
-    worker_panel_balanced.loc[( worker_panel_balanced['total_earnings_month_sm']<20) & (worker_panel_balanced['educ']=='HS')],
+    worker_panel_balanced.loc[( worker_panel_balanced.tenure_years>=.5) & (worker_panel_balanced['educ']=='HS')],
     y_var='employment_indicator',
     continuous_controls=['age', 'age_sq'],
     fixed_effects_cols=['educ_micro', 'educ_ind2', 'educ_layoff_date', 'foreign', 'genero', 'raca_cor'],
     market_size_var='market_size_tercile',
     omitted_category='medium',
-    savefig=root + 'Results/employment_indicator_after_layoff_by_market_size_tercile_college.pdf'
+    title='employment_indicator by market size tercile (HS only)',
+    savefig=root + 'Results/employment_indicator_after_layoff_by_market_size_tercile_HS.pdf'
 )
 
 results, coef_df = event_studies_by_mkt_size(
-    worker_panel_balanced.loc[( worker_panel_balanced['total_earnings_month_sm']<20) & (worker_panel_balanced['educ']=='HS')],
+    worker_panel_balanced.loc[(worker_panel_balanced.tenure_years>=.5) & (worker_panel_balanced['educ']=='HS')],
     y_var='earnings_primary_job',
     continuous_controls=['age', 'age_sq'],
     fixed_effects_cols=['educ_micro', 'educ_ind2', 'educ_layoff_date', 'foreign', 'genero', 'raca_cor'],
     market_size_var='market_size_tercile',
     omitted_category='medium',
-    savefig=root + 'Results/earnings_primary_job_after_layoff_by_market_size_tercile_college.pdf'
+    title='earnings_primary_job by market size tercile (HS only)',
+    savefig=root + 'Results/earnings_primary_job_after_layoff_by_market_size_tercile_HS.pdf'
 )
 
 
