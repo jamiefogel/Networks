@@ -6,7 +6,7 @@ import os
 import sys
 import matplotlib.pyplot as plt
 import pyproj # for converting geographic degree measures of lat and lon to the UTM system (i.e. in meters)
-from scipy.integrate import simps # to calculate the AUC for the decay function
+from scipy.integrate import simpson as simps # to calculate the AUC for the decay function
 import statsmodels.api as sm
 from tqdm import tqdm # to calculate progress of some operations for geolocation
 import gc
@@ -14,6 +14,15 @@ import glob
 import platform
 import sys
 import getpass
+
+import geopandas as gpd
+import matplotlib.pyplot as plt
+from shapely.geometry import Point
+from sklearn.metrics import pairwise_distances
+import matplotlib.gridspec as gridspec
+import matplotlib.image as mpimg
+from scipy.stats import gaussian_kde
+
 
 rcounts = []
 rc = 0
@@ -44,6 +53,8 @@ if getpass.getuser()=='p13861161':
         from correlogram import correlogram
         import binsreg
         import geobr
+        from geobr import read_state, read_municipality
+
 
 if getpass.getuser()=='jfogel':
     print("Running on Jamie's home laptop")
@@ -612,11 +623,11 @@ def save_dataframe_in_chunks(df, file_path, chunk_size=100000):
     for i in range(num_chunks):
         chunk = df[i*chunk_size:(i+1)*chunk_size]
         chunk_file_path = f"{file_path}_chunk_{i}.p"
-        chunk.to_pickle(chunk_file_path)
+        chunk.to_pickle(chunk_file_path, protocol=4)
         print(f"Saved chunk {i+1}/{num_chunks} to {chunk_file_path}")
 
 # Save the raw DataFrame in chunks
-save_dataframe_in_chunks(raw, root + f'/Data/derived/mkt_geography_raw_{modelname}_', chunk_size=int(2e7))
+save_dataframe_in_chunks(raw, root + f'/Data/derived/mkt_geography_raw_{modelname}', chunk_size=int(2e7))
 
 # Get a list of all chunk files
 def load_dataframe_in_chunks(file_path_pattern):
@@ -625,7 +636,7 @@ def load_dataframe_in_chunks(file_path_pattern):
     raw_chunks = [pd.read_pickle(chunk_file) for chunk_file in chunk_files]
     return pd.concat(raw_chunks, ignore_index=True)
 
-#raw = load_dataframe_in_chunks(root + f'/Data/derived/mkt_geography_raw_{modelname}_chunk_*.p')
+raw = load_dataframe_in_chunks(root + f'/Data/derived/mkt_geography_raw_{modelname}_chunk_*.p')
 
 
 ##########################################
@@ -661,6 +672,9 @@ raw['ed_gradschool'] = np.where(raw['grau_instr'].isin([10, 11]), 1, 0)
 raw['ms_degree'] = np.where(raw['grau_instr'] >= 5, 1, 0)
 raw['hs_degree'] = np.where(raw['grau_instr'] >= 7, 1, 0)
 raw['college_degree'] = np.where(raw['grau_instr'] >= 9, 1, 0)
+
+
+
 
 # Custom function to get the mode
 def mode_function(series):
@@ -1005,7 +1019,8 @@ get_extreme_iotas(var_sort= 'std_distance', other_var = ['modal_occ4','mean_mont
 
 get_extreme_iotas(var_sort= 'educ_years', other_var = ['modal_occ4','mean_monthly_earnings','std_distance'], ascending=True, iota_var = 'iota_rescaled', qty =5, print_occ_count=True)
 
-iotas_w_attributes.to_pickle(root + f'/Data/derived/iotas_w_attributes_temp_{modelname}.p')
+iotas_w_attributes.to_pickle(root + f'/Data/derived/iotas_w_attributes_temp_{modelname}.p', protocol=4)
+iotas_w_attributes = pd.read_pickle(root + f'/Data/derived/iotas_w_attributes_temp_{modelname}.p')
 
 
 ##########################################
@@ -1019,14 +1034,6 @@ print(wtf)
 
 ##########################################
 
-import geopandas as gpd
-import matplotlib.pyplot as plt
-from shapely.geometry import Point
-from sklearn.metrics import pairwise_distances
-from geobr import read_state, read_municipality
-import matplotlib.gridspec as gridspec
-import matplotlib.image as mpimg
-from scipy.stats import gaussian_kde
 
 # Load state shapes
 year_maps = 2010
@@ -1041,6 +1048,14 @@ rj_city = read_municipality(code_muni=3304557, year=year_maps)  # Rio de Janeiro
 bh_city = read_municipality(code_muni=3106200, year=year_maps)  # Belo Horizonte
 
 capitals_gdf = gpd.GeoDataFrame(pd.concat([sp_city, rj_city, bh_city], ignore_index=True))
+
+states_gdf.to_pickle(  root + '/Data/derived/states_gdf_{modelname}.p')
+capitals_gdf.to_pickle(root + '/Data/derived/capitals_gdf_{modelname}.p')
+
+states_gdf      = pd.read_pickle(root + '/Data/derived/states_gdf_{modelname}.p')
+capitals_gdf    = pd.read_pickle(root + '/Data/derived/capitals_gdf_{modelname}.p')
+
+
 
 # Step 1: Count observations per iota in raw
 iota_counts = raw['iota'].value_counts().reset_index()
