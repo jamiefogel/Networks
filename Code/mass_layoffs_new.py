@@ -22,11 +22,14 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm # to calculate progress of some operations for geolocation
 import pyproj # for converting geographic degree measures of lat and lon to the UTM system (i.e. in meters)
 #from scipy.integrate import simps # to calculate the AUC for the decay function
+from dateutil.relativedelta import relativedelta
 
-
+modelname = '3states_2013to2016_mcmc'
+firstyear_panel = 2012 
+lastyear_panel = 2019
 nrows = None
 pull_raw = True
-load_iotas_gammas = True
+run_load_iotas_gammas = True
 create_worker_panel_balanced = True
 pd.set_option('display.max_columns', None)
 pd.set_option('display.width', 400)
@@ -92,7 +95,7 @@ def process_iotas_gammas(root, iotas, gammas):
     
     ###################################################################################
     ## XXBM: it seems like we need gammas for the command below 
-    iotas, gammas = load_iotas_gammas(root)
+    #iotas, gammas = load_iotas_gammas(root)
     ###################################################################################
     
     # XX Should I be using 2013to2016_new or 2013to2016_mcmc
@@ -122,94 +125,6 @@ def process_iotas_gammas(root, iotas, gammas):
     E_N_gamma_given_iota = E_N_gamma_given_iota.reset_index()
     E_N_gamma_given_iota['iota'] = E_N_gamma_given_iota['iota'].astype(int)
     return E_N_gamma_given_iota, appended
-  
-    
-  
-''' Exploratory code for computing spatial variances. This is taken from lines 230-300 of mkt_geography_stats.py
-
-
-
-# Converting coordinates to UTM, so the units are in meters
-# Function to convert geographic coordinates to UTM using a fixed zone 23S for Sao Paulo
-# Create the transformer object for UTM zone 23S
-transformer = pyproj.Transformer.from_crs("epsg:4326", "epsg:32723", always_xy=True)
-# Function to convert geographic coordinates to UTM
-def convert_to_utm(lon, lat):
-    return transformer.transform(lon, lat)
-
-
-GEOLOCATION FOR RAIS ESTABLISHMENTS
-
-# filepath: \\storage6\bases\DADOS\RESTRITO\RAIS\geocode
-# file of type: rais_geolocalizada_2009
-years = appended.year.unique().tolist()
-
-high_precision_cat = ['POI',
-                        'PointAddress',
-                        'StreetAddress',
-                        'StreetAddressExt',
-                        'StreetName',
-                        'street_number',
-                        'route',
-                        'airport',
-                        'amusement_park',
-                        'intersection',
-                        'premise',
-                        'town_square']
-
-# Initialize an empty list to hold the DataFrames
-geo_list = []
-
-for year in years:
-    print(str(year))
-    # Read the parquet file for the given year and rename columns
-    geo = pd.read_parquet(f'{rais}/geocode/rais_geolocalizada_{year}.parquet')
-    geo['year'] = year
-    geo.rename(columns={'lon': 'lon_estab', 'lat': 'lat_estab'}, inplace=True)
-    # Drop large columns that we don't need to save memory
-    geo.drop(columns=['Match_addr','Match_type','h3_res8','h3_res9'], inplace=True)
-    # Append the DataFrame to the list
-    geo_list.append(geo)
-
-# Concatenate all the DataFrames in the list into a single DataFrame
-geo_estab = pd.concat(geo_list, ignore_index=True)
-del geo, geo_list 
-
-
-# Initialize lists to store the UTM coordinates
-utm_lon = []
-utm_lat = []
-
-# Convert latitude and longitude to UTM with progress indicator
-for lon, lat in tqdm(zip(geo_estab['lon_estab'].values, geo_estab['lat_estab'].values), total=len(geo_estab)):
-    utm_x, utm_y = convert_to_utm(lon, lat)
-    utm_lon.append(utm_x)
-    utm_lat.append(utm_y)
-
-# Assign the UTM coordinates back to the DataFrame
-geo_estab['utm_lon_estab'] = utm_lon
-geo_estab['utm_lat_estab'] = utm_lat
-
-# Drop duplicates based on the specified columns in place
-geo_estab.drop_duplicates(subset=['year', 'id_estab', 'lat_estab', 'lon_estab', 'Addr_type', 'h3_res7'], inplace=True)
-# Optionally, reset the index in place
-geo_estab.reset_index(drop=True, inplace=True)
-
-# Group by 'year' and 'id_estab' and count the occurrences
-duplicates = geo_estab.groupby(['year','id_estab']).size().reset_index(name='count')
-print((duplicates.iloc[:,2].value_counts() /  duplicates.iloc[:,2].sum()).round(4))
-geo_estab = geo_estab.merge(duplicates, on=['year', 'id_estab'], how='left')
-
-geo_estab['is_high_precision'] = geo_estab['Addr_type'].isin(high_precision_cat).astype(int)
-
-geo_estab[(geo_estab['count'] > 1) & (geo_estab['is_high_precision'] == 0)].shape[0] / (geo_estab['count'] > 1).sum()
-
-geo_estab = geo_estab.sort_values('is_high_precision', ascending=False).drop_duplicates(subset=['year', 'id_estab'], keep='first')
-geo_estab = geo_estab.drop_duplicates(subset=['year', 'id_estab'])
-
-
-
-'''
   
     
   
@@ -268,7 +183,7 @@ region_codes = pd.read_csv(root + '/Data/raw/munic_microregion_rm.csv', encoding
 muni_micro_cw = pd.DataFrame({'code_micro':region_codes.code_micro,'codemun':region_codes.code_munic//10})
 
 # Load iotas and gammas and compute the expected number of jobs for each iota
-if load_iotas_gammas==True:
+if run_load_iotas_gammas==True:
     iotas, gammas = load_iotas_gammas(root)
     E_N_gamma_given_iota, appended = process_iotas_gammas(root, iotas, gammas)
     E_N_gamma_given_iota.to_pickle(root + "Data/derived/mass_layoffs_E_N_gamma_given_iota.p", protocol=4)   
@@ -276,7 +191,6 @@ if load_iotas_gammas==True:
     # Compute skill and spatial variance of each iota
     weighted_variances = compute_skill_variance(appended, root)
     weighted_variances.to_pickle(root + "Data/derived/mass_layoffs_weighted_variances.p", protocol=4)  
-    weighted_variances.to_parquet(root + "Data/derived/mass_layoffs_weighted_variances.parquet")  
 
  
 
@@ -380,8 +294,8 @@ def identify_laid_off_workers(rais, date_formats, closure_df):
 ############################################################################
 # Load data for workers at risk of layoff, make a balanced monthly panel based on data_adm, data_deslig, and monthly earnings. 
 # Extend to 2019 sowe have at least 3 years of a post-period for all layoffs occurring in 2013-2016
- 
-def process_worker_data(rais, date_formats, possible_laid_off_worker_list, nrows=None):    
+
+def process_worker_data(rais, date_formats, possible_laid_off_worker_list, iotas, gammas, nrows=None):    
     # List of columns to keep
     # Initialize df to store worker bdays
     worker_dob = pd.DataFrame()
@@ -394,7 +308,7 @@ def process_worker_data(rais, date_formats, possible_laid_off_worker_list, nrows
     # XX Can I make this more efficient by loading through 2019 in the loop above but then subsetting to 2013-2016 to come up with the possibly laid off worker data? Or actually should we be looking only at layoffs for 2014-2016 so we have a year of pre-period for everyone? 
     dfs = []
     dfs_mkt_size = []
-    for year in range(2012,2019+1):
+    for year in range(firstyear_panel,lastyear_panel+1):
         print(year)
         if ((year < 1998) | (year==2016) | (year==2018) | (year==2019)):
             sep = ';'
@@ -418,7 +332,7 @@ def process_worker_data(rais, date_formats, possible_laid_off_worker_list, nrows
         
         ###################################################################################
         ## XXBM: it seems like we need gammas for the command below 
-        iotas, gammas = load_iotas_gammas(root)
+        #iotas, gammas = load_iotas_gammas(root)
         ###################################################################################
         
         # Merge on iotas and gammas
@@ -480,12 +394,14 @@ if pull_raw==True:
     possible_laid_off_worker_list.to_pickle(root + "Data/derived/mass_layoffs_possible_laid_off_worker_list.p", protocol=4)
     pd.DataFrame(possible_laid_off_worker_list).to_parquet(root + "Data/derived/mass_layoffs_possible_laid_off_worker_list.parquet")
     
-    process_worker_data(rais, date_formats, possible_laid_off_worker_list)
+    process_worker_data(rais, date_formats, possible_laid_off_worker_list, iotas, gammas)
     
 closure_df          = pd.read_pickle(root + "Data/derived/mass_layoffs_closure_df.p")
 worker_panel        = pd.read_pickle(root + "Data/derived/mass_layoffs_worker_panel.p")
 E_N_gamma_given_iota= pd.read_pickle(root + "Data/derived/mass_layoffs_E_N_gamma_given_iota.p")
 mkt_size_df_worker  = pd.read_pickle(root + "Data/derived/mass_layoffs_mkt_size_df_worker.p")
+
+
 
 
 if create_worker_panel_balanced==True:
@@ -569,6 +485,9 @@ if create_worker_panel_balanced==True:
     unique_wids=worker_panel_long['wid'].unique()
     spine = pd.DataFrame({'wid':np.tile(unique_wids, 49), 'event_time':np.repeat(np.arange(-12,36+1),unique_wids.shape[0])})        
     worker_panel_balanced = spine.merge(worker_panel_long[['wid','event_time'] + variant], how='left', on=['wid','event_time'], indicator=True, validate='1:1')
+    # create a calendar-year variable in the worker_panel_balance, label it as year
+    worker_panel_balanced['calendar_date'] = worker_panel_balanced['mass_layoff_month'].dt.to_period('M') + worker_panel_balanced['event_time']
+    worker_panel_balanced['year'] = worker_panel_balanced['calendar_date'].dt.year.replace(-1, pd.NA).astype('Int64') # For some reason NaTs are converted to -1 so fixing that
     
     # Merge on time-invariant variables to ensure they are defined when the person is not employed
     worker_panel_balanced = worker_panel_balanced.merge(worker_panel_long[invariant].drop_duplicates(subset='wid', keep='last'), how='left', on='wid', indicator='_merge_invariant', validate='m:1')
@@ -618,11 +537,120 @@ if create_worker_panel_balanced==True:
     worker_panel_balanced['raca_cor'] = pd.Categorical(worker_panel_balanced['raca_cor'])
     worker_panel_balanced['genero'] = pd.Categorical(worker_panel_balanced['genero'])
     
+    # XX Could merge on coordinates here and then compute distances below, once we have pre-layoff and post-layoff id_estab
+    ###########################
+    # GEOLOCATION FOR RAIS ESTABLISHMENTS
+    years = list(range(firstyear_panel,lastyear_panel+1))
+
+    def pull_estab_geos(years):    
+        transformer = pyproj.Transformer.from_crs("epsg:4326", "epsg:32723", always_xy=True)
+        # Function to convert geographic coordinates to UTM
+        def convert_to_utm(lon, lat):
+            return transformer.transform(lon, lat)
+        
+        
+        high_precision_cat = ['POI',
+                                'PointAddress',
+                                'StreetAddress',
+                                'StreetAddressExt',
+                                'StreetName',
+                                'street_number',
+                                'route',
+                                'airport',
+                                'amusement_park',
+                                'intersection',
+                                'premise',
+                                'town_square']
+        
+        # Initialize an empty list to hold the DataFrames
+        geo_list = []
+        
+        for year in years:
+            print(str(year))
+            # Read the parquet file for the given year and rename columns
+            geo = pd.read_parquet(f'{rais}/geocode/rais_geolocalizada_{year}.parquet')
+            geo['year'] = year
+            geo.rename(columns={'lon': 'lon_estab', 'lat': 'lat_estab'}, inplace=True)
+            # Append the DataFrame to the list
+            geo_list.append(geo)
+        
+        # Concatenate all the DataFrames in the list into a single DataFrame
+        geo_estab = pd.concat(geo_list, ignore_index=True)
+        del geo, geo_list 
+        
+        ############################
+        
+        # Initialize lists to store the UTM coordinates
+        utm_lon = []
+        utm_lat = []
+        
+        # Convert latitude and longitude to UTM with progress indicator
+        for lon, lat in tqdm(zip(geo_estab['lon_estab'].values, geo_estab['lat_estab'].values), total=len(geo_estab)):
+            utm_x, utm_y = convert_to_utm(lon, lat)
+            utm_lon.append(utm_x)
+            utm_lat.append(utm_y)
+        
+        # Assign the UTM coordinates back to the DataFrame
+        geo_estab['utm_lon_estab'] = utm_lon
+        geo_estab['utm_lat_estab'] = utm_lat
+        
+        # Drop duplicates based on the specified columns in place
+        geo_estab.drop_duplicates(subset=['year', 'id_estab', 'lat_estab', 'lon_estab', 'Addr_type', 'h3_res7'], inplace=True)
+        # Optionally, reset the index in place
+        geo_estab.reset_index(drop=True, inplace=True)
+        
+        # Group by 'year' and 'id_estab' and count the occurrences
+        duplicates = geo_estab.groupby(['year','id_estab']).size().reset_index(name='count')
+        print((duplicates.iloc[:,2].value_counts() /  duplicates.iloc[:,2].sum()).round(4))
+        geo_estab = geo_estab.merge(duplicates, on=['year', 'id_estab'], how='left')
+        
+        geo_estab['is_high_precision'] = geo_estab['Addr_type'].isin(high_precision_cat).astype(int)
+        
+        geo_estab[(geo_estab['count'] > 1) & (geo_estab['is_high_precision'] == 0)].shape[0] / (geo_estab['count'] > 1).sum()
+        
+        geo_estab = geo_estab.sort_values('is_high_precision', ascending=False).drop_duplicates(subset=['year', 'id_estab'], keep='first')
+        geo_estab = geo_estab.drop_duplicates(subset=['year', 'id_estab'])
+        return geo_estab
     
+    geo_estab = pull_estab_geos(years)
+    # The municipality geolocation comes from mkt_geography_stats.py that was run in the linux server because we don't have geobr on Windows
+    munis = pd.read_pickle(root + f'/Data/derived/munis_{modelname}.p') 
+    ###########################################
+    
+    ## XXBM: Merge geolocation to the worker balanced panel
+        
+    # Merge municipality geolocation to worker_balanced_panel
+    worker_panel_balanced = worker_panel_balanced.merge(munis[['geometry', 'lon_munic', 'lat_munic', 'codemun', 'utm_lon_munic', 'utm_lat_munic']], on='codemun',how='left', indicator='_merge_munics')
+    worker_panel_balanced['_merge_munics'].value_counts()
+    
+    # Merge establishment geolocation to worker_balanced_panel
+    worker_panel_balanced['id_estab'] = worker_panel_balanced['id_estab'].astype(str).str.zfill(14)
+    worker_panel_balanced = worker_panel_balanced.merge(geo_estab[['id_estab', 'year', 'Addr_type', 'lon_estab', 'lat_estab', 'utm_lat_estab', 'utm_lon_estab', 'h3_res7']], on=['year', 'id_estab'], how='left', validate='m:1', indicator='_merge_geo_estab')
+    worker_panel_balanced.columns
+    worker_panel_balanced._merge_geo_estab.value_counts()
+    
+    del geo_estab # Save memory
+
+    # Stats on establishments with missing geolocation
+    for l in ['lat_', 'lon_', 'utm_lat_', 'utm_lon_']:
+        print('----------------------------------------')
+        print('MISSING VALUES FOR ' + l + 'munic')
+        print(worker_panel_balanced[l + 'munic'].isna().sum(),'/',worker_panel_balanced.shape[0])
+
+    # Replace NaN values in *_estab columns with values from their *_munic counterparts
+    for l in ['lat_', 'lon_', 'utm_lat_', 'utm_lon_']:
+        print('----------------------------------------')
+        print('MISSING VALUES FOR ' + l + 'estab, BEFORE INPUTATION')
+        print(worker_panel_balanced[l + 'estab'].isna().sum(),'/',worker_panel_balanced.shape[0])
+        worker_panel_balanced[l + 'estab'] = worker_panel_balanced[l + 'estab'].fillna(worker_panel_balanced[l + 'munic'])
+        print('Missings after replacement with ' + l + 'munic, after inputation')
+        print(worker_panel_balanced[l + 'estab'].isna().sum(),'/',worker_panel_balanced.shape[0])
+
+
+    ###########################################
     
     ###################
     # Create pre- and post-layoff variables as well as indicators for changing jobs, occs, industries, etc
-    
     # Get pre-layoff values
     pre_layoff = worker_panel_balanced[worker_panel_balanced['event_time'] == -1].set_index('wid')
     
@@ -630,7 +658,7 @@ if create_worker_panel_balanced==True:
     post_layoff = worker_panel_balanced[(worker_panel_balanced['event_time'] > 0) & 
                                         (worker_panel_balanced['employment_indicator'] == 1)].groupby('wid').first()
     # Loop over the specified variables
-    variables = ['id_firm', 'cbo2002', 'clas_cnae20', 'ind2', 'code_micro', 'gamma']
+    variables = ['id_firm', 'id_estab', 'cbo2002', 'clas_cnae20', 'ind2', 'code_micro', 'gamma', 'utm_lat_estab', 'utm_lon_estab']
     for var in variables:
         pre_col = f'pre_layoff_{var}'
         post_col = f'post_layoff_{var}'
@@ -652,7 +680,7 @@ if create_worker_panel_balanced==True:
     
     # Identify and workers who are employed at the "layoff firm after the layoff occurred and then drop them
     wids_to_drop = worker_panel_balanced.loc[(worker_panel_balanced['same_id_firm'] == 1) & (worker_panel_balanced['event_time'] > 0), 'wid'].unique()
-    worker_panel_balanced_filtered = worker_panel_balanced[~worker_panel_balanced['wid'].isin(wids_to_drop)]
+    worker_panel_balanced = worker_panel_balanced[~worker_panel_balanced['wid'].isin(wids_to_drop)]
     
     
     
@@ -729,20 +757,59 @@ if create_worker_panel_balanced==True:
     
     
     worker_panel_balanced.to_pickle(root + "Data/derived/mass_layoffs_worker_panel_balanced.p", protocol=4)
-    worker_panel_balanced.to_parquet(root + "Data/derived/mass_layoffs_worker_panel_balanced.parquet")
+    #worker_panel_balanced.to_parquet(root + "Data/derived/mass_layoffs_worker_panel_balanced.parquet")
     with open(root + "Data/derived/mass_layoffs_worker_panel_balanced_dtypes.p", 'wb') as f:
         pickle.dump(worker_panel_balanced.dtypes.to_dict(), f)
         
 
 
 
-#worker_panel_balanced = pd.read_pickle(root + "Data/derived/mass_layoffs_worker_panel_balanced.p")
-worker_panel_balanced = pd.read_parquet(root + "Data/derived/mass_layoffs_worker_panel_balanced.parquet")
+worker_panel_balanced = pd.read_pickle(root + "Data/derived/mass_layoffs_worker_panel_balanced.p")
+#worker_panel_balanced = pd.read_parquet(root + "Data/derived/mass_layoffs_worker_panel_balanced.parquet")
 with open(root + 'Data/derived/mass_layoffs_worker_panel_balanced_dtypes.p', 'rb') as f:
     worker_panel_balanced_dtypes = pickle.load(f)
 worker_panel_balanced = worker_panel_balanced.astype(worker_panel_balanced_dtypes)
 weighted_variances = pd.read_pickle(root + "Data/derived/mass_layoffs_weighted_variances.p")  
 
+iotas_w_attributes = pd.read_parquet(root + 'Data/derived/iotas_w_attributes_geo_estab_3states_2013to2016_mcmc.parquet')
+
+
+def calculate_distance(row, lat1, lon1, lat2, lon2):
+    if np.isnan(row[lat2]) or np.isnan(row[lon2]):
+        return np.nan
+    else:
+        return np.sqrt(
+            (row[lat2] - row[lat1])**2 +
+            (row[lon2] - row[lon1])**2
+        )
+
+# Usage
+worker_panel_balanced['move_distance_km'] = worker_panel_balanced.apply(
+    calculate_distance, 
+    axis=1,
+    args=(
+        'pre_layoff_utm_lat_estab',
+        'pre_layoff_utm_lon_estab',
+        'post_layoff_utm_lat_estab',
+        'post_layoff_utm_lon_estab'
+    )
+) / 1000
+
+worker_panel_balanced['dist_from_pre_layoff_job_km'] = worker_panel_balanced.apply(
+    calculate_distance, 
+    axis=1,
+    args=(
+        'pre_layoff_utm_lat_estab',
+        'pre_layoff_utm_lon_estab',
+        'utm_lat_estab',
+        'utm_lon_estab'
+    )
+) / 1000
+
+
+
+#######################################
+# Compute correlations between move distances and other stuff like that and various iota attributes
 
 
 
@@ -1179,6 +1246,7 @@ for v in vars:
         omitted_category='medium'
     )
 
+
 # Restricted to college-educated workers only
 results, coef_df = event_studies_by_mkt_size(
     worker_panel_balanced.loc[( worker_panel_balanced.tenure_years>=.5) & (worker_panel_balanced['educ']=='College')],
@@ -1224,6 +1292,33 @@ results, coef_df = event_studies_by_mkt_size(
     title='earnings_primary_job by market size tercile (HS only)',
     savefig=root + 'Results/earnings_primary_job_after_layoff_by_market_size_tercile_HS.pdf'
 )
+
+
+
+
+
+
+
+
+results, coef_df = event_studies_by_mkt_size(
+    worker_panel_balanced.loc[( worker_panel_balanced.tenure_years>=.5) & (worker_panel_balanced['dist_from_pre_layoff_job_km'].notna())],
+    y_var='dist_from_pre_layoff_job_km',
+    continuous_controls=['age', 'age_sq'],
+    fixed_effects_cols=['educ_micro', 'educ_ind2', 'educ_layoff_date', 'foreign', 'genero', 'raca_cor'],
+    market_size_var='market_size_tercile',
+    omitted_category='medium',
+    title='Distance from original job by market size tercile',
+    savefig=root + 'Results/dist_from_pre_layoff_job_km_by_market_size_tercile.pdf'
+)
+
+
+
+
+
+
+
+
+
 
 
 
