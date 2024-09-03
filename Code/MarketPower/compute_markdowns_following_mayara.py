@@ -21,7 +21,11 @@ import getpass
 from scipy.sparse import lil_matrix
 from scipy.sparse import coo_matrix
 from scipy.sparse import csr_matrix
-
+import statsmodels.formula.api as smf
+import statsmodels.formula.api as smf
+import statsmodels.api as sm
+from linearmodels.panel import PanelOLS
+from linearmodels.panel import compare
 
 homedir = os.path.expanduser('~')
 if getpass.getuser()=='p13861161':
@@ -29,6 +33,11 @@ if getpass.getuser()=='p13861161':
         homedir = os.path.expanduser('//storage6/usuarios')  # for running this code on windows
         root = homedir + '/labormkt_rafaelpereira/NetworksGit/'
         print("Running on IPEA Windows")
+        sys.path.append(r'C:\ProgramData\anaconda3\Lib\site-packages\src')
+        #import pystata
+        #import stata_setup
+        #stata_sysdir = 'C:\Program Files (x86)\Stata14'
+        #stata_setup.config(stata_sysdir, 'mp')
     else:
         root = homedir + '/labormkt/labormkt_rafaelpereira/NetworksGit/'
 elif getpass.getuser()=='jfogel':
@@ -50,7 +59,7 @@ muni_micro_cw = pd.DataFrame({'code_micro':region_codes.code_micro,'codemun':reg
 mle_data_filename      = root + "Data/derived/earnings_panel/panel_3states_2009to2011_level_0.csv"
 
 
-usecols = ['wid_masked', 'jid_masked', 'year', 'iota', 'gamma', 'cnpj_raiz','real_hrly_wage_dec', 'ln_real_hrly_wage_dec', 'codemun', 'occ2', 'occ2_first', 'code_meso', 'occ2Xmeso', 'occ2Xmeso_first']
+usecols = ['wid_masked', 'jid_masked', 'year', 'iota', 'gamma', 'cnpj_raiz','id_estab', 'real_hrly_wage_dec', 'ln_real_hrly_wage_dec', 'codemun', 'occ2', 'occ2_first', 'code_meso', 'occ2Xmeso', 'occ2Xmeso_first']
 
 data_full = pd.read_csv(mle_data_filename, usecols=usecols)
 data_full = data_full.loc[(data_full.iota!=-1) & (data_full.gamma!=-1) & (data_full.jid_masked!=-1)]
@@ -66,7 +75,7 @@ data_full = data_full.merge(muni_micro_cw, on='codemun', how='left', validate='m
 
 
 ''' Ingredients for computing labor supply elasiticities according to our model:
- - $\Psi_{ig}$
+ - $\Phi_{ig}$
  - 1/theta (our theta corresponds to Mayara's eta, her 1/eta=0.985)
  - 1/nu (our nu corresponds to Mayara's theta, her 1/theta=1.257)
  - s_ig = iota's share of market gamma employment
@@ -102,16 +111,20 @@ def compute_payroll_weighted_share(df, firm_col, market_col, pay_col):
 
 
 def compute_payroll_weighted_share(df, firm_col, market_col, pay_col):
+    '''
+    # I don't think we actually need this to be balanced
     # Get all unique firms and markets
     all_firms = df[firm_col].unique()
     all_markets = df[market_col].unique()
     # Create a DataFrame with all possible firm-market combinations
     all_combinations = pd.DataFrame([(firm, market) for firm in all_firms for market in all_markets], columns=[firm_col, market_col])
+    '''
     # Compute total pay for each firm within each market
     firm_total_pay = df.groupby([market_col, firm_col])[pay_col].sum().reset_index()
     # Compute total pay for each market
     market_total_pay = df.groupby(market_col)[pay_col].sum().reset_index()
 
+    '''
     # Merge the all_combinations with firm_total_pay
     merged = pd.merge(all_combinations, firm_total_pay, on=[market_col, firm_col], how='left')
     # Fill NaN values with 0 for firms that don't exist in certain markets
@@ -121,7 +134,10 @@ def compute_payroll_weighted_share(df, firm_col, market_col, pay_col):
     # Compute the payroll-weighted share for each firm
     merged['payroll_weighted_share'] = merged[pay_col + '_firm'] / merged[pay_col + '_market']
     # Replace NaN values with 0 (this handles cases where market total pay is 0)
-    #merged['payroll_weighted_share'] = merged['payroll_weighted_share'].fillna(0)
+    '''
+    merged = firm_total_pay.merge(market_total_pay, on=market_col, suffixes=('_firm', '_market'), how='left', validate='m:1')
+    merged['payroll_weighted_share'] = merged[pay_col + '_firm'] / merged[pay_col + '_market']
+
     return merged[[firm_col, market_col, 'payroll_weighted_share']]
 
 
@@ -137,12 +153,14 @@ s_gi = compute_payroll_weighted_share(data_full, 'gamma', 'iota', 'real_hrly_wag
 # - The result will be one value for each iota, all of which sum to 1.
 
 def compute_s_gammaiota(data_full, eta, theta):
+    '''
+    # I don't think we actually need this to be balanced
     # Get all unique firms and markets
     all_iotas  = data_full['iota'].unique()
     all_gammas = data_full['gamma'].unique()
     # Create a DataFrame with all possible firm-market combinations
     all_combinations = pd.DataFrame([(iota, gamma) for iota in all_iotas for gamma in all_gammas], columns=['iota', 'gamma'])
-    
+    '''
     # Group by iota and job, and sum hourly earnings
     job_earnings = data_full.groupby(['iota', 'jid_masked','gamma'])['real_hrly_wage_dec'].sum().reset_index()
     # Compute the (1+eta) power of earnings
@@ -155,6 +173,7 @@ def compute_s_gammaiota(data_full, eta, theta):
     # Compute the denominator: sum of numerators over all gammas within each iota
     denominator = numerator.groupby('iota')['market_sum_powered'].sum().reset_index()
 
+    '''
     # Merge the all_combinations with numerator on iota and gamma 
     merged = pd.merge(all_combinations, numerator, on=['iota', 'gamma'], how='left')
     merged['market_sum_powered'] = merged['market_sum_powered'].fillna(0)
@@ -162,18 +181,23 @@ def compute_s_gammaiota(data_full, eta, theta):
     merged = pd.merge(merged, denominator, on='iota', suffixes=('_gi', '_i'))
     # Compute the payroll-weighted share for each gamma-iota
     merged['s_gammaiota'] = merged['market_sum_powered_gi'] / merged['market_sum_powered_i']
-
+    '''
+    merged = pd.merge(numerator, denominator, on='iota', suffixes=('_gi', '_i'))
+    # Compute the payroll-weighted share for each gamma-iota
+    merged['s_gammaiota'] = merged['market_sum_powered_gi'] / merged['market_sum_powered_i']
     return merged[['iota', 'gamma', 's_gammaiota']]
 
+
+# Just confirming distributions look reasonable
 s_gi_hat = compute_s_gammaiota(data_full, eta_bhm, theta_bhm)
 print(s_gi_hat['s_gammaiota'].sum())
 print(s_gi_hat['s_gammaiota'].sort_values().tail(446).describe())
+test = compute_s_gammaiota(data_full, 0, 0)
+print(test['s_gammaiota'].sum())
+print(test['s_gammaiota'].sort_values().tail(446).describe())
 
-
-s_gi_hat = compute_s_gammaiota(data_full, 0, 0)
-print(s_gi_hat['s_gammaiota'].sum())
-print(s_gi_hat['s_gammaiota'].sort_values().tail(446).describe())
-
+# Delete empty rows to save memory
+s_ij = s_ij.loc[s_ij.payroll_weighted_share>0]
 
 
 jid_gamma_cw = data_full[['jid_masked', 'gamma']].drop_duplicates()
@@ -188,11 +212,215 @@ s_jg = s_jg.set_index('jid_masked', verify_integrity=True)
 
 epsilon_j_bhm = eta_bhm * (1 - s_jg['payroll_weighted_share']) + theta_bhm * s_jg['payroll_weighted_share'] * (1 - sum_product)
 
-epsilon_j_bhm = eta_bhm * s_jg['payroll_weighted_share'] + theta_bhm * s_jg['payroll_weighted_share'] * (1 - sum_product)
+
+# Display distribution of elasticities 
+print(epsilon_j_bhm.describe())
+
+markdown_w_iota = epsilon_j_bhm / (1 + epsilon_j_bhm)
+
+''' 
+# This is an old version that should probably be deleted
+
+# Back out the Phi_ig implied by wages and elasticities (given choices of eta and theta)
+
+temp = data_full[['iota','gamma','wid_masked','jid_masked','real_hrly_wage_dec']].merge(epsilon_j_bhm.reset_index(name='epsilon_j_bhm'), on='jid_masked', how='outer', validate='m:1', indicator=True)
+temp['phi_ij'] = temp['real_hrly_wage_dec'] * (1 + temp['epsilon_j_bhm']**(-1))
+# Need to collapse to the iota-gamma level rather than iota-jid level. 
+
+phi_ig_hat = temp.groupby(['iota','gamma'])['phi_ij'].mean().reset_index(name='phi_ig_hat')
+del temp 
+
+# Calculate w_j by dividing hourly log earnings by phi for each individual and then taking the mean within each job. This follows from equation (36) on Overleaf. But not entirely sure this is the right approach. In particular some values of w_j are > 1, which is inconsistent with w_j being a pure markdown. 
+
+temp = data_full[['iota','gamma','jid_masked','real_hrly_wage_dec']].merge(phi_ig_hat, on=['iota','gamma'], how='outer', validate='m:1', indicator=True)
+temp['w_j'] = temp['real_hrly_wage_dec'] / temp['phi_ig_hat']
+
+w_j = temp.groupby('jid_masked')['w_j'].mean().reset_index(name='w_j')
+
+print(w_j.w_j.describe(percentiles=[.01, .05, .1, .25, .5, .75, .9, .95, .99]))
+'''
+
+data_full = data_full.merge(pd.DataFrame(markdown_w_iota).reset_index().rename(columns={0:'markdown_w_iota'}), on='jid_masked', how='outer',validate='m:1', indicator='_m_md')
+
+data_full._m_md.value_counts()
+data_full.drop(columns='_m_md', inplace=True)
+
+data_full.markdown_w_iota.describe()
+
+data_full['y_tilde'] = data_full.ln_real_hrly_wage_dec + np.log(data_full.markdown_w_iota)
+
+reg_df = data_full[['iota','gamma','wid_masked','jid_masked','y_tilde']]
+
+reg_df['iota_gamma_id'] = reg_df.groupby(['iota', 'gamma']).ngroup()
+
+
+reg_df['iota_gamma'] = reg_df.iota.astype(int).astype(str) + '_' + reg_df.gamma.astype(int).astype(str)
+
+
+
+import pandas as pd
+import subprocess
+import os
+
+# Save dataframe as .dta file
+dta_path        = root + 'Data/derived/MarketPower_reghdfe_data.dta'
+results_path    = root + 'Data/derived/MarketPower_reghdfe_results.dta'
+reg_df.to_stata(dta_path, write_index=False)
+
+### This works!
+# Paths
+stata_path = r"C:\Program Files (x86)\Stata14\StataMP-64.exe"  # Adjust this path
+do_file_path = root + r"Code\MarketPower\run_twoway_fes.do"  # Adjust this path
+log_file_path = root + r"Code\MarketPower\run_twoway_fes.log"
+
+def write_stata_code(code, file_path):
+    with open(file_path, 'w') as f:
+        f.write(code)
+
+def run_stata_with_realtime_log(stata_code, do_file_path, log_file_path, stata_path=r"C:\Program Files (x86)\Stata14\StataMP-64.exe"):
+   
+
+    # Write Stata code to .do file
+    write_stata_code(stata_code, do_file_path)
+
+    # Run Stata do-file
+    process = subprocess.Popen([stata_path, "/e", "do", do_file_path], 
+                               stdout=subprocess.PIPE, 
+                               stderr=subprocess.STDOUT,
+                               universal_newlines=True)
+
+    # Initialize last_position
+    last_position = 0
+
+    while True:
+        # Check if process has finished
+        if process.poll() is not None:
+            break
+
+        # Check if log file exists
+        if os.path.exists(log_file_path):
+            with open(log_file_path, 'r') as log_file:
+                # Move to last read position
+                log_file.seek(last_position)
+                
+                # Read new content
+                new_content = log_file.read()
+                
+                if new_content:
+                    print(new_content, end='')
+                    
+                # Update last_position
+                last_position = log_file.tell()
+
+        # Wait a bit before checking again
+        time.sleep(0.1)
+
+    # Read any remaining content after process finishes
+    if os.path.exists(log_file_path):
+        with open(log_file_path, 'r') as log_file:
+            log_file.seek(last_position)
+            remaining_content = log_file.read()
+            if remaining_content:
+                print(remaining_content, end='')
+
+    # Check process return code
+    if process.returncode != 0:
+        print(f"Stata process exited with return code {process.returncode}")
+
+# Your Stata code as a Python string
+stata_code = f"""
+clear
+set more off
+log using "{log_file_path}", replace
+use "{dta_path}", clear
+reghdfe y_tilde, absorb(jid_masked_fes=jid_masked iota_gamma_fes=iota_gamma_id, savefe) residuals(resid)
+
+save "{results_path}", replace
+"""
+
+# Run the function with your Stata code
+run_stata_with_realtime_log(stata_code, do_file_path, log_file_path)
+
+results = pd.read_stata(results_path)
+
+
+'''
+# Step 1: Calculate the overall mean
+overall_mean = df['y_tilde'].mean()
+
+# Step 2: Calculate fixed effects for iota_gamma
+fe_iota_gamma = df.groupby('iota_gamma')['y_tilde'].mean() - overall_mean
+
+# Step 3: Calculate fixed effects for jid_masked
+fe_jid_masked = df.groupby('jid_masked')['y_tilde'].mean() - overall_mean
+
+# Step 4: Add fixed effects to the original DataFrame
+df['fe_iota_gamma'] = df['iota_gamma'].map(fe_iota_gamma)
+df['fe_jid_masked'] = df['jid_masked'].map(fe_jid_masked)
+'''
 
 
 
 
+
+
+
+
+
+
+
+
+
+
+''' Sample code from run_mayara_regressions.py
+    X = pd.get_dummies(df_year[['age_cat','educ_cat','female']], drop_first=True)
+    
+    # Specify the dependent variable and independent variables
+    y = df_year[['ln_rem_dez_sm']]
+    
+    # Fit the model using PanelOLS
+    model = PanelOLS(y, X, entity_effects=True).fit()
+    firm_market_year_fes = model.estimated_effects.copy().reset_index()
+    firm_market_year_fes.drop_duplicates(subset=['firm_market_fe_year','year'],keep='last', inplace=True) # Previously I tried dropping duplicates based on all variables but because of precision issues some values of estimated_effects vary slightly within a firm_market_fe_year. The amount of variation is trivial, but technically non-zero, so it was preventing certain rows that are essentially duplicates from being dropped. 
+
+results = model.fit()
+
+# XX Should we be estimating firm-market-year FEs using all years in 1986-2000? See page 35 of Mayara's appendix.
+dict_firm_market_year_fes = {}
+for year in [fyear,lyear]:    
+    df_year = df.loc[pd.IndexSlice[:,year],:]
+    # Convert categorical variables to dummy variables
+    X = pd.get_dummies(df_year[['age_cat','educ_cat','female']], drop_first=True)
+    
+    # Specify the dependent variable and independent variables
+    y = df_year[['ln_rem_dez_sm']]
+    
+    # Fit the model using PanelOLS
+    model = PanelOLS(y, X, entity_effects=True).fit()
+    firm_market_year_fes = model.estimated_effects.copy().reset_index()
+    firm_market_year_fes.drop_duplicates(subset=['firm_market_fe_year','year'],keep='last', inplace=True) # Previously I tried dropping duplicates based on all variables but because of precision issues some values of estimated_effects vary slightly within a firm_market_fe_year. The amount of variation is trivial, but technically non-zero, so it was preventing certain rows that are essentially duplicates from being dropped. 
+    # Create the new 'firm_market_fe' column by removing the year suffix
+    firm_market_year_fes['firm_market_fe'] = firm_market_year_fes['firm_market_fe_year'].str.replace(r':\d{4}$', '', regex=True)
+    firm_market_year_fes.drop(columns='firm_market_fe_year', inplace=True)
+    # Reshape to wide format on 'year'
+    firm_market_year_fes.reset_index(drop=True, inplace=True)
+    dict_firm_market_year_fes[year] = firm_market_year_fes.rename(columns={'estimated_effects':f'w_zm{year}'}).drop(columns='year')
+
+# Print the summary of the regression
+print(model.summary)
+
+'''
+
+
+
+
+
+
+
+
+
+
+######################################################################
 
 # Calculate the squared payroll-weighted share for each firm
 s_jg['squared_share'] = s_jg['payroll_weighted_share'] ** 2
@@ -203,17 +431,11 @@ s_fm['squared_share'] = s_fm['payroll_weighted_share'] ** 2
 HHI = s_jg.groupby('gamma')['squared_share'].sum().reset_index()
 HHI.columns = ['gamma', 'HHI']
 HHI['count'] = data_full.groupby(['gamma']).gamma.count()
-# This is the markdown according to Mayara's model, but using gammas as the definition of a market. 
-markdown = 1 + 1/theta * HHI.HHI + 1/eta *(1-HHI.HHI)
-print(markdown.describe())
-
 
 HHI_mayara = s_fm.groupby('mkt_mayara')['squared_share'].sum().reset_index()
 HHI_mayara.columns = ['mkt_mayara', 'HHI']
 HHI_mayara['count'] = data_full.groupby(['mkt_mayara']).mkt_mayara.count()
-# This is the markdown according to Mayara's model, but using gammas as the definition of a market. 
-markdown_mayara = 1 + 1/theta * HHI_mayara.HHI + 1/eta *(1-HHI_mayara.HHI)
-print(markdown_mayara.describe())
+
 
 
 
@@ -321,13 +543,12 @@ if 1==1:
     plt.close()
 
 
-XX Add histograms of markdowns. Then redo using BHM estimates (see below)
 
 
 
 #################################
 # Simulations to show the effect of misclassification on estimates of eta and theta
-# - Use 2009-2011 to estimate Psi
+# - Use 2009-2011 to estimate Phi
 # - Use BHM's estimates of eta and theta:
 
 
