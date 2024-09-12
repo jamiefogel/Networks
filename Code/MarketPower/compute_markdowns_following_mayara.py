@@ -372,67 +372,96 @@ print(collapsed_df.info())
 
 
 
-# Generate a random shock
-jid_shock = {jid_masked: np.random.random() for jid_masked in collapsed_df['jid_masked'].unique()}
+# Generate a random shock following eq (44). The jid and iota-gamma shocks collectively form Z_j
+jid_shock = {jid_masked: np.random.random() for jid_masked in collapsed_df['jid_masked'].unique()} # This is phi_j
 collapsed_df['jid_masked_shock'] = collapsed_df['jid_masked'].map(jid_shock)
 
 iota_gamma_shock = {iota_gamma_id: np.random.random() for iota_gamma_id in collapsed_df['iota_gamma_id'].unique()}
 collapsed_df['iota_gamma_shock'] = collapsed_df['iota_gamma_id'].map(iota_gamma_shock)
 
 
-collapsed_df['phi_iota_gamma_new'] = np.exp( \
+collapsed_df['phi_iota_j_new'] = np.exp( \
     collapsed_df['iota_gamma_fes']   + collapsed_df['jid_masked_fes'] + \
     collapsed_df['iota_gamma_shock'] + collapsed_df['jid_masked_shock']) 
 
-collapsed_df['wage_guess'] = collapsed_df['markdown_w_iota'] * collapsed_df['phi_iota_gamma_new']
+collapsed_df['wage_guess'] = collapsed_df['markdown_w_iota'] * collapsed_df['phi_iota_j_new']
 
 collapsed_df['iota_count'] = collapsed_df.groupby('iota')['iota_gamma_jid_count'].transform('sum')
 
 
 # Next steps:
-#   1. Compute ell_iota_j following eq (40)
-#   2. Then iterate through 40-45
+#   1. Compute ell_iota_j following eq (45)
+#   2. Then iterate through 45-50
 #   3. Iterate until ell and w stabilize
 
 
 collapsed_df['real_hrly_wage_dec'] = np.exp(collapsed_df['ln_real_hrly_wage_dec'])
 
-# Equation 40
+# Restricting to jid-iotas with non-missing wages. We have 78862 missing values, all of which correspond to missing FEs and are iota_gamma_jid singletons.  
+collapsed_df = collapsed_df.loc[collapsed_df['wage_guess'].notna()]
+
+collapsed_df.to_pickle(root + 'Data/derived/tmp_collapsed_df.p')
+
+
+# Equation 45 and 47 (because the term in 47 is part of 45)
 def compute_ell(df, eta, theta):
     df['w_power'] = df['wage_guess'] ** (1 + eta)
     df['numerator'] = df.groupby(['iota','gamma'])['w_power'].transform('sum') ** ((1 + theta) / (1 + eta))
     df['denominator'] = df.groupby('iota')['numerator'].transform('sum') 
-    df['first_term'] = df['iota_count'] * df['numerator'] / df['denominator']
+    df['s_gamma_iota'] =  df['numerator'] / df['denominator']
     df['second_term'] = df['w_power'] / df.groupby(['iota','gamma'])['w_power'].transform('sum') 
-    return df['first_term'] * df['second_term']
+    df['ell_iota_j'] =  df['iota_count'] * df['s_gamma_iota'] * df['second_term']
+    return df[['s_gamma_iota','ell_iota_j']]
 
+# Equation 46
 def compute_pi(df):
     df['denominator'] = df.groupby(['jid_masked'])['ell_iota_j'].transform('sum')
     return df['ell_iota_j'] / df['denominator']
 
-
-def compute_s_gamma_iota(df):
-    df['numerator']   = df.groupby(['iota','gamma'])['ell_iota_j'].transform('sum')
-    df['denominator'] = df.groupby(['iota'])['numerator'].transform('sum')
-    return  df['numerator'] /  df['denominator']
+# Equation 48 - Job j's payrolls share of market gamma (summing across all iotas)
+def compute_s_j_gamma(df):
+    df['wl'] = df['wage_guess'] * df['ell_iota_j']
+    df['numerator']   = df.groupby('jid_masked')['wl'].transform('sum')
+    df['denominator'] = df.groupby('gamma')['wl'].transform('sum')
+    return df['numerator'] / df['denominator']
     
 
+# Equation 49: compute markdown
+def compute_epsilon_j(df, eta, theta):
+    df['pi_times_s'] = df['pi_iota_j'] * df['s_gamma_iota']
+    df['weighted_share'] = df.groupby('jid_masked')['pi_times_s'].transform('sum')
+    df['epsilon_j'] = eta *(1-df['s_j_gamma']) + theta * df['s_j_gamma'] * (1 - df['weighted_share'])
+    return df['epsilon_j'] 
 
-# XX I dont trust any of these sums because since I am summnig over all rows in the DF I may be weighting wrong. Need to think more about it. 
 
-collapsed_df['ell_iota_j'] = compute_ell(collapsed_df, eta_bhm, theta_bhm)
-collapsed_df['pi_iota_j'] = compute_pi(collapsed_df)
 
-# Equation 41
-collapsed_df['pi'] = collapsed_df['ell'] / collapsed_df.groupby('gamma')['ell'].transform('sum')
 
-# Equation 42
-def compute_s_gamma(df):
-    w_power = df['real_hrly_wage_dec'] ** (1 + eta)
-    numerator = w_power.groupby('gamma').transform('sum') ** ((1 + theta) / (1 + eta))
-    denominator = (w_power.groupby('iota').transform('sum') ** ((1 + theta) / (1 + eta))).sum()
-    return numerator / denominator
+# Now we need to do some sort of iterate until convergence
+diff = 1
+tol = .0001
+max_iter = 100
+iter = 0
+while (diff > tol) and (iter < max_iter):
+    
+    collapsed_df[['s_gamma_iota','ell_iota_j']] = compute_ell(collapsed_df, eta_bhm, theta_bhm)
+    collapsed_df['pi_iota_j'] = compute_pi(collapsed_df)
+    collapsed_df['s_j_gamma'] = compute_s_j_gamma(collapsed_df)
+    collapsed_df['epsilon_j'] = compute_epsilon_j(collapsed_df, eta_bhm, theta_bhm)
+    
+    # Update wage_guess
+    collapsed_df['wage_guess_new'] = collapsed_df['epsilon_j']/(1+collapsed_df['epsilon_j']) * collapsed_df['phi_iota_j_new']
+    diff = np.abs(collapsed_df['wage_guess_new'] - collapsed_df['wage_guess']).sum()
+    #diff_l = np.abs(collapsed_df['wage_guess_new'] - collapsed_df['wage_guess_new']).sum()
+    collapsed_df['wage_guess'] = collapsed_df['wage_guess_new']
+    if True: #iter%10==0:
+        print(iter)
+        print(diff)
+    iter += 1
 
+## This is exploding. We need to figure out why
+
+'''
+This is all old
 collapsed_df['s_gamma'] = compute_s_gamma(collapsed_df)
 
 # Equation 43
@@ -452,7 +481,7 @@ collapsed_df['w_updated'] = collapsed_df['real_hrly_wage_dec'] * \
 
 # Print the results
 print(collapsed_df[['iota', 'gamma', 'jid_masked', 'ell', 'pi', 's_gamma', 's_j_gamma', 'epsilon', 'w_updated']])
-
+'''
 
 
 ''' Sample code from run_mayara_regressions.py
