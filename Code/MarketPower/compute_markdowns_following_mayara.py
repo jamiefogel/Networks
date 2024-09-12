@@ -26,6 +26,8 @@ import statsmodels.formula.api as smf
 import statsmodels.api as sm
 from linearmodels.panel import PanelOLS
 from linearmodels.panel import compare
+import time
+import subprocess
 
 homedir = os.path.expanduser('~')
 if getpass.getuser()=='p13861161':
@@ -249,7 +251,7 @@ data_full.markdown_w_iota.describe()
 
 data_full['y_tilde'] = data_full.ln_real_hrly_wage_dec + np.log(data_full.markdown_w_iota)
 
-reg_df = data_full[['iota','gamma','wid_masked','jid_masked','y_tilde']]
+reg_df = data_full[['iota','gamma','wid_masked','jid_masked','y_tilde','ln_real_hrly_wage_dec','markdown_w_iota']]
 
 reg_df['iota_gamma_id'] = reg_df.groupby(['iota', 'gamma']).ngroup()
 
@@ -258,9 +260,6 @@ reg_df['iota_gamma'] = reg_df.iota.astype(int).astype(str) + '_' + reg_df.gamma.
 
 
 
-import pandas as pd
-import subprocess
-import os
 
 # Save dataframe as .dta file
 dta_path        = root + 'Data/derived/MarketPower_reghdfe_data.dta'
@@ -344,31 +343,115 @@ run_stata_with_realtime_log(stata_code, do_file_path, log_file_path)
 results = pd.read_stata(results_path)
 
 
-'''
-# Step 1: Calculate the overall mean
-overall_mean = df['y_tilde'].mean()
-
-# Step 2: Calculate fixed effects for iota_gamma
-fe_iota_gamma = df.groupby('iota_gamma')['y_tilde'].mean() - overall_mean
-
-# Step 3: Calculate fixed effects for jid_masked
-fe_jid_masked = df.groupby('jid_masked')['y_tilde'].mean() - overall_mean
-
-# Step 4: Add fixed effects to the original DataFrame
-df['fe_iota_gamma'] = df['iota_gamma'].map(fe_iota_gamma)
-df['fe_jid_masked'] = df['jid_masked'].map(fe_jid_masked)
-'''
+# Quickly check the variance decomposition
+results.jid_masked_fes.var() / results.y_tilde.var()
+#Out[35]: 0.846037664821534
+results.iota_gamma_fes.var() / results.y_tilde.var()
+#Out[36]: 0.0067746838565168055
+results.resid.var() / results.y_tilde.var()
+#Out[37]: 0.14825373239440456
 
 
 
+collapsed_df = results.groupby(['iota', 'gamma', 'iota_gamma_id', 'jid_masked']).agg({
+    'jid_masked_fes': 'first',          # These don't vary within the group, so we can take the first value
+    'iota_gamma_fes': 'first',          # These don't vary within the group, so we can take the first value
+    'markdown_w_iota': 'first',         # These don't vary within the group, so we can take the first value
+    'ln_real_hrly_wage_dec': 'mean',    # Average of log earnings within the group
+    'wid_masked': 'count'               # Count of rows in this group
+}).reset_index()
+
+# Rename the count column to something more descriptive
+collapsed_df = collapsed_df.rename(columns={'wid_masked': 'iota_gamma_jid_count'})
+
+# Display the first few rows of the collapsed dataframe
+print(collapsed_df.head())
+
+# Display information about the collapsed dataframe
+print(collapsed_df.info())
 
 
 
+# Generate a random shock
+jid_shock = {jid_masked: np.random.random() for jid_masked in collapsed_df['jid_masked'].unique()}
+collapsed_df['jid_masked_shock'] = collapsed_df['jid_masked'].map(jid_shock)
+
+iota_gamma_shock = {iota_gamma_id: np.random.random() for iota_gamma_id in collapsed_df['iota_gamma_id'].unique()}
+collapsed_df['iota_gamma_shock'] = collapsed_df['iota_gamma_id'].map(iota_gamma_shock)
 
 
+collapsed_df['phi_iota_gamma_new'] = np.exp( \
+    collapsed_df['iota_gamma_fes']   + collapsed_df['jid_masked_fes'] + \
+    collapsed_df['iota_gamma_shock'] + collapsed_df['jid_masked_shock']) 
+
+collapsed_df['wage_guess'] = collapsed_df['markdown_w_iota'] * collapsed_df['phi_iota_gamma_new']
+
+collapsed_df['iota_count'] = collapsed_df.groupby('iota')['iota_gamma_jid_count'].transform('sum')
 
 
+# Next steps:
+#   1. Compute ell_iota_j following eq (40)
+#   2. Then iterate through 40-45
+#   3. Iterate until ell and w stabilize
 
+
+collapsed_df['real_hrly_wage_dec'] = np.exp(collapsed_df['ln_real_hrly_wage_dec'])
+
+# Equation 40
+def compute_ell(df, eta, theta):
+    df['w_power'] = df['wage_guess'] ** (1 + eta)
+    df['numerator'] = df.groupby(['iota','gamma'])['w_power'].transform('sum') ** ((1 + theta) / (1 + eta))
+    df['denominator'] = df.groupby('iota')['numerator'].transform('sum') 
+    df['first_term'] = df['iota_count'] * df['numerator'] / df['denominator']
+    df['second_term'] = df['w_power'] / df.groupby(['iota','gamma'])['w_power'].transform('sum') 
+    return df['first_term'] * df['second_term']
+
+def compute_pi(df):
+    df['denominator'] = df.groupby(['jid_masked'])['ell_iota_j'].transform('sum')
+    return df['ell_iota_j'] / df['denominator']
+
+
+def compute_s_gamma_iota(df):
+    df['numerator']   = df.groupby(['iota','gamma'])['ell_iota_j'].transform('sum')
+    df['denominator'] = df.groupby(['iota'])['numerator'].transform('sum')
+    return  df['numerator'] /  df['denominator']
+    
+
+
+# XX I dont trust any of these sums because since I am summnig over all rows in the DF I may be weighting wrong. Need to think more about it. 
+
+collapsed_df['ell_iota_j'] = compute_ell(collapsed_df, eta_bhm, theta_bhm)
+collapsed_df['pi_iota_j'] = compute_pi(collapsed_df)
+
+# Equation 41
+collapsed_df['pi'] = collapsed_df['ell'] / collapsed_df.groupby('gamma')['ell'].transform('sum')
+
+# Equation 42
+def compute_s_gamma(df):
+    w_power = df['real_hrly_wage_dec'] ** (1 + eta)
+    numerator = w_power.groupby('gamma').transform('sum') ** ((1 + theta) / (1 + eta))
+    denominator = (w_power.groupby('iota').transform('sum') ** ((1 + theta) / (1 + eta))).sum()
+    return numerator / denominator
+
+collapsed_df['s_gamma'] = compute_s_gamma(collapsed_df)
+
+# Equation 43
+collapsed_df['s_j_gamma'] = collapsed_df['real_hrly_wage_dec'] * collapsed_df['ell'] / \
+                            collapsed_df.groupby('gamma').apply(lambda x: (x['real_hrly_wage_dec'] * x['ell']).sum())
+
+# Equation 44
+def compute_epsilon(df):
+    pi_s_gamma = (df['pi'] * df['s_gamma']).groupby('gamma').transform('sum')
+    return eta * (1 - df['s_j_gamma']) + theta * df['s_j_gamma'] * (1 - pi_s_gamma)
+
+collapsed_df['epsilon'] = compute_epsilon(collapsed_df)
+
+# Equation 45
+collapsed_df['w_updated'] = collapsed_df['real_hrly_wage_dec'] * \
+                            (collapsed_df['epsilon'] / (1 + collapsed_df['epsilon']))
+
+# Print the results
+print(collapsed_df[['iota', 'gamma', 'jid_masked', 'ell', 'pi', 's_gamma', 's_j_gamma', 'epsilon', 'w_updated']])
 
 
 
