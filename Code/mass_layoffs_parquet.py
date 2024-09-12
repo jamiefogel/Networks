@@ -71,32 +71,7 @@ if getpass.getuser()=='jfogel':
     root = homedir + '/NetworksGit/'
     sys.path.append(root + 'Code/Modules')
 
-from mass_layoffs_parquet_functions import load_iotas_gammas, process_iotas_gammas, pull_estab_geos, event_studies_by_mkt_size, calculate_distance, compute_skill_variance
-
-years = range(2013, 2016 + 1)
-file_paths = [f"{rais}/parquet_novos/brasil{year}.parquet" for year in years]
-
-
-
-# Pull region codes
-region_codes = pd.read_csv(root + '/Data/raw/munic_microregion_rm.csv', encoding='latin1')
-muni_micro_cw = pd.DataFrame({'code_micro':region_codes.code_micro,'codemun':region_codes.code_munic//10})
-
-# Load iotas and gammas and compute the expected number of jobs for each iota
-
-iotas, gammas = load_iotas_gammas(root)
-
-run_load_iotas_gammas = True
-if run_load_iotas_gammas==True:
-    iotas, gammas = load_iotas_gammas(root)
-    E_N_gamma_given_iota, appended = process_iotas_gammas(root, iotas, gammas)
-    E_N_gamma_given_iota.to_pickle(root + "Data/derived/mass_layoffs_E_N_gamma_given_iota.p", protocol=4)   
-    E_N_gamma_given_iota.to_parquet(root + "Data/derived/mass_layoffs_E_N_gamma_given_iota.parquet")   
-    # Compute skill and spatial variance of each iota
-    weighted_variances = compute_skill_variance(appended, root)
-    weighted_variances.to_pickle(root + "Data/derived/mass_layoffs_weighted_variances.p", protocol=4)  
-
- 
+from mass_layoffs_parquet_functions import load_iotas_gammas, process_iotas_gammas, pull_estab_geos, event_studies_by_mkt_size, calculate_distance, compute_skill_variance, compute_mkt_sizes_ind2_micro
 
 
 date_formats ={    
@@ -116,6 +91,33 @@ date_formats ={
     2017:"%d%b%Y",
     2018:"%d/%m/%Y",
     2019:"%d/%m/%Y"}
+
+
+
+
+years = range(2013, 2016 + 1)
+
+# Pull region codes
+region_codes = pd.read_csv(root + '/Data/raw/munic_microregion_rm.csv', encoding='latin1')
+muni_micro_cw = pd.DataFrame({'code_micro':region_codes.code_micro,'codemun':region_codes.code_munic//10})
+
+# Load iotas and gammas and compute the expected number of jobs for each iota
+
+
+# Load iotas and gammas and compute the expected number of jobs for each iota
+run_load_iotas_gammas = True
+if run_load_iotas_gammas==True:
+    iotas, gammas = load_iotas_gammas(root)
+    E_N_gamma_given_iota, appended = process_iotas_gammas(root, iotas, gammas)
+    E_N_gamma_given_iota.to_parquet(root + "Data/derived/mass_layoffs_E_N_gamma_given_iota.parquet")   
+    # Compute skill and spatial variance of each iota
+    weighted_variances = compute_skill_variance(appended, root)
+    weighted_variances.to_pickle(root + "Data/derived/mass_layoffs_weighted_variances.p", protocol=4)  
+
+ 
+
+
+mkt_size_df = compute_mkt_sizes_ind2_micro(rais, muni_micro_cw)
 
 identify_laid_off_workers=True
 if identify_laid_off_workers==True:
@@ -160,24 +162,26 @@ if identify_laid_off_workers==True:
         'wid': 'nunique',
         'layoff_type_indicator': 'mean'
     })
-    layoffs_by_month = layoffs_by_month.reset_index().rename(columns={'wid':'laid_off_count'})
+    layoffs_by_month = layoffs_by_month.reset_index().rename(columns={'wid':'laid_off_count','layoff_year':'estab_layoff_year','layoff_month':'estab_layoff_month'})
     layoffs_by_month['laid_off_share'] = layoffs_by_month['laid_off_count'] / layoffs_by_month['total_employees_year']
     # 0 means not laid off
-    layoffs_by_month = layoffs_by_month.loc[layoffs_by_month['layoff_month']!=0]
+    layoffs_by_month = layoffs_by_month.loc[layoffs_by_month['estab_layoff_month']!=0]
     
     # quarterly lay offs
     layoffs_by_quarter = worker_panel.groupby(['id_estab', 'layoff_year', 'total_employees_year', 'layoff_quarter']).agg({
         'wid': 'nunique',
         'layoff_type_indicator': 'mean'
     })
-    layoffs_by_quarter = layoffs_by_quarter.reset_index().rename(columns={'wid':'laid_off_count'})
+    layoffs_by_quarter = layoffs_by_quarter.reset_index().rename(columns={'wid':'laid_off_count','layoff_year':'estab_layoff_year','layoff_quarter':'estab_layoff_quarter'})
+
     layoffs_by_quarter['laid_off_share'] = layoffs_by_quarter['laid_off_count'] / layoffs_by_quarter['total_employees_year']
     # 0 means not laid off
-    layoffs_by_quarter = layoffs_by_quarter.loc[layoffs_by_quarter['layoff_quarter']!=0]
+    layoffs_by_quarter = layoffs_by_quarter.loc[layoffs_by_quarter['estab_layoff_quarter']!=0]
     
     mass_layoffs = layoffs_by_month.loc[(layoffs_by_month['total_employees_year']>50) & (layoffs_by_month['laid_off_share']>.5) & (layoffs_by_month['layoff_type_indicator']>.8)]
     
-    laid_off_workers = worker_panel.merge(mass_layoffs[['id_estab','layoff_month','layoff_year']], validate='m:1', how='inner',indicator=True)
+    # XX This is what I was editing at the end of the day on 9/10.
+    laid_off_workers = worker_panel.merge(mass_layoffs[['id_estab','estab_layoff_month','estab_layoff_year']], left_on=['id_estab','layoff_month','layoff_year'], right_on=['id_estab','estab_layoff_month','estab_layoff_year'],  validate='m:1', how='inner',indicator=True)
     laid_off_workers['wid'] = laid_off_workers['wid'].astype('Int64')
     laid_off_workers_set = pa.array(laid_off_workers['wid'].unique().dropna())
     
@@ -326,12 +330,11 @@ if create_worker_panel_balanced==True:
         ((worker_panel_long['data_deslig'].isna()) | (worker_panel_long['data_deslig'] >= worker_panel_long['calendar_date'])) 
     ).astype(int)
     
-    
     # Step 4: Merge with mass layoff data and flag mass layoff months
     # Assuming closure_df contains the mass layoff data with columns 'id_estab' and 'data_encerramento'
-    worker_panel_long = worker_panel_long.merge(mass_layoffs[['id_estab','layoff_month','layoff_year']],  
-                left_on=['id_estab','layoff_month','year'],  
-                right_on=['id_estab','layoff_month','layoff_year'], 
+    worker_panel_long = worker_panel_long.merge(mass_layoffs[['id_estab','estab_layoff_month','estab_layoff_year']],  
+                left_on=['id_estab','month','year'],  
+                right_on=['id_estab','estab_layoff_month','estab_layoff_year'], 
                 validate='m:1', how='left',indicator=True)
 
     ''' OLD but this is where I left off. Next step would be to define the mass layoff flag as _merge='both' from the previous step
@@ -350,7 +353,6 @@ if create_worker_panel_balanced==True:
     # Flag and keep workers who were employed at a mass layoff estab when the mass layoff happened
     worker_panel_long['mass_layoff_ever'] = worker_panel_long.groupby('wid')['mass_layoff_flag'].transform('max')
     worker_panel_long = worker_panel_long.loc[worker_panel_long['mass_layoff_ever']==1]
-    
     
     worker_panel_long['event_time'] = (worker_panel_long['calendar_date'].dt.to_period('M') -worker_panel_long['mass_layoff_month'].dt.to_period('M')).apply(lambda x: x.n if pd.notna(x) else np.nan)
     
@@ -375,6 +377,8 @@ if create_worker_panel_balanced==True:
     # Merge on time-invariant variables to ensure they are defined when the person is not employed
     worker_panel_balanced = worker_panel_balanced.merge(worker_panel_long[invariant].drop_duplicates(subset='wid', keep='last'), how='left', on='wid', indicator='_merge_invariant', validate='m:1')
     
+    worker_panel_balanced['num_jobs_month'].fillna(0, inplace=True)
+
     # create a calendar-year variable in the worker_panel_balance, label it as year
     worker_panel_balanced['calendar_date'] = worker_panel_balanced['mass_layoff_month'].dt.to_period('M') + worker_panel_balanced['event_time']
     worker_panel_balanced['year'] = worker_panel_balanced['calendar_date'].dt.year.replace(-1, pd.NA).astype('Int64') # For some reason NaTs are converted to -1 so fixing that
@@ -491,7 +495,6 @@ if create_worker_panel_balanced==True:
         worker_panel_balanced[same_col] = (worker_panel_balanced[pre_col] == worker_panel_balanced[var]).astype(int)
     
     
-    
     # Get first reemployment time
     first_reemployment = worker_panel_balanced[(worker_panel_balanced['event_time'] > 0) & 
                                                (worker_panel_balanced['employment_indicator'] == 1)].groupby('wid')['event_time'].min()
@@ -531,8 +534,6 @@ if create_worker_panel_balanced==True:
     print(flagged_firms)
     
     worker_panel_balanced = worker_panel_balanced[~worker_panel_balanced['pre_layoff_id_firm'].isin(flagged_firms)]
-    
-    
     
     
     # Recode the 'grau_instr' variable into coarser bins
@@ -588,18 +589,86 @@ if create_worker_panel_balanced==True:
 
 
 
+####
+# Next: compute market size, merge it on, and create figures
 
 
 
 
+run_preliminary_figures=True
+if run_preliminary_figures==True:
+    
+    # Collapse by event_time and take the mean of employment_indicator
+    collapsed = worker_panel_balanced.groupby('event_time')[['employment_indicator','total_earnings_month','total_earnings_month_sm','vl_rem','vl_rem_sm','calendar_date']].mean().reset_index()
+    
+    # Create a time series plot of employment rates
+    plt.figure(figsize=(10, 6))
+    plt.plot(collapsed['event_time'], collapsed['employment_indicator'], marker='o', linestyle='-')
+    plt.xlabel('Event Time (Months)')
+    plt.ylabel('Mean Employment Indicator')
+    plt.title('Mean Employment Indicator by Event Time')
+    plt.grid(True)
+    plt.savefig(root + 'Results/employment_after_layoff.pdf', format='pdf')
+    plt.show()
+    
+
+    # Create a time series plot
+    plt.figure(figsize=(10, 6))
+    plt.plot(collapsed['event_time'], collapsed['total_earnings_month_sm'], marker='o', linestyle='-')
+    plt.xlabel('Event Time (Months)')
+    plt.ylabel('Mean Total Monthly Earnings')
+    plt.title('Mean Total Monthly Earnings by Event Time')
+    plt.grid(True)
+    plt.savefig(root + 'Results/earnings_after_layoff.pdf', format='pdf')
+    plt.show()
+    
+    
+    # Create a time series plot
+    plt.figure(figsize=(10, 6))
+    plt.plot(collapsed['event_time'], collapsed['vl_rem_sm'], marker='o', linestyle='-')
+    plt.xlabel('Event Time (Months)')
+    plt.ylabel('Mean Primary Job Monthly Earnings')
+    plt.title('Mean Primary Job Monthly Earnings by Event Time')
+    plt.grid(True)
+    plt.savefig(root + 'Results/primary_job_earnings_after_layoff.pdf', format='pdf')
+    plt.show()
+    
+
+# Calculate the descriptions
+# Create an empty list to store individual descriptions
+descriptions = []
+
+# Loop through event_time from -5 to 5
+for event_time in range(-5, 6):
+    # Calculate description for this event_time
+    desc = worker_panel_balanced.loc[worker_panel_balanced.event_time == event_time, ['total_earnings_month_sm']].describe(
+        percentiles=[.01, .05, .1, .25, .5, .75, .9, .95, .99]
+    )
+    
+    # Rename the column to indicate the event_time
+    desc.columns = [f'event_time={event_time}']
+    
+    # Append to our list of descriptions
+    descriptions.append(desc)
+
+# Concatenate all descriptions side by side
+result = pd.concat(descriptions, axis=1)
+
+# Print the result
+print("Comparison of total_earnings_month_sm for event_time from -5 to 5")
+print(result.to_string())
 
 # What to do next
 # - We need a list of all establishments in our period (2013-2016) in our 3 states of interest, with a mass layoff indicator for each worker-job match (was the worker laid off in a mass layoff at this firm?), establishment geolocation (We have the code for this), iotas and gammas
 
 
+worker_panel_balanced[['wid','event_time','calendar_date','mass_layoff_month','num_jobs_month','id_firm','same_id_firm','data_deslig','causa_deslig']].iloc[0:50]
+# Need to decide how to handle when the person exposed to a mass layoff has 2 jobs
+worker_panel_balanced.num_jobs_month.value_counts()
+worker_panel_balanced.loc[worker_panel_balanced.event_time==-1].num_jobs_month.value_counts()
 
-
-
+worker_panel_balanced.loc[worker_panel_balanced.event_time==0].num_jobs_month.value_counts()
+worker_panel_balanced.loc[worker_panel_balanced.event_time==1].num_jobs_month.value_counts()
 
 
 
