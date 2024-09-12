@@ -195,6 +195,7 @@ s_jg['squared_share'] = s_jg['payroll_weighted_share'] ** 2
 # Sum up the squared shares within each market (gamma) to get the HHI
 HHI = s_jg.groupby('gamma')['squared_share'].sum().reset_index()
 HHI.columns = ['gamma', 'HHI']
+# This is the markdown according to Mayara's model, but using gammas as the definition of a market. 
 markdown = 1 + 1/theta * HHI.HHI + 1/eta *(1-HHI.HHI)
 
 
