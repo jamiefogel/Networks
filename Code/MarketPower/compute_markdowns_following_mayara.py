@@ -50,6 +50,15 @@ sys.path.append(root + 'Code/Modules')
 figuredir = root + 'Results/'
 
 
+inv_eta_mayara   = 0.985
+inv_theta_mayara = 1.257
+
+eta_mayara = 1/inv_eta_mayara
+theta_mayara = 1/inv_theta_mayara
+
+eta_bhm = 7.14
+theta_bhm = .45
+
 
 
 # Pull region codes
@@ -85,15 +94,6 @@ data_full = data_full.merge(muni_micro_cw, on='codemun', how='left', validate='m
  - s_ij = s_ig*s_ijg = job j's share of type iota employment
 '''
 
-
-inv_eta_mayara   = 0.985
-inv_theta_mayara = 1.257
-
-eta_mayara = 1/inv_eta_mayara
-theta_mayara = 1/inv_theta_mayara
-
-eta_bhm = 7.14
-theta_bhm = .45
 
 
 # Create variable for Mayara's market definitions
@@ -259,7 +259,8 @@ reg_df['iota_gamma_id'] = reg_df.groupby(['iota', 'gamma']).ngroup()
 reg_df['iota_gamma'] = reg_df.iota.astype(int).astype(str) + '_' + reg_df.gamma.astype(int).astype(str)
 
 
-
+### Trim approximately top 1% of wages
+reg_df = reg_df.loc[reg_df.ln_real_hrly_wage_dec<5]
 
 # Save dataframe as .dta file
 dta_path        = root + 'Data/derived/MarketPower_reghdfe_data.dta'
@@ -384,8 +385,8 @@ collapsed_df['phi_iota_j_new'] = np.exp( \
     collapsed_df['iota_gamma_fes']   + collapsed_df['jid_masked_fes'] + \
     collapsed_df['iota_gamma_shock'] + collapsed_df['jid_masked_shock']) 
 
-collapsed_df['wage_guess'] = collapsed_df['markdown_w_iota'] * collapsed_df['phi_iota_j_new']
-
+collapsed_df['wage_guess_initial'] = collapsed_df['markdown_w_iota'] * collapsed_df['phi_iota_j_new']
+collapsed_df['wage_guess'] = collapsed_df['wage_guess_initial']
 collapsed_df['iota_count'] = collapsed_df.groupby('iota')['iota_gamma_jid_count'].transform('sum')
 
 
@@ -401,6 +402,7 @@ collapsed_df['real_hrly_wage_dec'] = np.exp(collapsed_df['ln_real_hrly_wage_dec'
 collapsed_df = collapsed_df.loc[collapsed_df['wage_guess'].notna()]
 
 collapsed_df.to_pickle(root + 'Data/derived/tmp_collapsed_df.p')
+collapsed_df = pd.read_pickle(root + 'Data/derived/tmp_collapsed_df.p')
 
 
 # Equation 45 and 47 (because the term in 47 is part of 45)
@@ -425,7 +427,6 @@ def compute_s_j_gamma(df):
     df['denominator'] = df.groupby('gamma')['wl'].transform('sum')
     return df['numerator'] / df['denominator']
     
-
 # Equation 49: compute markdown
 def compute_epsilon_j(df, eta, theta):
     df['pi_times_s'] = df['pi_iota_j'] * df['s_gamma_iota']
@@ -439,7 +440,7 @@ def compute_epsilon_j(df, eta, theta):
 # Now we need to do some sort of iterate until convergence
 diff = 1
 tol = .0001
-max_iter = 100
+max_iter = 200
 iter = 0
 while (diff > tol) and (iter < max_iter):
     
@@ -458,7 +459,101 @@ while (diff > tol) and (iter < max_iter):
         print(diff)
     iter += 1
 
-## This is exploding. We need to figure out why
+collapsed_df['wage'] = collapsed_df['wage_guess']
+
+# XX This seems to get close to converging but there are still a tiny number with non-trivial differences
+
+
+
+##########################################################################################
+##########################################################################################
+# Two-step regressions to estimate eta and theta
+##########################################################################################
+##########################################################################################
+
+##########
+# Step 1
+
+reg_df2 = collapsed_df[['ell_iota_j','wage','iota_gamma_id','iota']]
+reg_df2['ln_ell_iota_j']   = np.log(reg_df2['ell_iota_j'])
+reg_df2['ln_wage']         = np.log(reg_df2['wage'])
+
+
+dta_path2        = root + 'Data/derived/MarketPower_reghdfe_data2.dta'
+results_path2    = root + 'Data/derived/MarketPower_reghdfe_results2.dta'
+reg_df2.to_stata(dta_path2, write_index=False)
+
+### This works!
+# Paths
+stata_path = r"C:\Program Files (x86)\Stata14\StataMP-64.exe"  # Adjust this path
+do_file_path = root + r"Code\MarketPower\run_first_stage_estimates.do"  # Adjust this path
+log_file_path = root + r"Code\MarketPower\run_first_stage_estimates.log"
+
+# Your Stata code as a Python string
+stata_code = f"""
+clear
+set more off
+log using "{log_file_path}", replace
+use "{dta_path2}", clear
+reghdfe ln_ell_iota_j ln_wage, absorb(iota_gamma_id)
+
+clear
+set obs 1
+gen eta_hat = _b[ln_wage] - 1
+
+save "{results_path2}", replace
+"""
+
+# Run the function with your Stata code
+run_stata_with_realtime_log(stata_code, do_file_path, log_file_path)
+
+results = pd.read_stata(results_path2)
+eta_hat = results.eta_hat[0]
+
+
+##########
+# Step 2
+
+
+reg_df2['wage_1PlusEta'] = reg_df2['wage'] ** (1+eta_hat)
+# Collapse to iota-gamma level
+reg_df3 = reg_df2.groupby('iota_gamma_id').agg({
+    'ell_iota_j': 'sum',  # Calculate the mean of this column
+    'wage_1PlusEta': 'sum',        # Calculate the mean of this column
+    'iota': 'first'           # Take the first value of this column
+}).reset_index()
+reg_df3['wage_ces_index'] = reg_df3['wage_1PlusEta'] ** (1 / (1+eta_hat))
+reg_df3['ln_ell_iota_gamma'] = np.log(reg_df3['ell_iota_j'])
+reg_df3['ln_wage_ces_index'] = np.log(reg_df3['wage_ces_index'])
+
+dta_path3        = root + 'Data/derived/MarketPower_reghdfe_data3.dta'
+results_path3    = root + 'Data/derived/MarketPower_reghdfe_results3.dta'
+reg_df3.to_stata(dta_path3, write_index=False)
+
+# Your Stata code as a Python string
+stata_code = f"""
+clear
+set more off
+log using "{log_file_path}", replace
+use "{dta_path3}", clear
+reghdfe ln_ell_iota_gamma ln_wage_ces_index, absorb(iota)
+
+clear
+set obs 1
+gen theta_hat = _b[ln_wage] - 1
+
+save "{results_path3}", replace
+"""
+
+# Run the function with your Stata code
+run_stata_with_realtime_log(stata_code, do_file_path, log_file_path)
+
+results = pd.read_stata(results_path3)
+theta_hat = results.theta_hat[0]
+
+
+
+
 
 '''
 This is all old
