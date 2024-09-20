@@ -65,6 +65,8 @@ if getpass.getuser()=='jfogel':
 
 
 from pull_one_year import pull_one_year
+from mass_layoffs_parquet_functions import pull_estab_geos
+
 
 state_codes = [31, 33, 35]
 region_codes = pd.read_csv(root + '/Data/raw/munic_microregion_rm.csv', encoding='latin1')
@@ -277,67 +279,8 @@ rcounts.append([rc,raw.shape[0]])
 # file of type: rais_geolocalizada_2009
 years = raw.year.unique().tolist()
 
-high_precision_cat = ['POI',
-                        'PointAddress',
-                        'StreetAddress',
-                        'StreetAddressExt',
-                        'StreetName',
-                        'street_number',
-                        'route',
-                        'airport',
-                        'amusement_park',
-                        'intersection',
-                        'premise',
-                        'town_square']
+geo_estab = pull_estab_geos([year], rais)
 
-# Initialize an empty list to hold the DataFrames
-geo_list = []
-
-for year in years:
-    print(str(year))
-    # Read the parquet file for the given year and rename columns
-    geo = pd.read_parquet(f'{rais}/geocode/rais_geolocalizada_{year}.parquet')
-    geo['year'] = year
-    geo.rename(columns={'lon': 'lon_estab', 'lat': 'lat_estab'}, inplace=True)
-    # Append the DataFrame to the list
-    geo_list.append(geo)
-
-# Concatenate all the DataFrames in the list into a single DataFrame
-geo_estab = pd.concat(geo_list, ignore_index=True)
-del geo, geo_list 
-
-############################
-
-# Initialize lists to store the UTM coordinates
-utm_lon = []
-utm_lat = []
-
-# Convert latitude and longitude to UTM with progress indicator
-for lon, lat in tqdm(zip(geo_estab['lon_estab'].values, geo_estab['lat_estab'].values), total=len(geo_estab)):
-    utm_x, utm_y = convert_to_utm(lon, lat)
-    utm_lon.append(utm_x)
-    utm_lat.append(utm_y)
-
-# Assign the UTM coordinates back to the DataFrame
-geo_estab['utm_lon_estab'] = utm_lon
-geo_estab['utm_lat_estab'] = utm_lat
-
-# Drop duplicates based on the specified columns in place
-geo_estab.drop_duplicates(subset=['year', 'id_estab', 'lat_estab', 'lon_estab', 'Addr_type', 'h3_res7'], inplace=True)
-# Optionally, reset the index in place
-geo_estab.reset_index(drop=True, inplace=True)
-
-# Group by 'year' and 'id_estab' and count the occurrences
-duplicates = geo_estab.groupby(['year','id_estab']).size().reset_index(name='count')
-print((duplicates.iloc[:,2].value_counts() /  duplicates.iloc[:,2].sum()).round(4))
-geo_estab = geo_estab.merge(duplicates, on=['year', 'id_estab'], how='left')
-
-geo_estab['is_high_precision'] = geo_estab['Addr_type'].isin(high_precision_cat).astype(int)
-
-geo_estab[(geo_estab['count'] > 1) & (geo_estab['is_high_precision'] == 0)].shape[0] / (geo_estab['count'] > 1).sum()
-
-geo_estab = geo_estab.sort_values('is_high_precision', ascending=False).drop_duplicates(subset=['year', 'id_estab'], keep='first')
-geo_estab = geo_estab.drop_duplicates(subset=['year', 'id_estab'])
 
 
 # FROM CHATGPT
