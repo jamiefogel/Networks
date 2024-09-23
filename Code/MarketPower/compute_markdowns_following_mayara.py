@@ -51,6 +51,7 @@ theta_mayara = 1/inv_theta_mayara
 eta_bhm = 7.14
 theta_bhm = .45
 
+np.random.seed(734)
 
 ###################################
 # Define functions to be used below
@@ -450,26 +451,39 @@ print(collapsed_df.info())
 ###########################
 # This is the simple shock 
 
-# Generate a random shock following eq (44). The jid and iota-gamma shocks collectively form Z_j
-jid_shock = {jid_masked: np.random.random() for jid_masked in collapsed_df['jid_masked'].unique()} # This is phi_j
-collapsed_df['jid_masked_shock'] = collapsed_df['jid_masked'].map(jid_shock)
 
-iota_gamma_shock = {iota_gamma_id: np.random.random() for iota_gamma_id in collapsed_df['iota_gamma_id'].unique()}
-collapsed_df['iota_gamma_shock'] = collapsed_df['iota_gamma_id'].map(iota_gamma_shock)
+def generate_shocks(df, alpha=2, beta=5, delta=0):
+    
+    gamma_jid_masked_cw = df[['gamma','jid_masked']].drop_duplicates()
+    # Draw a Bernoulli parameter for each gamma
+    p_gamma = {gamma: np.random.beta(alpha, beta, 1)[0] for gamma in df['gamma'].unique()} # This is phi_j
+    gamma_jid_masked_cw['p_gamma'] = gamma_jid_masked_cw['gamma'].map(p_gamma)
+    
+    # Draw Bernoulli samples for each row using the probability in p_gamma column
+    gamma_jid_masked_cw['Z_j'] = np.random.binomial(1, gamma_jid_masked_cw['p_gamma'])
+    df = df.merge(gamma_jid_masked_cw[['jid_masked','Z_j']], on='jid_masked', how='inner', validate='m:1', indicator=False)
+  
+    # Generate a random shock 
+    # This is called "xi" on Overleaf
+    jid_shock = {jid_masked: np.random.random() for jid_masked in df['jid_masked'].unique()} # This is phi_j
+    df['jid_masked_shock'] = df['jid_masked'].map(jid_shock)
+    # This is called "zeta" on Overleaf
+    iota_gamma_shock = {iota_gamma_id: np.random.random() for iota_gamma_id in df['iota_gamma_id'].unique()}
+    df['iota_gamma_shock'] = df['iota_gamma_id'].map(iota_gamma_shock)
 
+    df['phi_iota_j_new'] = np.exp( \
+        df['iota_gamma_fes']   + df['jid_masked_fes'] + \
+        df['iota_gamma_shock'] + df['jid_masked_shock'] + \
+        delta * df['Z_j']) 
+    
+    return df
 
-collapsed_df['phi_iota_j_new'] = np.exp( \
-    collapsed_df['iota_gamma_fes']   + collapsed_df['jid_masked_fes'] + \
-    collapsed_df['iota_gamma_shock'] + collapsed_df['jid_masked_shock']) 
-
-collapsed_df['wage_guess_initial'] = collapsed_df['markdown_w_iota'] * collapsed_df['phi_iota_j_new']
-collapsed_df['wage_guess'] = collapsed_df['wage_guess_initial']
-collapsed_df['iota_count'] = collapsed_df.groupby('iota')['iota_gamma_jid_count'].transform('sum')
-
-
-
-
-
+delta = 0.01
+collapsed_df_w_shock = generate_shocks(collapsed_df, delta=delta)
+    
+collapsed_df_w_shock['wage_guess_initial'] = collapsed_df_w_shock['markdown_w_iota'] * collapsed_df_w_shock['phi_iota_j_new']
+collapsed_df_w_shock['wage_guess'] = collapsed_df_w_shock['wage_guess_initial']
+collapsed_df_w_shock['iota_count'] = collapsed_df_w_shock.groupby('iota')['iota_gamma_jid_count'].transform('sum')
 
 
 
@@ -479,13 +493,13 @@ collapsed_df['iota_count'] = collapsed_df.groupby('iota')['iota_gamma_jid_count'
 #   3. Iterate until ell and w stabilize
 
 
-collapsed_df['real_hrly_wage_dec'] = np.exp(collapsed_df['ln_real_hrly_wage_dec'])
+collapsed_df_w_shock['real_hrly_wage_dec'] = np.exp(collapsed_df_w_shock['ln_real_hrly_wage_dec'])
 
 # Restricting to jid-iotas with non-missing wages. We have 78862 missing values, all of which correspond to missing FEs and are iota_gamma_jid singletons.  
-collapsed_df = collapsed_df.loc[collapsed_df['wage_guess'].notna()]
+collapsed_df_w_shock = collapsed_df_w_shock.loc[collapsed_df_w_shock['wage_guess'].notna()]
 
-collapsed_df.to_pickle(root + 'Data/derived/tmp_collapsed_df.p')
-collapsed_df = pd.read_pickle(root + 'Data/derived/tmp_collapsed_df.p')
+collapsed_df_w_shock.to_pickle(root + 'Data/derived/tmp_collapsed_df_w_shock.p')
+collapsed_df_w_shock = pd.read_pickle(root + 'Data/derived/tmp_collapsed_df_w_shock.p')
 
 
 # Now we need to do some sort of iterate until convergence
@@ -495,29 +509,24 @@ max_iter = 100
 iter = 0
 while (diff > tol) and (iter < max_iter):
     
-    collapsed_df[['s_gamma_iota','ell_iota_j']] = compute_ell(collapsed_df, eta_bhm, theta_bhm)
-    collapsed_df['pi_iota_j'] = compute_pi(collapsed_df)
-    collapsed_df['s_j_gamma'] = compute_s_j_gamma(collapsed_df)
-    collapsed_df['epsilon_j'] = compute_epsilon_j(collapsed_df, eta_bhm, theta_bhm)
+    collapsed_df_w_shock[['s_gamma_iota','ell_iota_j']] = compute_ell(collapsed_df_w_shock, eta_bhm, theta_bhm)
+    collapsed_df_w_shock['pi_iota_j'] = compute_pi(collapsed_df_w_shock)
+    collapsed_df_w_shock['s_j_gamma'] = compute_s_j_gamma(collapsed_df_w_shock)
+    collapsed_df_w_shock['epsilon_j'] = compute_epsilon_j(collapsed_df_w_shock, eta_bhm, theta_bhm)
     
     # Update wage_guess
-    collapsed_df['wage_guess_new'] = collapsed_df['epsilon_j']/(1+collapsed_df['epsilon_j']) * collapsed_df['phi_iota_j_new']
-    diff = np.abs(collapsed_df['wage_guess_new'] - collapsed_df['wage_guess']).sum()
-    #diff_l = np.abs(collapsed_df['wage_guess_new'] - collapsed_df['wage_guess_new']).sum()
-    collapsed_df['wage_guess'] = collapsed_df['wage_guess_new']
+    collapsed_df_w_shock['wage_guess_new'] = collapsed_df_w_shock['epsilon_j']/(1+collapsed_df_w_shock['epsilon_j']) * collapsed_df_w_shock['phi_iota_j_new']
+    diff = np.abs(collapsed_df_w_shock['wage_guess_new'] - collapsed_df_w_shock['wage_guess']).sum()
+    #diff_l = np.abs(collapsed_df_w_shock['wage_guess_new'] - collapsed_df_w_shock['wage_guess_new']).sum()
+    collapsed_df_w_shock['wage_guess'] = collapsed_df_w_shock['wage_guess_new']
     if True: #iter%10==0:
         print(iter)
         print(diff)
     iter += 1
 
-collapsed_df['wage_post_shock'] = collapsed_df['wage_guess']
+collapsed_df_w_shock['wage_post_shock'] = collapsed_df_w_shock['wage_guess']
 
 # XX This seems to get close to converging but there are still a tiny number with non-trivial differences
-
-
-
-
-
 
 
 
@@ -527,12 +536,12 @@ collapsed_df['wage_post_shock'] = collapsed_df['wage_guess']
 ##########################################################################################
 ##########################################################################################
 
-run_two_step_ols = True
+run_two_step_ols = False
 if run_two_step_ols == True:
     ##########
     # Step 1
     
-    reg_df2 = collapsed_df[['ell_iota_j','wage_post_shock','iota_gamma_id','iota']]
+    reg_df2 = collapsed_df_w_shock[['ell_iota_j','wage_post_shock','iota_gamma_id','iota']]
     reg_df2['ln_ell_iota_j']   = np.log(reg_df2['ell_iota_j'])
     reg_df2['ln_wage_post_shock']         = np.log(reg_df2['wage_post_shock'])
     
@@ -563,7 +572,7 @@ if run_two_step_ols == True:
     reg_df2['wage_1PlusEta'] = reg_df2['wage_post_shock'] ** (1+eta_hat)
     # Collapse to iota-gamma level
     reg_df3 = reg_df2.groupby('iota_gamma_id').agg({
-        'ell_iot=a_j': 'sum',  # Calculate the mean of this column
+        'ell_iota_j': 'sum',  # Calculate the mean of this column
         'wage_1PlusEta': 'sum',        # Calculate the mean of this column
         'iota': 'first'           # Take the first value of this column
     }).reset_index()
@@ -600,12 +609,12 @@ if run_two_step_ols == True:
 ##########################################################################################
 
 
-run_two_step_panel_ols = True
+run_two_step_panel_ols = False
 if run_two_step_panel_ols == True:
     ##########
     # Step 1
     
-    reg_df2 = collapsed_df[['iota_gamma_jid_count', 'ell_iota_j','real_hrly_wage_dec','wage_post_shock','iota_gamma_id','iota']]
+    reg_df2 = collapsed_df_w_shock[['iota_gamma_jid_count', 'ell_iota_j','real_hrly_wage_dec','wage_post_shock','iota_gamma_id','iota']]
     reg_df2.rename(columns={'iota_gamma_jid_count':'ell_iota_j_pre_shock', 'ell_iota_j':'ell_iota_j_post_shock', 'real_hrly_wage_dec':'wage_pre_shock'}, inplace=True)
     
     for var in ['ell_iota_j_pre_shock', 'ell_iota_j_post_shock', 'wage_pre_shock', 'wage_post_shock']:
@@ -684,11 +693,15 @@ if run_two_step_panel_ols == True:
 
 run_two_step_panel_iv = True
 if run_two_step_panel_iv == True:
+    
     ##########
     # Step 1
     
-    reg_df2 = collapsed_df[['iota_gamma_jid_count', 'ell_iota_j','real_hrly_wage_dec','wage_post_shock','iota_gamma_id','iota', 'jid_masked_shock', 'iota_gamma_shock']]
-    reg_df2['shock_iv'] = reg_df2['jid_masked_shock'] + reg_df2['iota_gamma_shock']
+    reg_df2 = collapsed_df_w_shock[['iota_gamma_jid_count', 'ell_iota_j','real_hrly_wage_dec','wage_post_shock','iota_gamma_id','iota', 'jid_masked_shock', 'iota_gamma_shock','Z_j']]
+    if delta==0:
+        reg_df2['shock_iv'] = reg_df2['jid_masked_shock'] + reg_df2['iota_gamma_shock']
+    else:
+        reg_df2['shock_iv'] = reg_df2['Z_j']
     reg_df2.rename(columns={'iota_gamma_jid_count':'ell_iota_j_pre_shock', 'ell_iota_j':'ell_iota_j_post_shock', 'real_hrly_wage_dec':'wage_pre_shock'}, inplace=True)
     
     for var in ['ell_iota_j_pre_shock', 'ell_iota_j_post_shock', 'wage_pre_shock', 'wage_post_shock']:
@@ -775,8 +788,9 @@ if run_two_step_panel_iv == True:
 #   Step 2: For each job within iota-gamma we draw a binary indicator from a Bernoulli(P_ig) distribution. We are saying that for each market a different fraction of jobs are shocked, but within a market we randomly assign which jobs are shocked.
 #   - Given this we can play around with the mean and variance of the shock as well as the number of jobs shocked (how big/widespread the shock is). We know that the job-level shock is correlated with the firm-level demand shock.
 #   This allows us to test robustness to an imperfect instrument, varying the level of imperfection. Can make the alpha very small to generate a weak instrument. 
-#   4) Do all of the above but add supply shocks (e.g. amenities) and test robustness of results to this confounding variation
-#   5) Do all of the above with different market definitions (assuming iota-gamma is the truth) and using iotas or not (to compute markdowns)
+#   DONE - For large enough delta (we tried 0.5) this gives us basically correct estimates. As we reduce delta, the estimates get worse. 
+#   4) Do all of the above with different market definitions (assuming iota-gamma is the truth) and using iotas or not (to compute markdowns)
+#   5) Do all of the above but add supply shocks (e.g. amenities) and test robustness of results to this confounding variation
 #   6) Try to go back to real data with what we've learned. 
 ####################################################################################
 ####################################################################################
