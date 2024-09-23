@@ -12,22 +12,14 @@ Created on August 13 2024
 import os
 import pandas as pd
 import numpy as np
-import pickle
-from datetime import datetime
 import sys
 import matplotlib.pyplot as plt
 import seaborn as sns
 import getpass
-from scipy.sparse import lil_matrix
-from scipy.sparse import coo_matrix
-from scipy.sparse import csr_matrix
-import statsmodels.formula.api as smf
-import statsmodels.formula.api as smf
-import statsmodels.api as sm
-from linearmodels.panel import PanelOLS
-from linearmodels.panel import compare
 import time
 import subprocess
+import tempfile
+import ast
 
 homedir = os.path.expanduser('~')
 if getpass.getuser()=='p13861161':
@@ -60,45 +52,37 @@ eta_bhm = 7.14
 theta_bhm = .45
 
 
+###################################
+# Define functions to be used below
 
-# Pull region codes
-region_codes = pd.read_csv(root + '/Data/raw/munic_microregion_rm.csv', encoding='latin1')
-muni_micro_cw = pd.DataFrame({'code_micro':region_codes.code_micro,'codemun':region_codes.code_munic//10})
+# Equation 45 and 47 (because the term in 47 is part of 45)
+def compute_ell(df, eta, theta):
+    df['w_power'] = df['wage_guess'] ** (1 + eta)
+    df['numerator'] = df.groupby(['iota','gamma'])['w_power'].transform('sum') ** ((1 + theta) / (1 + eta))
+    df['denominator'] = df.groupby('iota')['numerator'].transform('sum') 
+    df['s_gamma_iota'] =  df['numerator'] / df['denominator']
+    df['second_term'] = df['w_power'] / df.groupby(['iota','gamma'])['w_power'].transform('sum') 
+    df['ell_iota_j'] =  df['iota_count'] * df['s_gamma_iota'] * df['second_term']
+    return df[['s_gamma_iota','ell_iota_j']]
 
-# The 2013 to 2016 panel doesn't keep cnpj_raiz, which we need to compute HHIs following Mayara. I could probably re-run the create_earnings_panel to get it, but don't want to deal with that now 
-#mle_data_filename      = root + "Data/derived/earnings_panel/panel_3states_2013to2016_new_level_0.csv"
-mle_data_filename      = root + "Data/derived/earnings_panel/panel_3states_2009to2011_level_0.csv"
+# Equation 46
+def compute_pi(df):
+    df['denominator'] = df.groupby(['jid_masked'])['ell_iota_j'].transform('sum')
+    return df['ell_iota_j'] / df['denominator']
 
-
-usecols = ['wid_masked', 'jid_masked', 'year', 'iota', 'gamma', 'cnpj_raiz','id_estab', 'real_hrly_wage_dec', 'ln_real_hrly_wage_dec', 'codemun', 'occ2', 'occ2_first', 'code_meso', 'occ2Xmeso', 'occ2Xmeso_first']
-
-data_full = pd.read_csv(mle_data_filename, usecols=usecols)
-data_full = data_full.loc[(data_full.iota!=-1) & (data_full.gamma!=-1) & (data_full.jid_masked!=-1)]
-data_full = data_full.merge(muni_micro_cw, on='codemun', how='left', validate='m:1', indicator='_merge')
-
-# Mayara defines markets as occ2-micros. 
-
-# According to Mayara's equation (9) on page 11, the average markdown in labor market 
-
-#Felix, p. 27: Appendix C.2.4 shows that the country-level average markdown—that is, the country- level ratio of (employment-weighted) average MRPL to (employment-weighted) average wage—is a weighted average of the market-level markdowns in Proposition 1, where the weights are each market’s payroll share of the country’s total payroll.
-
-
-
-
-''' Ingredients for computing labor supply elasiticities according to our model:
- - $\Phi_{ig}$
- - 1/theta (our theta corresponds to Mayara's eta, her 1/eta=0.985)
- - 1/nu (our nu corresponds to Mayara's theta, her 1/theta=1.257)
- - s_ig = iota's share of market gamma employment
- - s_jg = job j's share of market gamma employment [Note: in overleaf, we call this s_ijg but I think the i subscript is confusing]
- - s_ij = s_ig*s_ijg = job j's share of type iota employment
-'''
-
-
-
-# Create variable for Mayara's market definitions
-data_full['mkt_mayara'] = data_full.groupby(['occ2', 'code_micro']).ngroup()
-
+# Equation 48 - Job j's payrolls share of market gamma (summing across all iotas)
+def compute_s_j_gamma(df):
+    df['wl'] = df['wage_guess'] * df['ell_iota_j']
+    df['numerator']   = df.groupby('jid_masked')['wl'].transform('sum')
+    df['denominator'] = df.groupby('gamma')['wl'].transform('sum')
+    return df['numerator'] / df['denominator']
+    
+# Equation 49: compute markdown
+def compute_epsilon_j(df, eta, theta):
+    df['pi_times_s'] = df['pi_iota_j'] * df['s_gamma_iota']
+    df['weighted_share'] = df.groupby('jid_masked')['pi_times_s'].transform('sum')
+    df['epsilon_j'] = eta *(1-df['s_j_gamma']) + theta * df['s_j_gamma'] * (1 - df['weighted_share'])
+    return df['epsilon_j'] 
 
 def compute_payroll_weighted_share(df, firm_col, market_col, pay_col):
     # Compute total pay for each firm within each market
@@ -111,51 +95,15 @@ def compute_payroll_weighted_share(df, firm_col, market_col, pay_col):
     merged['payroll_weighted_share'] = merged[pay_col + '_firm'] / merged[pay_col + '_market']
     return merged[[firm_col, market_col, 'payroll_weighted_share']]
 
-
-def compute_payroll_weighted_share(df, firm_col, market_col, pay_col):
-    '''
-    # I don't think we actually need this to be balanced
-    # Get all unique firms and markets
-    all_firms = df[firm_col].unique()
-    all_markets = df[market_col].unique()
-    # Create a DataFrame with all possible firm-market combinations
-    all_combinations = pd.DataFrame([(firm, market) for firm in all_firms for market in all_markets], columns=[firm_col, market_col])
-    '''
-    # Compute total pay for each firm within each market
-    firm_total_pay = df.groupby([market_col, firm_col])[pay_col].sum().reset_index()
-    # Compute total pay for each market
-    market_total_pay = df.groupby(market_col)[pay_col].sum().reset_index()
-
-    '''
-    # Merge the all_combinations with firm_total_pay
-    merged = pd.merge(all_combinations, firm_total_pay, on=[market_col, firm_col], how='left')
-    # Fill NaN values with 0 for firms that don't exist in certain markets
-    merged[pay_col] = merged[pay_col].fillna(0)
-    # Merge with market_total_pay
-    merged = pd.merge(merged, market_total_pay, on=market_col, suffixes=('_firm', '_market'))
-    # Compute the payroll-weighted share for each firm
-    merged['payroll_weighted_share'] = merged[pay_col + '_firm'] / merged[pay_col + '_market']
-    # Replace NaN values with 0 (this handles cases where market total pay is 0)
-    '''
-    merged = firm_total_pay.merge(market_total_pay, on=market_col, suffixes=('_firm', '_market'), how='left', validate='m:1')
-    merged['payroll_weighted_share'] = merged[pay_col + '_firm'] / merged[pay_col + '_market']
-
-    return merged[[firm_col, market_col, 'payroll_weighted_share']]
-
-
-
-s_ij = compute_payroll_weighted_share(data_full, 'iota', 'jid_masked', 'real_hrly_wage_dec')
-s_jg = compute_payroll_weighted_share(data_full, 'jid_masked', 'gamma', 'real_hrly_wage_dec')
-s_fm = compute_payroll_weighted_share(data_full, 'cnpj_raiz', 'mkt_mayara', 'real_hrly_wage_dec')
-s_gi = compute_payroll_weighted_share(data_full, 'gamma', 'iota', 'real_hrly_wage_dec')
-
-# This is the quantity Ben and Bernardo derived on the white board on 8/14
-# - Numerator: for each iota compute the total (hourly) earnings for that iota in job j. Raise this to (1+eta). Then sum these quantities over all jobs j in market gamma and raise this quantity to the (1+theta)/(1+eta).
-# Denominator: Compute the numerator for each market gamma and sum over all markets gamma
-# - The result will be one value for each iota, all of which sum to 1.
-
 def compute_s_gammaiota(data_full, eta, theta):
     '''
+    # This is the quantity Ben and Bernardo derived on the white board on 8/14
+    # - Numerator: for each iota compute the total (hourly) earnings for that iota in job j. Raise this to (1+eta). Then sum these quantities over all jobs j in market gamma and raise this quantity to the (1+theta)/(1+eta).
+    # Denominator: Compute the numerator for each market gamma and sum over all markets gamma
+    # - The result will be one value for each iota, all of which sum to 1.
+
+    
+    
     # I don't think we actually need this to be balanced
     # Get all unique firms and markets
     all_iotas  = data_full['iota'].unique()
@@ -190,6 +138,197 @@ def compute_s_gammaiota(data_full, eta, theta):
     return merged[['iota', 'gamma', 's_gammaiota']]
 
 
+def run_stata_code(reg_df, stata_code, dta_path=None, results_path=None, do_file_path=None, log_file_path=None, scalar_results_path=None, stata_path=None):
+    # Create temporary directory if needed
+    temp_dir = tempfile.mkdtemp() if any(path is None for path in [dta_path, results_path, do_file_path, log_file_path, scalar_results_path]) else None
+
+    # Track which files are temporary
+    temp_files = []
+
+    # Use provided paths or create temporary ones
+    if dta_path is None:
+        dta_path = os.path.join(temp_dir, 'input_data.dta')
+        temp_files.append(dta_path)
+    if results_path is None:
+        results_path = os.path.join(temp_dir, 'results.dta')
+        temp_files.append(results_path)
+    if do_file_path is None:
+        do_file_path = os.path.join(temp_dir, 'stata_code.do')
+        temp_files.append(do_file_path)
+    if log_file_path is None:
+        log_file_path = os.path.join(temp_dir, 'stata_log.log')
+        temp_files.append(log_file_path)
+    if scalar_results_path is None:
+        scalar_results_path = os.path.join(temp_dir, 'scalar_results.txt')
+        temp_files.append(scalar_results_path)
+
+
+    # Read results
+    print(temp_dir)
+    if os.path.exists(temp_dir):
+        print(f"The path {temp_dir} exists.")
+    else:
+        print(f"The path {temp_dir} does not exist.")
+
+    try:
+        # Save dataframe as .dta file
+        reg_df.to_stata(dta_path, write_index=False)
+
+        # Modify Stata code to include scalar results
+        stata_code += f"""
+        file open scalarfile using "{scalar_results_path}", write replace
+        file write scalarfile "scalar_results = {{"
+        local scalar_count: word count `scalars'
+        forvalues i = 1/`scalar_count' {{
+            local r: word `i' of `scalars'
+            file write scalarfile "'`r'': " (`r')
+            if `i' < `scalar_count' {{
+                file write scalarfile ", "
+            }}
+        }}
+        file write scalarfile "}}"
+        file close scalarfile
+        
+        """
+
+        # Replace placeholders in stata_code
+        stata_code = stata_code.replace("dta_path", dta_path)
+        stata_code = stata_code.replace("results_path", results_path)
+        stata_code = stata_code.replace("log_file_path", log_file_path)
+
+        print(stata_code)
+
+        # Write Stata code to .do file
+        with open(do_file_path, 'w') as f:
+            f.write(stata_code)
+
+        # Run Stata
+        stata_path = stata_path or r"C:\Program Files (x86)\Stata14\StataMP-64.exe"  # Adjust this path if needed
+        process = subprocess.Popen([stata_path, "/e", "do", do_file_path], 
+                                   stdout=subprocess.PIPE, 
+                                   stderr=subprocess.STDOUT,
+                                   universal_newlines=True)
+
+        # Initialize last_position
+        last_position = 0
+
+        while True:
+            # Check if process has finished
+            if process.poll() is not None:
+                break
+
+            # Check if log file exists
+            if os.path.exists(log_file_path):
+                with open(log_file_path, 'r') as log_file:
+                    # Move to last read position
+                    log_file.seek(last_position)
+                    
+                    # Read new content
+                    new_content = log_file.read()
+                    
+                    if new_content:
+                        print(new_content, end='')
+                        
+                    # Update last_position
+                    last_position = log_file.tell()
+
+            # Wait a bit before checking again
+            time.sleep(0.1)
+
+        # Read any remaining content after process finishes
+        if os.path.exists(log_file_path):
+            with open(log_file_path, 'r') as log_file:
+                log_file.seek(last_position)
+                remaining_content = log_file.read()
+                if remaining_content:
+                    print(remaining_content, end='')
+
+        # Check process return code
+        if process.returncode != 0:
+            print(f"Stata process exited with return code {process.returncode}")
+
+        results_df = pd.read_stata(results_path)
+
+        # Read scalar results
+        with open(scalar_results_path, 'r') as f:
+            scalar_results_str = f.read().strip()
+        
+        # Extract the dictionary part from the string
+        scalar_dict_str = scalar_results_str.split('=', 1)[1].strip()
+        
+        # Use ast.literal_eval to safely evaluate the string
+        scalar_results = ast.literal_eval(scalar_dict_str)
+
+        # Read do file
+        with open(do_file_path, 'r') as f:
+            do_file_content = f.read()
+
+        # Read log file
+        with open(log_file_path, 'r') as f:
+            log_file_content = f.read()
+
+        # Return dictionary of results
+        return {
+            'results_df': results_df,
+            'scalar_results': scalar_results,
+            'do_file': do_file_content,
+            'log_file': log_file_content
+        }
+
+    finally:
+        # Clean up only temporary files
+        for file in temp_files:
+            if os.path.exists(file):
+                os.remove(file)
+        if temp_dir:
+            os.rmdir(temp_dir)
+
+
+
+
+
+
+# Pull region codes
+region_codes = pd.read_csv(root + '/Data/raw/munic_microregion_rm.csv', encoding='latin1')
+muni_micro_cw = pd.DataFrame({'code_micro':region_codes.code_micro,'codemun':region_codes.code_munic//10})
+
+# The 2013 to 2016 panel doesn't keep cnpj_raiz, which we need to compute HHIs following Mayara. I could probably re-run the create_earnings_panel to get it, but don't want to deal with that now 
+#mle_data_filename      = root + "Data/derived/earnings_panel/panel_3states_2013to2016_new_level_0.csv"
+mle_data_filename      = root + "Data/derived/earnings_panel/panel_3states_2009to2011_level_0.csv"
+
+
+usecols = ['wid_masked', 'jid_masked', 'year', 'iota', 'gamma', 'cnpj_raiz','id_estab', 'real_hrly_wage_dec', 'ln_real_hrly_wage_dec', 'codemun', 'occ2', 'occ2_first', 'code_meso', 'occ2Xmeso', 'occ2Xmeso_first']
+
+data_full = pd.read_csv(mle_data_filename, usecols=usecols)
+data_full = data_full.loc[(data_full.iota!=-1) & (data_full.gamma!=-1) & (data_full.jid_masked!=-1)]
+data_full = data_full.merge(muni_micro_cw, on='codemun', how='left', validate='m:1', indicator='_merge')
+
+# Mayara defines markets as occ2-micros. 
+#Felix, p. 27: Appendix C.2.4 shows that the country-level average markdown—that is, the country- level ratio of (employment-weighted) average MRPL to (employment-weighted) average wage—is a weighted average of the market-level markdowns in Proposition 1, where the weights are each market’s payroll share of the country’s total payroll.
+
+
+
+
+''' Ingredients for computing labor supply elasiticities according to our model:
+ - $\Phi_{ig}$
+ - 1/theta (our theta corresponds to Mayara's eta, her 1/eta=0.985)
+ - 1/nu (our nu corresponds to Mayara's theta, her 1/theta=1.257)
+ - s_ig = iota's share of market gamma employment
+ - s_jg = job j's share of market gamma employment [Note: in overleaf, we call this s_ijg but I think the i subscript is confusing]
+ - s_ij = s_ig*s_ijg = job j's share of type iota employment
+'''
+
+# Create variable for Mayara's market definitions
+data_full['mkt_mayara'] = data_full.groupby(['occ2', 'code_micro']).ngroup()
+
+
+
+
+s_ij = compute_payroll_weighted_share(data_full, 'iota', 'jid_masked', 'real_hrly_wage_dec')
+s_jg = compute_payroll_weighted_share(data_full, 'jid_masked', 'gamma', 'real_hrly_wage_dec')
+s_fm = compute_payroll_weighted_share(data_full, 'cnpj_raiz', 'mkt_mayara', 'real_hrly_wage_dec')
+s_gi = compute_payroll_weighted_share(data_full, 'gamma', 'iota', 'real_hrly_wage_dec')
+
 # Just confirming distributions look reasonable
 s_gi_hat = compute_s_gammaiota(data_full, eta_bhm, theta_bhm)
 print(s_gi_hat['s_gammaiota'].sum())
@@ -220,27 +359,6 @@ print(epsilon_j_bhm.describe())
 
 markdown_w_iota = epsilon_j_bhm / (1 + epsilon_j_bhm)
 
-''' 
-# This is an old version that should probably be deleted
-
-# Back out the Phi_ig implied by wages and elasticities (given choices of eta and theta)
-
-temp = data_full[['iota','gamma','wid_masked','jid_masked','real_hrly_wage_dec']].merge(epsilon_j_bhm.reset_index(name='epsilon_j_bhm'), on='jid_masked', how='outer', validate='m:1', indicator=True)
-temp['phi_ij'] = temp['real_hrly_wage_dec'] * (1 + temp['epsilon_j_bhm']**(-1))
-# Need to collapse to the iota-gamma level rather than iota-jid level. 
-
-phi_ig_hat = temp.groupby(['iota','gamma'])['phi_ij'].mean().reset_index(name='phi_ig_hat')
-del temp 
-
-# Calculate w_j by dividing hourly log earnings by phi for each individual and then taking the mean within each job. This follows from equation (36) on Overleaf. But not entirely sure this is the right approach. In particular some values of w_j are > 1, which is inconsistent with w_j being a pure markdown. 
-
-temp = data_full[['iota','gamma','jid_masked','real_hrly_wage_dec']].merge(phi_ig_hat, on=['iota','gamma'], how='outer', validate='m:1', indicator=True)
-temp['w_j'] = temp['real_hrly_wage_dec'] / temp['phi_ig_hat']
-
-w_j = temp.groupby('jid_masked')['w_j'].mean().reset_index(name='w_j')
-
-print(w_j.w_j.describe(percentiles=[.01, .05, .1, .25, .5, .75, .9, .95, .99]))
-'''
 
 data_full = data_full.merge(pd.DataFrame(markdown_w_iota).reset_index().rename(columns={0:'markdown_w_iota'}), on='jid_masked', how='outer',validate='m:1', indicator='_m_md')
 
@@ -251,7 +369,7 @@ data_full.markdown_w_iota.describe()
 
 data_full['y_tilde'] = data_full.ln_real_hrly_wage_dec + np.log(data_full.markdown_w_iota)
 
-reg_df = data_full[['iota','gamma','wid_masked','jid_masked','y_tilde','ln_real_hrly_wage_dec','markdown_w_iota']]
+reg_df = data_full[['wid_masked','jid_masked','iota','gamma', 'occ2', 'code_micro', 'y_tilde', 'ln_real_hrly_wage_dec', 'markdown_w_iota']]
 
 reg_df['iota_gamma_id'] = reg_df.groupby(['iota', 'gamma']).ngroup()
 
@@ -266,6 +384,8 @@ reg_df = reg_df.loc[reg_df.ln_real_hrly_wage_dec<5]
 dta_path        = root + 'Data/derived/MarketPower_reghdfe_data.dta'
 results_path    = root + 'Data/derived/MarketPower_reghdfe_results.dta'
 reg_df.to_stata(dta_path, write_index=False)
+reg_df.to_parquet(root + 'Data/derived/MarketPower_reghdfe_data.parquet')
+
 
 ### This works!
 # Paths
@@ -273,91 +393,39 @@ stata_path = r"C:\Program Files (x86)\Stata14\StataMP-64.exe"  # Adjust this pat
 do_file_path = root + r"Code\MarketPower\run_twoway_fes.do"  # Adjust this path
 log_file_path = root + r"Code\MarketPower\run_twoway_fes.log"
 
-def write_stata_code(code, file_path):
-    with open(file_path, 'w') as f:
-        f.write(code)
-
-def run_stata_with_realtime_log(stata_code, do_file_path, log_file_path, stata_path=r"C:\Program Files (x86)\Stata14\StataMP-64.exe"):
-   
-
-    # Write Stata code to .do file
-    write_stata_code(stata_code, do_file_path)
-
-    # Run Stata do-file
-    process = subprocess.Popen([stata_path, "/e", "do", do_file_path], 
-                               stdout=subprocess.PIPE, 
-                               stderr=subprocess.STDOUT,
-                               universal_newlines=True)
-
-    # Initialize last_position
-    last_position = 0
-
-    while True:
-        # Check if process has finished
-        if process.poll() is not None:
-            break
-
-        # Check if log file exists
-        if os.path.exists(log_file_path):
-            with open(log_file_path, 'r') as log_file:
-                # Move to last read position
-                log_file.seek(last_position)
-                
-                # Read new content
-                new_content = log_file.read()
-                
-                if new_content:
-                    print(new_content, end='')
-                    
-                # Update last_position
-                last_position = log_file.tell()
-
-        # Wait a bit before checking again
-        time.sleep(0.1)
-
-    # Read any remaining content after process finishes
-    if os.path.exists(log_file_path):
-        with open(log_file_path, 'r') as log_file:
-            log_file.seek(last_position)
-            remaining_content = log_file.read()
-            if remaining_content:
-                print(remaining_content, end='')
-
-    # Check process return code
-    if process.returncode != 0:
-        print(f"Stata process exited with return code {process.returncode}")
 
 # Your Stata code as a Python string
 stata_code = f"""
 clear
 set more off
-log using "{log_file_path}", replace
-use "{dta_path}", clear
+log using "log_file_path", replace
+
+use "dta_path", clear
 reghdfe y_tilde, absorb(jid_masked_fes=jid_masked iota_gamma_fes=iota_gamma_id, savefe) residuals(resid)
 
-save "{results_path}", replace
+save "results_path", replace
 """
 
+
 # Run the function with your Stata code
-run_stata_with_realtime_log(stata_code, do_file_path, log_file_path)
-
-results = pd.read_stata(results_path)
-
-
+results_reg1 = run_stata_code(reg_df, stata_code)
+reg_df_w_FEs = results_reg1['results_df']
 # Quickly check the variance decomposition
-results.jid_masked_fes.var() / results.y_tilde.var()
+reg_df_w_FEs.jid_masked_fes.var() / reg_df_w_FEs.y_tilde.var()
 #Out[35]: 0.846037664821534
-results.iota_gamma_fes.var() / results.y_tilde.var()
+reg_df_w_FEs.iota_gamma_fes.var() / reg_df_w_FEs.y_tilde.var()
 #Out[36]: 0.0067746838565168055
-results.resid.var() / results.y_tilde.var()
+reg_df_w_FEs.resid.var() / reg_df_w_FEs.y_tilde.var()
 #Out[37]: 0.14825373239440456
 
 
 
-collapsed_df = results.groupby(['iota', 'gamma', 'iota_gamma_id', 'jid_masked']).agg({
+collapsed_df = reg_df_w_FEs.groupby(['iota', 'gamma', 'iota_gamma_id', 'jid_masked']).agg({
     'jid_masked_fes': 'first',          # These don't vary within the group, so we can take the first value
     'iota_gamma_fes': 'first',          # These don't vary within the group, so we can take the first value
     'markdown_w_iota': 'first',         # These don't vary within the group, so we can take the first value
+    'occ2': 'first',                    # These don't vary within the group, so we can take the first value
+    'code_micro': pd.Series.mode,       # These rarely vary within the group, so we can take the mode
     'ln_real_hrly_wage_dec': 'mean',    # Average of log earnings within the group
     'wid_masked': 'count'               # Count of rows in this group
 }).reset_index()
@@ -372,6 +440,15 @@ print(collapsed_df.head())
 print(collapsed_df.info())
 
 
+####################################################################################
+####################################################################################
+# Randomly generate shocks and then find new equilibrium
+####################################################################################
+####################################################################################
+
+
+###########################
+# This is the simple shock 
 
 # Generate a random shock following eq (44). The jid and iota-gamma shocks collectively form Z_j
 jid_shock = {jid_masked: np.random.random() for jid_masked in collapsed_df['jid_masked'].unique()} # This is phi_j
@@ -390,6 +467,12 @@ collapsed_df['wage_guess'] = collapsed_df['wage_guess_initial']
 collapsed_df['iota_count'] = collapsed_df.groupby('iota')['iota_gamma_jid_count'].transform('sum')
 
 
+
+
+
+
+
+
 # Next steps:
 #   1. Compute ell_iota_j following eq (45)
 #   2. Then iterate through 45-50
@@ -405,42 +488,10 @@ collapsed_df.to_pickle(root + 'Data/derived/tmp_collapsed_df.p')
 collapsed_df = pd.read_pickle(root + 'Data/derived/tmp_collapsed_df.p')
 
 
-# Equation 45 and 47 (because the term in 47 is part of 45)
-def compute_ell(df, eta, theta):
-    df['w_power'] = df['wage_guess'] ** (1 + eta)
-    df['numerator'] = df.groupby(['iota','gamma'])['w_power'].transform('sum') ** ((1 + theta) / (1 + eta))
-    df['denominator'] = df.groupby('iota')['numerator'].transform('sum') 
-    df['s_gamma_iota'] =  df['numerator'] / df['denominator']
-    df['second_term'] = df['w_power'] / df.groupby(['iota','gamma'])['w_power'].transform('sum') 
-    df['ell_iota_j'] =  df['iota_count'] * df['s_gamma_iota'] * df['second_term']
-    return df[['s_gamma_iota','ell_iota_j']]
-
-# Equation 46
-def compute_pi(df):
-    df['denominator'] = df.groupby(['jid_masked'])['ell_iota_j'].transform('sum')
-    return df['ell_iota_j'] / df['denominator']
-
-# Equation 48 - Job j's payrolls share of market gamma (summing across all iotas)
-def compute_s_j_gamma(df):
-    df['wl'] = df['wage_guess'] * df['ell_iota_j']
-    df['numerator']   = df.groupby('jid_masked')['wl'].transform('sum')
-    df['denominator'] = df.groupby('gamma')['wl'].transform('sum')
-    return df['numerator'] / df['denominator']
-    
-# Equation 49: compute markdown
-def compute_epsilon_j(df, eta, theta):
-    df['pi_times_s'] = df['pi_iota_j'] * df['s_gamma_iota']
-    df['weighted_share'] = df.groupby('jid_masked')['pi_times_s'].transform('sum')
-    df['epsilon_j'] = eta *(1-df['s_j_gamma']) + theta * df['s_j_gamma'] * (1 - df['weighted_share'])
-    return df['epsilon_j'] 
-
-
-
-
 # Now we need to do some sort of iterate until convergence
 diff = 1
 tol = .0001
-max_iter = 200
+max_iter = 100
 iter = 0
 while (diff > tol) and (iter < max_iter):
     
@@ -459,9 +510,14 @@ while (diff > tol) and (iter < max_iter):
         print(diff)
     iter += 1
 
-collapsed_df['wage'] = collapsed_df['wage_guess']
+collapsed_df['wage_post_shock'] = collapsed_df['wage_guess']
 
 # XX This seems to get close to converging but there are still a tiny number with non-trivial differences
+
+
+
+
+
 
 
 
@@ -471,85 +527,259 @@ collapsed_df['wage'] = collapsed_df['wage_guess']
 ##########################################################################################
 ##########################################################################################
 
-##########
-# Step 1
+run_two_step_ols = True
+if run_two_step_ols == True:
+    ##########
+    # Step 1
+    
+    reg_df2 = collapsed_df[['ell_iota_j','wage_post_shock','iota_gamma_id','iota']]
+    reg_df2['ln_ell_iota_j']   = np.log(reg_df2['ell_iota_j'])
+    reg_df2['ln_wage_post_shock']         = np.log(reg_df2['wage_post_shock'])
+    
+    
+    # Your Stata code as a Python string
+    stata_code = f"""
+    clear
+    set more off
+    log using "log_file_path", replace
+    use "dta_path", clear
+    reghdfe ln_ell_iota_j ln_wage_post_shock, absorb(iota_gamma_id)
+    
+    scalar eta_hat =  _b[ln_wage_post_shock] - 1
+    local scalars "eta_hat"
+    
+    save "results_path", replace
+    
+    """
+    
+    # Run the function with your Stata code
+    results = run_stata_code(reg_df2, stata_code)
+    
+    eta_hat = results['scalar_results']['eta_hat']
+    
+    
+    ##########
+    # Step 2
+    reg_df2['wage_1PlusEta'] = reg_df2['wage_post_shock'] ** (1+eta_hat)
+    # Collapse to iota-gamma level
+    reg_df3 = reg_df2.groupby('iota_gamma_id').agg({
+        'ell_iot=a_j': 'sum',  # Calculate the mean of this column
+        'wage_1PlusEta': 'sum',        # Calculate the mean of this column
+        'iota': 'first'           # Take the first value of this column
+    }).reset_index()
+    reg_df3['wage_ces_index'] = reg_df3['wage_1PlusEta'] ** (1 / (1+eta_hat))
+    reg_df3['ln_ell_iota_gamma'] = np.log(reg_df3['ell_iota_j'])
+    reg_df3['ln_wage_ces_index'] = np.log(reg_df3['wage_ces_index'])
+    
+    # Your Stata code as a Python string
+    stata_code = f"""
+    clear
+    set more off
+    log using "log_file_path", replace
+    use "dta_path", clear
+    reghdfe ln_ell_iota_gamma ln_wage_ces_index, absorb(iota)
+    
+    scalar theta_hat =  _b[ln_wage_ces_index] - 1
+    local scalars "theta_hat"
+    save "results_path", replace
+    """
+    
+    # Run the function with your Stata code
+    results = run_stata_code(reg_df3, stata_code)
+    theta_hat = results['scalar_results']['theta_hat']
+    
+    
+    print(eta_bhm, eta_hat)
+    print(theta_bhm, theta_hat)
 
-reg_df2 = collapsed_df[['ell_iota_j','wage','iota_gamma_id','iota']]
-reg_df2['ln_ell_iota_j']   = np.log(reg_df2['ell_iota_j'])
-reg_df2['ln_wage']         = np.log(reg_df2['wage'])
+
+##########################################################################################
+##########################################################################################
+# Panel version of two-step regressions to estimate eta and theta 
+##########################################################################################
+##########################################################################################
 
 
-dta_path2        = root + 'Data/derived/MarketPower_reghdfe_data2.dta'
-results_path2    = root + 'Data/derived/MarketPower_reghdfe_results2.dta'
-reg_df2.to_stata(dta_path2, write_index=False)
+run_two_step_panel_ols = True
+if run_two_step_panel_ols == True:
+    ##########
+    # Step 1
+    
+    reg_df2 = collapsed_df[['iota_gamma_jid_count', 'ell_iota_j','real_hrly_wage_dec','wage_post_shock','iota_gamma_id','iota']]
+    reg_df2.rename(columns={'iota_gamma_jid_count':'ell_iota_j_pre_shock', 'ell_iota_j':'ell_iota_j_post_shock', 'real_hrly_wage_dec':'wage_pre_shock'}, inplace=True)
+    
+    for var in ['ell_iota_j_pre_shock', 'ell_iota_j_post_shock', 'wage_pre_shock', 'wage_post_shock']:
+        reg_df2['ln_' + var]   = np.log(reg_df2[var])
+    
+    for var in ['ell_iota_j', 'wage']:
+        reg_df2['diff_ln_' + var] = reg_df2['ln_' + var + '_post_shock'] - reg_df2['ln_' + var + '_pre_shock']
+    
+    # Your Stata code as a Python string
+    stata_code = f"""
+    clear
+    set more off
+    log using "log_file_path", replace
+    use "dta_path", clear
+    reghdfe diff_ln_ell_iota_j diff_ln_wage, absorb(iota_gamma_id)
+    
+    scalar eta_hat =  _b[diff_ln_wage] - 1
+    local scalars "eta_hat"
+    
+    save "results_path", replace
+    
+    """
+    
+    # Run the function with your Stata code
+    results = run_stata_code(reg_df2, stata_code)
+    eta_hat = results['scalar_results']['eta_hat']
+    
 
-### This works!
-# Paths
-stata_path = r"C:\Program Files (x86)\Stata14\StataMP-64.exe"  # Adjust this path
-do_file_path = root + r"Code\MarketPower\run_first_stage_estimates.do"  # Adjust this path
-log_file_path = root + r"Code\MarketPower\run_first_stage_estimates.log"
+    ##########
+    # Step 2
+    reg_df2['wage_1PlusEta_pre_shock'] = reg_df2['wage_pre_shock'] ** (1+eta_hat)
+    reg_df2['wage_1PlusEta_post_shock'] = reg_df2['wage_post_shock'] ** (1+eta_hat)
+    # Collapse to iota-gamma level
+    reg_df3 = reg_df2.groupby('iota_gamma_id').agg({
+        'ell_iota_j_pre_shock': 'sum',        # Calculate the mean of this column
+        'ell_iota_j_post_shock': 'sum',        # Calculate the mean of this column
+        'wage_1PlusEta_pre_shock': 'sum',     # Calculate the mean of this column
+        'wage_1PlusEta_post_shock': 'sum',     # Calculate the mean of this column
+        'iota': 'first'             # Take the first value of this column
+    }).reset_index()
+    
+    reg_df3['wage_ces_index_pre_shock']  = reg_df3['wage_1PlusEta_pre_shock'] ** (1 / (1+eta_hat))
+    reg_df3['wage_ces_index_post_shock'] = reg_df3['wage_1PlusEta_post_shock'] ** (1 / (1+eta_hat))
+    reg_df3['diff_ln_ell_iota_gamma']  = np.log(reg_df3['ell_iota_j_post_shock']) - np.log(reg_df3['ell_iota_j_pre_shock'])
+    reg_df3['diff_ln_wage_ces_index']  = np.log(reg_df3['wage_ces_index_post_shock']) - np.log(reg_df3['wage_ces_index_pre_shock'])
 
-# Your Stata code as a Python string
-stata_code = f"""
-clear
-set more off
-log using "{log_file_path}", replace
-use "{dta_path2}", clear
-reghdfe ln_ell_iota_j ln_wage, absorb(iota_gamma_id)
-
-clear
-set obs 1
-gen eta_hat = _b[ln_wage] - 1
-
-save "{results_path2}", replace
-"""
-
-# Run the function with your Stata code
-run_stata_with_realtime_log(stata_code, do_file_path, log_file_path)
-
-results = pd.read_stata(results_path2)
-eta_hat = results.eta_hat[0]
-
-
-##########
-# Step 2
+    # Your Stata code as a Python string
+    stata_code = f"""
+    clear
+    set more off
+    log using "log_file_path", replace
+    use "dta_path", clear
+    reghdfe diff_ln_ell_iota_gamma diff_ln_wage_ces_index, absorb(iota)
+    
+    scalar theta_hat =  _b[diff_ln_wage_ces_index] - 1
+    local scalars "theta_hat"
+    save "results_path", replace
+    """
+    
+    # Run the function with your Stata code
+    results = run_stata_code(reg_df3, stata_code)
+    theta_hat = results['scalar_results']['theta_hat']
+    
+    
+    print(eta_bhm, eta_hat)
+    print(theta_bhm, theta_hat)
 
 
-reg_df2['wage_1PlusEta'] = reg_df2['wage'] ** (1+eta_hat)
-# Collapse to iota-gamma level
-reg_df3 = reg_df2.groupby('iota_gamma_id').agg({
-    'ell_iota_j': 'sum',  # Calculate the mean of this column
-    'wage_1PlusEta': 'sum',        # Calculate the mean of this column
-    'iota': 'first'           # Take the first value of this column
-}).reset_index()
-reg_df3['wage_ces_index'] = reg_df3['wage_1PlusEta'] ** (1 / (1+eta_hat))
-reg_df3['ln_ell_iota_gamma'] = np.log(reg_df3['ell_iota_j'])
-reg_df3['ln_wage_ces_index'] = np.log(reg_df3['wage_ces_index'])
 
-dta_path3        = root + 'Data/derived/MarketPower_reghdfe_data3.dta'
-results_path3    = root + 'Data/derived/MarketPower_reghdfe_results3.dta'
-reg_df3.to_stata(dta_path3, write_index=False)
+##########################################################################################
+##########################################################################################
+# Panel version of two-step regressions to estimate eta and theta but instrument 
+##########################################################################################
+##########################################################################################
 
-# Your Stata code as a Python string
-stata_code = f"""
-clear
-set more off
-log using "{log_file_path}", replace
-use "{dta_path3}", clear
-reghdfe ln_ell_iota_gamma ln_wage_ces_index, absorb(iota)
 
-clear
-set obs 1
-gen theta_hat = _b[ln_wage] - 1
+run_two_step_panel_iv = True
+if run_two_step_panel_iv == True:
+    ##########
+    # Step 1
+    
+    reg_df2 = collapsed_df[['iota_gamma_jid_count', 'ell_iota_j','real_hrly_wage_dec','wage_post_shock','iota_gamma_id','iota', 'jid_masked_shock', 'iota_gamma_shock']]
+    reg_df2['shock_iv'] = reg_df2['jid_masked_shock'] + reg_df2['iota_gamma_shock']
+    reg_df2.rename(columns={'iota_gamma_jid_count':'ell_iota_j_pre_shock', 'ell_iota_j':'ell_iota_j_post_shock', 'real_hrly_wage_dec':'wage_pre_shock'}, inplace=True)
+    
+    for var in ['ell_iota_j_pre_shock', 'ell_iota_j_post_shock', 'wage_pre_shock', 'wage_post_shock']:
+        reg_df2['ln_' + var]   = np.log(reg_df2[var])
+    
+    for var in ['ell_iota_j', 'wage']:
+        reg_df2['diff_ln_' + var] = reg_df2['ln_' + var + '_post_shock'] - reg_df2['ln_' + var + '_pre_shock']
+    
+    # Your Stata code as a Python string
+    stata_code = f"""
+    clear
+    set more off
+    log using "log_file_path", replace
+    use "dta_path", clear
+    ivreghdfe diff_ln_ell_iota_j (diff_ln_wage = shock_iv) , absorb(iota_gamma_id)
+    
+    scalar eta_hat =  _b[diff_ln_wage] - 1
+    local scalars "eta_hat"
+    
+    save "results_path", replace
+    
+    """
+    
+    # Run the function with your Stata code
+    results = run_stata_code(reg_df2, stata_code)
+    eta_hat = results['scalar_results']['eta_hat']
+    
 
-save "{results_path3}", replace
-"""
+    ##########
+    # Step 2
+    reg_df2['wage_1PlusEta_pre_shock'] = reg_df2['wage_pre_shock'] ** (1+eta_hat)
+    reg_df2['wage_1PlusEta_post_shock'] = reg_df2['wage_post_shock'] ** (1+eta_hat)
+    # Collapse to iota-gamma level
+    reg_df3 = reg_df2.groupby('iota_gamma_id').agg({
+        'ell_iota_j_pre_shock': 'sum',        # Calculate the mean of this column
+        'ell_iota_j_post_shock': 'sum',        # Calculate the mean of this column
+        'wage_1PlusEta_pre_shock': 'sum',     # Calculate the mean of this column
+        'wage_1PlusEta_post_shock': 'sum',     # Calculate the mean of this column
+        'shock_iv': 'mean',     # Calculate the mean of this column
+        'iota': 'first'             # Take the first value of this column
+    }).reset_index()
+    
+    reg_df3['wage_ces_index_pre_shock']  = reg_df3['wage_1PlusEta_pre_shock'] ** (1 / (1+eta_hat))
+    reg_df3['wage_ces_index_post_shock'] = reg_df3['wage_1PlusEta_post_shock'] ** (1 / (1+eta_hat))
+    reg_df3['diff_ln_ell_iota_gamma']  = np.log(reg_df3['ell_iota_j_post_shock']) - np.log(reg_df3['ell_iota_j_pre_shock'])
+    reg_df3['diff_ln_wage_ces_index']  = np.log(reg_df3['wage_ces_index_post_shock']) - np.log(reg_df3['wage_ces_index_pre_shock'])
 
-# Run the function with your Stata code
-run_stata_with_realtime_log(stata_code, do_file_path, log_file_path)
+    # Your Stata code as a Python string
+    stata_code = f"""
+    clear
+    set more off
+    log using "log_file_path", replace
+    use "dta_path", clear
+    ivreghdfe diff_ln_ell_iota_gamma (diff_ln_wage_ces_index = shock_iv) , absorb(iota)
 
-results = pd.read_stata(results_path3)
-theta_hat = results.theta_hat[0]
+    
+    scalar theta_hat =  _b[diff_ln_wage_ces_index] - 1
+    local scalars "theta_hat"
+    save "results_path", replace
+    """
+    
+    # Run the function with your Stata code
+    results = run_stata_code(reg_df3, stata_code)
+    theta_hat = results['scalar_results']['theta_hat']
+    
+    
+    print(eta_bhm, eta_hat)
+    print(theta_bhm, theta_hat)
+
+
+
+
+
+####################################################################################
+####################################################################################
+# Next steps:
+#   1) Run panel OLS or first difference regressions using the same specs we did on the simulated data, we do the difference between the simulated post-shock data and the pre-shock data. See if this still gives us eta and theta. Probably won't be as clean as the OLS, but hopefully it's ok. We know that this should fit well in theory because the only variation between periods is the demand shock (no confounding labor supply shifts).
+# - DONE but unsurprisingly gives bad estimates
+#   2) Do the first difference regression above but instead instrument for the first differences with the shocks we generated. This should give us identical results to the first differenced regression because all the variation is exogenous
+# - DONE. Gives almost exact estimates
+#   3) Simulate a shock that has some coherent structure but let's only use one component of the shock (which would be an approximation of the tariff shock). We still only have exogenous shocks but we're adding noise because we're only using part of the shock as an instrument. 
+#   - Append additional structure to the shock. Let's keep the same shock structure we already have (mean-zero iota-gamma shock and mean-zero jid shock) but imagine this is unobserved. Then we want an instrument akin to the tariff shock. Do a two-step sampling thing. 
+#   Step 1: at iota-gamma level draw a probability between 0 and 1 from a beta distribution or something. This is a P_ig
+#   Step 2: For each job within iota-gamma we draw a binary indicator from a Bernoulli(P_ig) distribution. We are saying that for each market a different fraction of jobs are shocked, but within a market we randomly assign which jobs are shocked.
+#   - Given this we can play around with the mean and variance of the shock as well as the number of jobs shocked (how big/widespread the shock is). We know that the job-level shock is correlated with the firm-level demand shock.
+#   This allows us to test robustness to an imperfect instrument, varying the level of imperfection. Can make the alpha very small to generate a weak instrument. 
+#   4) Do all of the above but add supply shocks (e.g. amenities) and test robustness of results to this confounding variation
+#   5) Do all of the above with different market definitions (assuming iota-gamma is the truth) and using iotas or not (to compute markdowns)
+#   6) Try to go back to real data with what we've learned. 
+####################################################################################
+####################################################################################
 
 
 
