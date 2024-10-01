@@ -56,6 +56,11 @@ theta_bhm = .45
 
 np.random.seed(734)
 
+######
+# XX Un-hardcode our job definition. Replace 'jid_masked' with jobvar. I can mostly ctrl-F it but will need to add it as an argument to various functions
+# Try replacing jid with the intersection of gamma and firm
+# I think Mayara's equivalent would be occ-firm or occ-estab
+
 ###################################
 # Define functions to be used below
 
@@ -290,7 +295,6 @@ def run_stata_code(reg_df, stata_code, dta_path=None, results_path=None, do_file
         if temp_dir:
             os.rmdir(temp_dir)
 
-
 def compute_markdowns_w_iota(df, wagevar, jobvar, marketvar, workertypevar, eta, theta):
 
     
@@ -359,10 +363,9 @@ def generate_shocks(df, alpha=2, beta=5, delta=0):
     
     return df
 
-
-def run_two_step_estimation(collapsed_df_w_shock, estimation_strategy, delta=0):
+def run_two_step_estimation(collapsed_df_w_shock, estimation_strategy, delta=0, workertypevar = ['iota'], mktvar = ['gamma']):
     # Step 1: Data Preparation
-    reg_df2 = prepare_step1_data(collapsed_df_w_shock, estimation_strategy, delta)
+    reg_df2 = prepare_step1_data(collapsed_df_w_shock, estimation_strategy, workertypevar = workertypevar, mktvar = mktvar, delta = delta)
     
     # Step 1: Estimate eta_hat
     eta_hat = estimate_eta_hat(reg_df2, estimation_strategy)
@@ -376,10 +379,16 @@ def run_two_step_estimation(collapsed_df_w_shock, estimation_strategy, delta=0):
     return eta_hat, theta_hat
 
 
-def prepare_step1_data(collapsed_df_w_shock, estimation_strategy, delta=0):
+def prepare_step1_data(collapsed_df_w_shock, estimation_strategy, workertypevar, mktvar, delta=0):
+    for var in workertypevar + mktvar:
+        collapsed_df_w_shock[var] = collapsed_df_w_shock[var].astype(str)
+        
+    collapsed_df_w_shock['worker_mkt_id'] = collapsed_df_w_shock.groupby(workertypevar + mktvar).ngroup()
+    collapsed_df_w_shock['worker_type_id'] = collapsed_df_w_shock.groupby(workertypevar).ngroup()
+        
     variables = [
         'ell_iota_j_pre_shock', 'ell_iota_j_post_shock', 'wage_pre_shock', 'wage_post_shock',
-        'iota_gamma_id', 'iota'
+        'worker_mkt_id', 'worker_type_id'
     ]
     if estimation_strategy == 'panel_iv':
         variables += ['jid_masked_shock', 'iota_gamma_shock', 'Z_j']
@@ -400,24 +409,23 @@ def prepare_step1_data(collapsed_df_w_shock, estimation_strategy, delta=0):
     
     return reg_df2
 
-
 def estimate_eta_hat(reg_df2, estimation_strategy):
     if estimation_strategy == 'ols':
         regression_type = 'ols'
         dependent_var = 'ln_ell_iota_j_post_shock'
         independent_var = 'ln_wage_post_shock'
-        absorb_var = 'iota_gamma_id'
+        absorb_var = 'worker_mkt_id'
     elif estimation_strategy == 'panel_ols':
         regression_type = 'ols'
         dependent_var = 'diff_ln_ell_iota_j'
         independent_var = 'diff_ln_wage'
-        absorb_var = 'iota_gamma_id'
+        absorb_var = 'worker_mkt_id'
     elif estimation_strategy == 'panel_iv':
         regression_type = 'iv'
         dependent_var = 'diff_ln_ell_iota_j'
         independent_var = 'diff_ln_wage'
         instrument_var = 'shock_iv'
-        absorb_var = 'iota_gamma_id'
+        absorb_var = 'worker_mkt_id'
     else:
         raise ValueError("Invalid estimation strategy.")
     
@@ -436,18 +444,19 @@ def estimate_eta_hat(reg_df2, estimation_strategy):
 def prepare_step2_data(reg_df2, eta_hat, estimation_strategy):
     for period in ['pre_shock', 'post_shock']:
         reg_df2[f'wage_1PlusEta_{period}'] = reg_df2[f'wage_{period}'] ** (1 + eta_hat)
-        
+    
+    # XXBM: I swtiched iota per worker_type_id below, is that right?
     agg_dict = {
         'ell_iota_j_pre_shock': 'sum',
         'ell_iota_j_post_shock': 'sum',
         'wage_1PlusEta_pre_shock': 'sum',
         'wage_1PlusEta_post_shock': 'sum',
-        'iota': 'first'
+        'worker_type_id': 'first'
     }
     if estimation_strategy == 'panel_iv':
         agg_dict['shock_iv'] = 'mean'
         
-    reg_df3 = reg_df2.groupby('iota_gamma_id').agg(agg_dict).reset_index()
+    reg_df3 = reg_df2.groupby('worker_mkt_id').agg(agg_dict).reset_index()
 
     for period in ['pre_shock', 'post_shock']:
         reg_df3[f'wage_ces_index_{period}'] = reg_df3[f'wage_1PlusEta_{period}'] ** (1 / (1 + eta_hat))
@@ -469,18 +478,18 @@ def estimate_theta_hat(reg_df3, estimation_strategy):
         regression_type = 'ols'
         dependent_var = 'ln_ell_iota_gamma'
         independent_var = 'ln_wage_ces_index'
-        absorb_var = 'iota'
+        absorb_var = 'worker_type_id'
     elif estimation_strategy == 'panel_ols':
         regression_type = 'ols'
         dependent_var = 'diff_ln_ell_iota_gamma'
         independent_var = 'diff_ln_wage_ces_index'
-        absorb_var = 'iota'
+        absorb_var = 'worker_type_id'
     elif estimation_strategy == 'panel_iv':
         regression_type = 'iv'
         dependent_var = 'diff_ln_ell_iota_gamma'
         independent_var = 'diff_ln_wage_ces_index'
         instrument_var = 'shock_iv'
-        absorb_var = 'iota'
+        absorb_var = 'worker_type_id'
     else:
         raise ValueError("Invalid estimation strategy.")
     
@@ -526,7 +535,6 @@ def run_stata_regression(dataframe, regression_type, dependent_var, independent_
     results = run_stata_code(dataframe, stata_code)
     parameter_hat = results['scalar_results'][scalar_name]
     return parameter_hat
-
 
 def find_equilibrium(df, eta, theta, tol=1e-4, max_iter=100):
     diff = tol + 1
@@ -581,7 +589,7 @@ data_full = data_full.merge(pd.DataFrame(markdown_w_iota).reset_index().rename(c
 reg_df = data_full[['wid_masked','jid_masked','iota','gamma', 'occ2', 'code_micro', 'ln_real_hrly_wage_dec', 'markdown_w_iota']]
 
 reg_df['y_tilde'] = reg_df.ln_real_hrly_wage_dec + np.log(reg_df.markdown_w_iota)
-reg_df['iota_gamma_id'] = reg_df.groupby(['iota', 'gamma']).ngroup()
+#reg_df['iota_gamma_id'] = reg_df.groupby(['iota', 'gamma']).ngroup()
 reg_df['iota_gamma'] = reg_df.iota.astype(int).astype(str) + '_' + reg_df.gamma.astype(int).astype(str)
 
 ### Trim approximately top 1% of wages
@@ -651,7 +659,6 @@ collapsed_df_w_shock['iota_count'] = collapsed_df_w_shock.groupby('iota')['iota_
 #   2. Then iterate through 45-50
 #   3. Iterate until ell and w stabilize
 
-
 collapsed_df_w_shock['real_hrly_wage_dec'] = np.exp(collapsed_df_w_shock['ln_real_hrly_wage_dec'])
 
 # Restricting to jid-iotas with non-missing wages. We have 78862 missing values, all of which correspond to missing FEs and are iota_gamma_jid singletons.  
@@ -667,9 +674,18 @@ collapsed_df_w_shock.to_pickle(root + 'Data/derived/tmp_collapsed_df_w_shock.p')
 collapsed_df_w_shock = pd.read_pickle(root + 'Data/derived/tmp_collapsed_df_w_shock.p')
 
 
-# Choose estimation strategy: 'ols', '
-# Run the two-step estimation
+# Run the two-step estimation 
+
+
+# "Oracle" spec: use the full instrument   reg_df2['shock_iv'] = reg_df2['jid_masked_shock'] + reg_df2['iota_gamma_shock']
 eta_hat, theta_hat = run_two_step_estimation(collapsed_df_w_shock, 'panel_iv', delta=0)
+panel_iv_oracle = (eta_hat, theta_hat)
+# Print the results
+print(f"Estimated eta_hat: {eta_hat}")
+print(f"Estimated theta_hat: {theta_hat}")
+
+# "Realistic" spec: use the partial instrument   reg_df2['shock_iv'] = reg_df2['Z_j']
+eta_hat, theta_hat = run_two_step_estimation(collapsed_df_w_shock, 'panel_iv', delta=None)
 panel_iv = (eta_hat, theta_hat)
 # Print the results
 print(f"Estimated eta_hat: {eta_hat}")
@@ -687,6 +703,14 @@ ols = (eta_hat, theta_hat)
 print(f"Estimated eta_hat: {eta_hat}")
 print(f"Estimated theta_hat: {theta_hat}")
 
-
-
-
+########################
+# Other market definitons
+wkr = ['iota']
+for mkt in [['gamma'], ['occ2'], ['code_micro'], ['occ2', 'code_micro']]:
+    eta_hat, theta_hat = run_two_step_estimation(collapsed_df_w_shock, 'ols', delta=0, workertypevar=wkr, mktvar=mkt)
+    print('WORKERTYPE = '+ str(wkr) +', MKT =' + str(mkt) + ', eta = ' + str(eta_hat) + ', theta = ', str(theta_hat))
+    
+wkr = ['occ2']
+for mkt in [['code_micro']]:
+    eta_hat, theta_hat = run_two_step_estimation(collapsed_df_w_shock, 'ols', delta=0, workertypevar=wkr, mktvar=mkt)
+    print('WORKERTYPE = '+ str(wkr) +', MKT =' + str(mkt) + ', eta = ' + str(eta_hat) + ', theta = ', str(theta_hat))
