@@ -5,6 +5,15 @@ Created on Tue Sep  3 12:44:24 2024
 @author: p13861161
 """
 
+'''
+What we need for Rafa to compute geographic job density around that person for different market definitions. 
+- Load entire person-level RAIS for 2012-2019
+- Keep pis id_estab iota gamma and other market definitions
+- Merge on establishment geolocation for all establishments. Probably just lat/lon and UTM lat/lon but can ask him if he wants anything else.
+- Merge on an indicator for the worker-job being part of a mass layoff in a given year
+- Merge on iota-gamma match probabilities.
+- Merge on market to market transition probabilities (ignoring iota) for different market definitions: gamma, micro, micro X occ2, maybe others. In this version, implicitly, your type is your current market. 
+'''
 
 from datetime import datetime
 import pickle
@@ -55,16 +64,7 @@ if getpass.getuser()=='p13861161':
         root = "/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/"
         rais = "~/rais/RAIS/"
         sys.path.append(root + 'Code/Modules')
-        # These all require torch
-        import torch
-        from torch_mle import torch_mle
-        import bisbm
-        from mle_load_fulldata import mle_load_fulldata
-        from normalization_k import normalization_k
-        from alphas_func import load_alphas
-        import solve_model_functions as smf
-        from correlogram import correlogram
-        
+
 
 if getpass.getuser()=='jfogel':
     print("Running on Jamie's home laptop")
@@ -102,9 +102,6 @@ region_codes = pd.read_csv(root + '/Data/raw/munic_microregion_rm.csv', encoding
 muni_micro_cw = pd.DataFrame({'code_micro':region_codes.code_micro,'codemun':region_codes.code_munic//10})
 
 # Load iotas and gammas and compute the expected number of jobs for each iota
-
-
-# Load iotas and gammas and compute the expected number of jobs for each iota
 run_load_iotas_gammas = True
 if run_load_iotas_gammas==True:
     iotas, gammas = load_iotas_gammas(root)
@@ -116,8 +113,9 @@ if run_load_iotas_gammas==True:
 
  
 
-
 mkt_size_df = compute_mkt_sizes_ind2_micro(rais, muni_micro_cw)
+mkt_size_df = mkt_size_df.reset_index(name='count')
+
 
 identify_laid_off_workers=True
 if identify_laid_off_workers==True:
@@ -140,7 +138,7 @@ if identify_laid_off_workers==True:
         
         # Add 'year' column
         df['year'] = year
-        
+        df['id_estab'] = df['id_estab'].astype(str).str.zfill(14)
         dfs.append(df)
     
     # Concatenate all DataFrames
@@ -187,7 +185,6 @@ if identify_laid_off_workers==True:
     
     mass_layoffs.to_parquet(root + "Data/derived/mass_layoffs.parquet")   
     laid_off_workers.to_parquet(root + "Data/derived/laid_off_workers.parquet")   
-
 
 
 columns_to_keep = [
@@ -249,7 +246,7 @@ if build_worker_panel==True:
         # Need to make wid and jid
         df['wid'] = df.pis.astype('Int64').astype(str)
         df['occ4'] = df['cbo2002'].astype(str).str[0:4]
-        df['jid'] = df['id_estab'].astype(str).str.zfill(14) + '_' + df['occ4']
+        df['jid'] = df['id_estab'] + '_' + df['occ4']
 
         # Save DOBs in a separate df. I forgot if/why this is actually necessary
         year_dob = df[['wid', 'data_nasc']].drop_duplicates()
@@ -272,7 +269,7 @@ if build_worker_panel==True:
         df.rename(columns={'mes_deslig':'layoff_month'}, inplace=True)
         
         # Sometimes id_estab is defined but cnpj_raiz is not. Therefore, replace cnpj_raiz with the first 8 digits of id_estab. XX I can actually just not load cnpj_raiz to not mess with this. 
-        df['id_firm'] = df['id_estab'].astype(str).str.zfill(14).str[:8].astype(int)
+        df['id_firm'] = df['id_estab'].str[:8].astype(int)
         dfs.append(df)
         
     laid_off_worker_panel = pd.concat(dfs, ignore_index=True)
@@ -302,13 +299,6 @@ if create_worker_panel_balanced==True:
     # Convert month from 'vl_rem_{i:02d}' to integer
     worker_panel_long['month'] = worker_panel_long['month'].str.extract('(\d+)').astype(int)
     
-    # Restrict to people with at least 24 months of positive earnings
-    valid_months = (worker_panel_long['vl_rem'] > 0)
-    valid_month_counts = worker_panel_long[valid_months].groupby('wid').size()
-    workers_to_keep = valid_month_counts[valid_month_counts >= 24].index
-    worker_panel_long = worker_panel_long[worker_panel_long['wid'].isin(workers_to_keep)]
-    
-    
     # Print the shape of the resulting dataframe
     print(f"Resulting dataframe shape: {worker_panel_long.shape}")
     
@@ -317,9 +307,17 @@ if create_worker_panel_balanced==True:
     worker_panel_long['total_earnings_month'] = worker_panel_long.groupby(['wid', 'year', 'month'])['vl_rem'].transform('sum')
     worker_panel_long['num_jobs_month'] = worker_panel_long.groupby(['wid', 'year', 'month'])['vl_rem'].transform('count')
     
-    worker_panel_long = worker_panel_long.sort_values(by='vl_rem', ascending=False).drop_duplicates(subset=['wid', 'year', 'month'])
+    worker_panel_long = worker_panel_long.sort_values(by=['wid', 'year', 'month', 'vl_rem'], ascending=False).drop_duplicates(subset=['wid', 'year', 'month'], keep='first')
     worker_panel_long.sort_values(by=['wid', 'year', 'month'], inplace=True)
     
+    
+    # Restrict to people with at least 24 months of positive earnings
+    valid_months = (worker_panel_long['vl_rem'] > 0)
+    valid_month_counts = worker_panel_long[valid_months].groupby('wid').size()
+    workers_to_keep = valid_month_counts[valid_month_counts >= 24].index
+    worker_panel_long = worker_panel_long[worker_panel_long['wid'].isin(workers_to_keep)]
+    
+
     # Combine 'year' and 'month' into a single date variable
     worker_panel_long['calendar_date'] = pd.to_datetime(worker_panel_long[['year','month']].assign(day=1))
     
@@ -336,6 +334,8 @@ if create_worker_panel_balanced==True:
                 left_on=['id_estab','month','year'],  
                 right_on=['id_estab','estab_layoff_month','estab_layoff_year'], 
                 validate='m:1', how='left',indicator=True)
+
+    # XXJSF. We have a potential issue here. We are flagging mass layoffs at the primary (highest earnings) job only. In general I think this is good, but it would be a problem if the layoff occurs at a job that was my primary job in the previous month but ceases to be in teh current month because I got laid off at the beginning of the month, and was immediately reemployed at a higher-earning job. 
 
     ''' OLD but this is where I left off. Next step would be to define the mass layoff flag as _merge='both' from the previous step
 
@@ -430,8 +430,7 @@ if create_worker_panel_balanced==True:
     worker_panel_balanced['raca_cor'] = pd.Categorical(worker_panel_balanced['raca_cor'])
     worker_panel_balanced['genero'] = pd.Categorical(worker_panel_balanced['genero'])
     
-    # XX Could merge on coordinates here and then compute distances below, once we have pre-layoff and post-layoff id_estab
-    ###########################
+        ###########################
     # GEOLOCATION FOR RAIS ESTABLISHMENTS
     years = list(range(firstyear_panel,lastyear_panel+1))
 
@@ -448,7 +447,7 @@ if create_worker_panel_balanced==True:
     worker_panel_balanced['_merge_munics'].value_counts()
 
     # Merge establishment geolocation to worker_balanced_panel
-    worker_panel_balanced['id_estab'] = worker_panel_balanced['id_estab'].astype(str).str.zfill(14)
+    #worker_panel_balanced['id_estab'] = worker_panel_balanced['id_estab'].astype(str).str.zfill(14)
     worker_panel_balanced = worker_panel_balanced.merge(geo_estab[['id_estab', 'year', 'Addr_type', 'lon_estab', 'lat_estab', 'utm_lat_estab', 'utm_lon_estab', 'h3_res7']], on=['year', 'id_estab'], how='left', validate='m:1', indicator='_merge_geo_estab')
     worker_panel_balanced.columns
     worker_panel_balanced._merge_geo_estab.value_counts()
@@ -509,11 +508,7 @@ if create_worker_panel_balanced==True:
     wids_to_drop = worker_panel_balanced.loc[(worker_panel_balanced['same_id_firm'] == 1) & (worker_panel_balanced['event_time'] > 0), 'wid'].unique()
     worker_panel_balanced = worker_panel_balanced[~worker_panel_balanced['wid'].isin(wids_to_drop)]
     
-    
-    for a in  worker_panel_balanced.dtypes:
-        print(a)
-    
-    
+  
     # Supplementary steps to identify and drop firms where >50% of laid off workers end up employed at the same firm as each other post-layoff
     
     # Step 1: Count the number of workers moving to each post_layoff_id_firm for each pre_layoff_id_firm
@@ -533,7 +528,7 @@ if create_worker_panel_balanced==True:
     print("Firms where a single post-layoff firm has >50% share:")
     print(flagged_firms)
     
-    worker_panel_balanced = worker_panel_balanced[~worker_panel_balanced['pre_layoff_id_firm'].isin(flagged_firms)]
+    worker_panel_balanced = worker_panel_balanced.loc[~worker_panel_balanced['pre_layoff_id_firm'].isin(flagged_firms)]
     
     
     # Recode the 'grau_instr' variable into coarser bins
@@ -569,18 +564,17 @@ if create_worker_panel_balanced==True:
     
     ############################################################################
     # Cutting on market size
-    '''
-    I didn't run the code to create these data sets being merged on
+
     # Merge on P_ig and E_N
+    E_N_gamma_given_iota = pd.read_parquet(root + "Data/derived/mass_layoffs_E_N_gamma_given_iota.parquet")
     E_N_gamma_given_iota['market_size_tercile'] = pd.qcut(E_N_gamma_given_iota['E_N_gamma_given_iota'], q=3, labels=['low', 'medium', 'high'])
     # Drop markets with fewer than 10 workers
-    mkt_size_df_worker = mkt_size_df_worker.loc[mkt_size_df_worker['count']>=10]
-    mkt_size_df_worker['market_size_tercile_ind2_micro'] = pd.qcut(mkt_size_df_worker['count'], q=3, labels=['low', 'medium', 'high'])
+    mkt_size_df = mkt_size_df.loc[mkt_size_df['count']>=10]
+    mkt_size_df['market_size_tercile_ind2_micro'] = pd.qcut(mkt_size_df['count'], q=3, labels=['low', 'medium', 'high'])
     
     worker_panel_balanced = worker_panel_balanced.merge(E_N_gamma_given_iota, on='iota', how='left', validate='m:1')
-    worker_panel_balanced = worker_panel_balanced.merge(mkt_size_df_worker.drop(columns='count'), left_on=['ind2','code_micro'], right_on=['ind2','code_micro'], how='left', validate='m:1')
-    '''
-    
+    worker_panel_balanced = worker_panel_balanced.merge(mkt_size_df.drop(columns='count'), left_on=['ind2','code_micro'], right_on=['ind2','code_micro'], how='left', validate='m:1')
+
     worker_panel_balanced.to_pickle(root + "Data/derived/mass_layoffs_worker_panel_balanced.p", protocol=4)
     #worker_panel_balanced.to_parquet(root + "Data/derived/mass_layoffs_worker_panel_balanced.parquet")
     with open(root + "Data/derived/mass_layoffs_worker_panel_balanced_dtypes.p", 'wb') as f:
@@ -588,10 +582,9 @@ if create_worker_panel_balanced==True:
         
 
 
-
 ####
 # Next: compute market size, merge it on, and create figures
-
+worker_panel_balanced = pd.read_pickle(root + "Data/derived/mass_layoffs_worker_panel_balanced.p")
 
 
 
@@ -633,6 +626,231 @@ if run_preliminary_figures==True:
     plt.savefig(root + 'Results/primary_job_earnings_after_layoff.pdf', format='pdf')
     plt.show()
     
+
+
+weighted_variances = pd.read_pickle(root + "Data/derived/mass_layoffs_weighted_variances.p")  
+iotas_w_attributes = pd.read_parquet(root + 'Data/derived/iotas_w_attributes_geo_estab_3states_2013to2016_mcmc.parquet')
+
+
+# Usage
+worker_panel_balanced['move_distance_km'] = worker_panel_balanced.apply(
+    calculate_distance, 
+    axis=1,
+    args=(
+        'pre_layoff_utm_lat_estab',
+        'pre_layoff_utm_lon_estab',
+        'post_layoff_utm_lat_estab',
+        'post_layoff_utm_lon_estab'
+    )
+) / 1000
+
+worker_panel_balanced['dist_from_pre_layoff_job_km'] = worker_panel_balanced.apply(
+    calculate_distance, 
+    axis=1,
+    args=(
+        'pre_layoff_utm_lat_estab',
+        'pre_layoff_utm_lon_estab',
+        'utm_lat_estab',
+        'utm_lon_estab'
+    )
+) / 1000
+
+
+
+event_study_figures = True
+if event_study_figures==True:
+
+    # Make figure for employment:
+    results, coef_df = event_studies_by_mkt_size(
+        worker_panel_balanced,
+        y_var='employment_indicator',
+        continuous_controls=['age', 'age_sq'],
+        fixed_effects_cols=['educ_micro', 'educ_ind2', 'educ_layoff_date', 'foreign', 'genero', 'raca_cor'],
+        market_size_var='market_size_tercile',
+        omitted_category='medium'
+    )
+    
+    results, coef_df = event_studies_by_mkt_size(
+        worker_panel_balanced.loc[worker_panel_balanced.tenure_years>=.5],
+        y_var='employment_indicator',
+        continuous_controls=['age', 'age_sq'],
+        fixed_effects_cols=['educ_micro', 'educ_ind2', 'educ_layoff_date', 'foreign', 'genero', 'raca_cor'],
+        market_size_var='market_size_tercile',
+        omitted_category='medium',
+        savefig=f'{root}Results/employment_indicator_after_layoff_by_market_size_tercile_tenure6.pdf'
+    )
+    
+    results, coef_df = event_studies_by_mkt_size(
+        worker_panel_balanced.loc[worker_panel_balanced.tenure_years>=1],
+        y_var='employment_indicator',
+        continuous_controls=['age', 'age_sq'],
+        fixed_effects_cols=['educ_micro', 'educ_ind2', 'educ_layoff_date', 'foreign', 'genero', 'raca_cor'],
+        market_size_var='market_size_tercile',
+        omitted_category='medium',
+        savefig=f'{root}Results/employment_indicator_after_layoff_by_market_size_tercile_tenure12.pdf'
+    )
+    
+    
+    
+    # Make figure for total earnings:
+    results, coef_df = event_studies_by_mkt_size(
+        worker_panel_balanced,
+        y_var='total_earnings_month_sm',
+        continuous_controls=['age', 'age_sq'],
+        fixed_effects_cols=['educ_micro', 'educ_ind2', 'educ_layoff_date', 'foreign', 'genero', 'raca_cor'],
+        market_size_var='market_size_tercile',
+        omitted_category='medium'
+    )
+    
+    results, coef_df = event_studies_by_mkt_size(
+        worker_panel_balanced.loc[worker_panel_balanced.tenure_years>=.5],
+        y_var='total_earnings_month_sm',
+        continuous_controls=['age', 'age_sq'],
+        fixed_effects_cols=['educ_micro', 'educ_ind2', 'educ_layoff_date', 'foreign', 'genero', 'raca_cor'],
+        market_size_var='market_size_tercile',
+        omitted_category='medium',
+        savefig=f'{root}Results/total_earnings_month_sm_after_layoff_by_market_size_tercile_tenure6.pdf'
+    )
+    
+    results, coef_df = event_studies_by_mkt_size(
+        worker_panel_balanced.loc[worker_panel_balanced.tenure_years>=1],
+        y_var='total_earnings_month_sm',
+        continuous_controls=['age', 'age_sq'],
+        fixed_effects_cols=['educ_micro', 'educ_ind2', 'educ_layoff_date', 'foreign', 'genero', 'raca_cor'],
+        market_size_var='market_size_tercile',
+        omitted_category='medium',
+        savefig=f'{root}Results/total_earnings_month_sm_after_layoff_by_market_size_tercile_tenure12.pdf'
+    )
+    
+    
+    # Make figure for employment (MY mkt size def'n):
+    results, coef_df = event_studies_by_mkt_size(
+        worker_panel_balanced,
+        y_var='employment_indicator',
+        continuous_controls=['age', 'age_sq'],
+        fixed_effects_cols=['educ_micro', 'educ_ind2', 'educ_layoff_date', 'foreign', 'genero', 'raca_cor'],
+        market_size_var='market_size_tercile_ind2_micro',
+        omitted_category='medium'
+    )
+    
+    # Make figure for earnings at primary job, restricting to those with earnings between 1 and 100x the minimum wage
+    worker_panel_balanced['earnings_primary_job'] = worker_panel_balanced['vl_rem_sm']
+    #mask = worker_panel_balanced['total_earnings_month_sm'].between(1, 100, inclusive='both')
+    mask = worker_panel_balanced['total_earnings_month_sm']<20
+    
+    results, coef_df = event_studies_by_mkt_size(
+        worker_panel_balanced[mask],
+        y_var='earnings_primary_job',
+        continuous_controls=['age', 'age_sq'],
+        fixed_effects_cols=['educ_micro', 'educ_ind2', 'educ_layoff_date', 'foreign', 'genero', 'raca_cor'],
+        market_size_var='market_size_tercile',
+        omitted_category='medium'
+    )
+    
+    
+    # XX these are probably confounded by non-employment. If you aren't employed you will not be in the same market
+    # Make figures for staying in the same market, ind, occ, micro, etc:
+    vars = ['same_cbo2002', 'same_clas_cnae20', 'same_ind2', 'same_code_micro', 'same_gamma']
+    for v in vars:
+        print(v)
+        results, coef_df = event_studies_by_mkt_size(
+            worker_panel_balanced.loc[( worker_panel_balanced.tenure_years>=.5)],
+            y_var=v,
+            continuous_controls=['age', 'age_sq'],
+            fixed_effects_cols=['educ_micro', 'educ_ind2', 'educ_layoff_date', 'foreign', 'genero', 'raca_cor'],
+            market_size_var='market_size_tercile',
+            omitted_category='medium'
+        )
+    
+    
+    # Restricted to college-educated workers only
+    results, coef_df = event_studies_by_mkt_size(
+        worker_panel_balanced.loc[( worker_panel_balanced.tenure_years>=.5) & (worker_panel_balanced['educ']=='College')],
+        y_var='employment_indicator',
+        continuous_controls=['age', 'age_sq'],
+        fixed_effects_cols=['educ_micro', 'educ_ind2', 'educ_layoff_date', 'foreign', 'genero', 'raca_cor'],
+        market_size_var='market_size_tercile',
+        omitted_category='medium',
+        title='employment_indicator by market size tercile (College only)',
+        savefig=root + 'Results/employment_indicator_after_layoff_by_market_size_tercile_College.pdf'
+    )
+    
+    results, coef_df = event_studies_by_mkt_size(
+        worker_panel_balanced.loc[( worker_panel_balanced.tenure_years>=.5) & (worker_panel_balanced['educ']=='College')],
+        y_var='earnings_primary_job',
+        continuous_controls=['age', 'age_sq'],
+        fixed_effects_cols=['educ_micro', 'educ_ind2', 'educ_layoff_date', 'foreign', 'genero', 'raca_cor'],
+        market_size_var='market_size_tercile',
+        omitted_category='medium',
+        title='earnings_primary_job by market size tercile (College only)',
+        savefig=root + 'Results/earnings_primary_job_after_layoff_by_market_size_tercile_College.pdf'
+    )
+    
+    # Restricted to high school-educated workers only
+    results, coef_df = event_studies_by_mkt_size(
+        worker_panel_balanced.loc[( worker_panel_balanced.tenure_years>=.5) & (worker_panel_balanced['educ']=='HS')],
+        y_var='employment_indicator',
+        continuous_controls=['age', 'age_sq'],
+        fixed_effects_cols=['educ_micro', 'educ_ind2', 'educ_layoff_date', 'foreign', 'genero', 'raca_cor'],
+        market_size_var='market_size_tercile',
+        omitted_category='medium',
+        title='employment_indicator by market size tercile (HS only)',
+        savefig=root + 'Results/employment_indicator_after_layoff_by_market_size_tercile_HS.pdf'
+    )
+    
+    results, coef_df = event_studies_by_mkt_size(
+        worker_panel_balanced.loc[(worker_panel_balanced.tenure_years>=.5) & (worker_panel_balanced['educ']=='HS')],
+        y_var='earnings_primary_job',
+        continuous_controls=['age', 'age_sq'],
+        fixed_effects_cols=['educ_micro', 'educ_ind2', 'educ_layoff_date', 'foreign', 'genero', 'raca_cor'],
+        market_size_var='market_size_tercile',
+        omitted_category='medium',
+        title='earnings_primary_job by market size tercile (HS only)',
+        savefig=root + 'Results/earnings_primary_job_after_layoff_by_market_size_tercile_HS.pdf'
+    )
+    
+    
+    results, coef_df = event_studies_by_mkt_size(
+        worker_panel_balanced.loc[( worker_panel_balanced.tenure_years>=.5) & (worker_panel_balanced['dist_from_pre_layoff_job_km'].notna())],
+        y_var='dist_from_pre_layoff_job_km',
+        continuous_controls=['age', 'age_sq'],
+        fixed_effects_cols=['educ_micro', 'educ_ind2', 'educ_layoff_date', 'foreign', 'genero', 'raca_cor'],
+        market_size_var='market_size_tercile',
+        omitted_category='medium',
+        title='Distance from original job by market size tercile',
+        savefig=root + 'Results/dist_from_pre_layoff_job_km_by_market_size_tercile.pdf'
+    )
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+
+
+
+
+
+
+
 
 # Calculate the descriptions
 # Create an empty list to store individual descriptions

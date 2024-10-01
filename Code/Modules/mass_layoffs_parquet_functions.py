@@ -112,6 +112,8 @@ def pull_estab_geos(years, rais):
     
     ############################
     
+    geo_estab['id_estab'] = geo_estab['id_estab'].astype(str).str.zfill(14)
+        
     # Initialize lists to store the UTM coordinates
     utm_lon = []
     utm_lat = []
@@ -397,4 +399,30 @@ def merge_aguinaldo_onet(df, aguinaldo_dir):
     )
     return df
   
-  
+
+def compute_mkt_sizes_ind2_micro(rais, muni_micro_cw):
+    keepcols = ['id_estab', 'codemun', 'clas_cnae20', 'qt_vinc_ativos']
+    
+    dfs = []
+    for year in range(2013, 2016+1):
+        print(year)
+        file_path = f"{rais}/parquet_novos/estab{year}.parquet"
+        
+        # Read the parquet file
+        table = pq.read_table(file_path, columns=keepcols)
+        
+        # Convert to pandas DataFrame
+        df = table.to_pandas()
+        df['year'] = year
+        # Merge with muni_micro_cw
+        df = df.merge(muni_micro_cw[['codemun', 'code_micro']], on='codemun', how='left', validate='m:1')
+        dfs.append(df)
+    
+    estab_df = pd.concat(dfs)
+    
+    # Create a data set of market sizes
+    mkt_size_df = estab_df[['clas_cnae20', 'code_micro', 'qt_vinc_ativos']]
+    mkt_size_df['ind2'] = mkt_size_df['clas_cnae20'] // 1000
+    mkt_size_df = mkt_size_df.groupby(['ind2', 'code_micro'])['qt_vinc_ativos'].sum()
+    
+    return mkt_size_df

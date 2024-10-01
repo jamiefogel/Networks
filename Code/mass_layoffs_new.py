@@ -6,23 +6,19 @@ Created on Mon May 13 20:40:18 2024
 """
 
 
-from datetime import datetime
 import pickle
 import pandas as pd
 import numpy as np
 import os
-import gc
 import platform
 import sys
 import getpass
 from linearmodels.iv import AbsorbingLS
-from linearmodels.panel import PanelOLS
 import statsmodels.api as sm
 import matplotlib.pyplot as plt
 from tqdm import tqdm # to calculate progress of some operations for geolocation
 import pyproj # for converting geographic degree measures of lat and lon to the UTM system (i.e. in meters)
 #from scipy.integrate import simps # to calculate the AUC for the decay function
-from dateutil.relativedelta import relativedelta
 
 modelname = '3states_2013to2016_mcmc'
 firstyear_panel = 2012 
