@@ -3,7 +3,7 @@
 """
 Created on August 13 2024
 - Adapted from NetworksGit/Code/MarketPower/do_all_marketpower.py
-- Goalis to delete unnecessary code to focus on simply computing distributions of HHIs and markdowns across different market definitions
+- Goal is to delete unnecessary code to focus on simply computing distributions of HHIs and markdowns across different market definitions
 
 @author: jfogel
 """
@@ -353,8 +353,8 @@ def generate_shocks(df, alpha=2, beta=5, delta=0):
     jid_shock = {jid_masked: np.random.random() for jid_masked in df['jid_masked'].unique()} # This is phi_j
     df['jid_masked_shock'] = df['jid_masked'].map(jid_shock)
     # This is called "zeta" on Overleaf
-    iota_gamma_shock = {iota_gamma_id: np.random.random() for iota_gamma_id in df['iota_gamma_id'].unique()}
-    df['iota_gamma_shock'] = df['iota_gamma_id'].map(iota_gamma_shock)
+    iota_gamma_shock = {iota_gamma: np.random.random() for iota_gamma in df['iota_gamma'].unique()}
+    df['iota_gamma_shock'] = df['iota_gamma'].map(iota_gamma_shock)
 
     df['phi_iota_j_new'] = np.exp( \
         df['iota_gamma_fes']   + df['jid_masked_fes'] + \
@@ -612,7 +612,7 @@ set more off
 log using "log_file_path", replace
 
 use "dta_path", clear
-reghdfe y_tilde, absorb(jid_masked_fes=jid_masked iota_gamma_fes=iota_gamma_id, savefe) residuals(resid)
+reghdfe y_tilde, absorb(jid_masked_fes=jid_masked iota_gamma_fes=iota_gamma, savefe) residuals(resid)
 
 save "results_path", replace
 """
@@ -622,7 +622,7 @@ results_reg1 = run_stata_code(reg_df, stata_code)
 reg_df_w_FEs = results_reg1['results_df']
 
 
-collapsed_df = reg_df_w_FEs.groupby(['iota', 'gamma', 'iota_gamma_id', 'jid_masked']).agg({
+collapsed_df = reg_df_w_FEs.groupby(['iota', 'gamma', 'iota_gamma', 'jid_masked']).agg({
     'jid_masked_fes': 'first',          # These don't vary within the group, so we can take the first value
     'iota_gamma_fes': 'first',          # These don't vary within the group, so we can take the first value
     'markdown_w_iota': 'first',         # These don't vary within the group, so we can take the first value
@@ -707,10 +707,107 @@ print(f"Estimated theta_hat: {theta_hat}")
 # Other market definitons
 wkr = ['iota']
 for mkt in [['gamma'], ['occ2'], ['code_micro'], ['occ2', 'code_micro']]:
-    eta_hat, theta_hat = run_two_step_estimation(collapsed_df_w_shock, 'ols', delta=0, workertypevar=wkr, mktvar=mkt)
+    eta_hat, theta_hat = run_two_step_estimation(collapsed_df_w_shock, 'panel_iv', delta=None, workertypevar=wkr, mktvar=mkt)
     print('WORKERTYPE = '+ str(wkr) +', MKT =' + str(mkt) + ', eta = ' + str(eta_hat) + ', theta = ', str(theta_hat))
     
 wkr = ['occ2']
 for mkt in [['code_micro']]:
-    eta_hat, theta_hat = run_two_step_estimation(collapsed_df_w_shock, 'ols', delta=0, workertypevar=wkr, mktvar=mkt)
+    eta_hat, theta_hat = run_two_step_estimation(collapsed_df_w_shock, 'panel_iv', delta=0, workertypevar=wkr, mktvar=mkt)
     print('WORKERTYPE = '+ str(wkr) +', MKT =' + str(mkt) + ', eta = ' + str(eta_hat) + ', theta = ', str(theta_hat))
+
+
+##################
+# Experiment with misclassification
+
+def introduce_misclassification_by_jid(df, misclassification_rate):
+    # Create a copy of the dataframe to avoid modifying the original
+    df_misclassified = df.copy()
+    
+    # Calculate the probability distribution of gammas
+    gamma_probs = df_misclassified['gamma'].value_counts(normalize=True)
+    
+    # Get unique jid_masked values
+    unique_jids = df_misclassified['jid_masked'].unique()
+    
+    # Generate new gammas for all unique jids
+    new_gammas = np.random.choice(gamma_probs.index, size=len(unique_jids), p=gamma_probs.values)
+    
+    # Create a mask for jids to be misclassified
+    misclassify_mask = np.random.random(len(unique_jids)) < misclassification_rate
+    
+    # Create a dictionary mapping jids to their new gammas (only for misclassified jids)
+    new_gamma_dict = dict(zip(unique_jids[misclassify_mask], new_gammas[misclassify_mask]))
+    
+    # Apply new gammas to misclassified jids
+    df_misclassified['gamma_error'] = df_misclassified['jid_masked'].map(new_gamma_dict).fillna(df_misclassified['gamma'])
+    
+    return df_misclassified
+
+def compute_market_hhi(df, market_col='gamma'):
+    # Compute market shares
+    market_shares = df[market_col].value_counts(normalize=True)
+    
+    # Compute HHI
+    hhi = (market_shares**2).sum()
+    
+    return hhi
+
+
+def calculate_theoretical_bias(eta_true, theta_true, r, hhi):
+    bias_eta = r * (theta_true - eta_true) * (1 - hhi)
+    bias_theta = r * (eta_true - theta_true) * hhi
+    return bias_eta, bias_theta
+
+# First, let's get the true estimates from the correctly classified data
+eta_hat_true, theta_hat_true = run_two_step_estimation(collapsed_df_w_shock, 'ols', delta=0, workertypevar=['iota'], mktvar=['gamma'])
+
+print(f"True eta_hat: {eta_hat_true}")
+print(f"True theta_hat: {theta_hat_true}")
+
+
+# Create lists to store our results
+misclassification_rates = np.arange(0,1.1,0.1)
+eta_estimates = []
+theta_estimates = []
+
+# Now, let's modify the loop to collect data for plotting
+for r in misclassification_rates:
+    collapsed_df_w_shock_w_error = introduce_misclassification_by_jid(collapsed_df_w_shock, r)
+    eta_hat_e, theta_hat_e = run_two_step_estimation(collapsed_df_w_shock_w_error, 'ols', delta=0,  workertypevar=['iota'], mktvar=['gamma_error'])
+    
+    eta_estimates.append(eta_hat_e)
+    theta_estimates.append(theta_hat_e)
+    
+    # Print the results (optional, for checking)
+    print(f"\nMisclassification rate: {r}")
+    print(f"Estimated eta_hat: {eta_hat_e:.4f}")
+    print(f"Estimated theta_hat: {theta_hat_e:.4f}")
+
+# Create the plot
+plt.figure(figsize=(10, 6))
+plt.plot(misclassification_rates, eta_estimates, 'b-o', label='Estimated eta')
+plt.plot(misclassification_rates, theta_estimates, 'r-o', label='Estimated theta')
+plt.axhline(y=eta_hat_true, color='b', linestyle='--', label='True eta')
+plt.axhline(y=theta_hat_true, color='r', linestyle='--', label='True theta')
+
+plt.xlabel('Misclassification Rate')
+plt.ylabel('Elasticity Estimate')
+plt.title('Elasticity Estimates vs Misclassification Rate')
+plt.legend()
+plt.grid(True)
+
+plt.show()
+
+
+misclassification_ests = pd.DataFrame(zip(misclassification_rates, eta_estimates, theta_estimates), columns=['Misclassification Rate', 'Eta Estimate', 'Theta Estimate'])
+misclassification_ests['Eta_First_Diff']   = misclassification_ests['Eta Estimate'].diff()
+misclassification_ests['Theta_First_Diff'] = misclassification_ests['Theta Estimate'].diff()
+
+print(misclassification_ests)
+
+
+
+
+
+###########
+# The above show that improper market definitions have huge implicatons for paraemter estimates. Now we would like to come up with some metric for how much different market definitions differ from each other.
