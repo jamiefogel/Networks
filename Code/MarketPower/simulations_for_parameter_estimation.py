@@ -752,12 +752,6 @@ def compute_market_hhi(df, market_col='gamma'):
     
     return hhi
 
-
-def calculate_theoretical_bias(eta_true, theta_true, r, hhi):
-    bias_eta = r * (theta_true - eta_true) * (1 - hhi)
-    bias_theta = r * (eta_true - theta_true) * hhi
-    return bias_eta, bias_theta
-
 # First, let's get the true estimates from the correctly classified data
 eta_hat_true, theta_hat_true = run_two_step_estimation(collapsed_df_w_shock, 'ols', delta=0, workertypevar=['iota'], mktvar=['gamma'])
 
@@ -769,8 +763,12 @@ print(f"True theta_hat: {theta_hat_true}")
 misclassification_rates = np.arange(0,1.1,0.1)
 eta_estimates = []
 theta_estimates = []
+eta_theoretical = []
+theta_theoretical = []
+hhi_values = []
+hhi_w_error_values = []
 
-# Now, let's modify the loop to collect data for plotting
+# Now, let's modify the loop to collect data
 for r in misclassification_rates:
     collapsed_df_w_shock_w_error = introduce_misclassification_by_jid(collapsed_df_w_shock, r)
     eta_hat_e, theta_hat_e = run_two_step_estimation(collapsed_df_w_shock_w_error, 'ols', delta=0,  workertypevar=['iota'], mktvar=['gamma_error'])
@@ -778,36 +776,90 @@ for r in misclassification_rates:
     eta_estimates.append(eta_hat_e)
     theta_estimates.append(theta_hat_e)
     
+    # Calculate HHI
+    hhi = compute_market_hhi(collapsed_df_w_shock_w_error, market_col='gamma')
+    hhi_w_error = compute_market_hhi(collapsed_df_w_shock_w_error, market_col='gamma_error')
+
+    hhi_values.append(hhi)
+    hhi_w_error_values.append(hhi_w_error)
+    
+    # Calculate theoretical elasticities based on the derivations we came up with on 10/28/2024
+    within_means = collapsed_df_w_shock_w_error.groupby('gamma')['ln_real_hrly_wage_dec'].mean()
+    collapsed_df_w_shock_w_error['within_deviation'] = collapsed_df_w_shock_w_error['ln_real_hrly_wage_dec'] - collapsed_df_w_shock_w_error['gamma'].map(within_means)
+    within_variance = collapsed_df_w_shock_w_error.groupby('gamma')['within_deviation'].var().mean()
+
+    overall_mean = collapsed_df_w_shock_w_error['ln_real_hrly_wage_dec'].mean()
+    between_variance = ((within_means - overall_mean) ** 2).mean()
+    bias = (theta_hat_true - eta_hat_true) * ( r**2 / (  (within_variance / between_variance) + r**2))
+    eta_theo = eta_hat_true + bias
+    eta_theoretical.append(eta_theo)
+
     # Print the results (optional, for checking)
     print(f"\nMisclassification rate: {r}")
     print(f"Estimated eta_hat: {eta_hat_e:.4f}")
     print(f"Estimated theta_hat: {theta_hat_e:.4f}")
+    print(f"Theoretical eta: {eta_theo:.4f}")
+    #print(f"Theoretical theta: {theta_theo:.4f}")
+    print(f"HHI: {hhi:.4f}")
+    print(f"HHI w/ error: {hhi_w_error:.4f}")
 
+# Create a DataFrame with the results
+misclassification_ests = pd.DataFrame({
+    'Misclassification_Rate': misclassification_rates,
+    'Estimated_Eta': eta_estimates,
+    'Estimated_Theta': theta_estimates,
+    'Theoretical_Eta': eta_theoretical,
+    #'Theoretical_Theta': theta_theoretical,
+    'HHI': hhi_values,
+    'HHI w/ error': hhi_w_error_values
+})
 # Create the plot
-plt.figure(figsize=(10, 6))
-plt.plot(misclassification_rates, eta_estimates, 'b-o', label='Estimated eta')
-plt.plot(misclassification_rates, theta_estimates, 'r-o', label='Estimated theta')
-plt.axhline(y=eta_hat_true, color='b', linestyle='--', label='True eta')
-plt.axhline(y=theta_hat_true, color='r', linestyle='--', label='True theta')
 
+# Create the first plot for elasticity estimates
+plt.figure(figsize=(12, 6))
+plt.plot(misclassification_ests['Misclassification_Rate'], misclassification_ests['Estimated_Eta'], 'b-o', label='Estimated eta')
+plt.plot(misclassification_ests['Misclassification_Rate'], misclassification_ests['Estimated_Theta'], 'r-o', label='Estimated theta')
+plt.plot(misclassification_ests['Misclassification_Rate'], misclassification_ests['Theoretical_Eta'], 'b--', label='Theoretical eta')
+#plt.plot(misclassification_ests['Misclassification_Rate'], misclassification_ests['Theoretical_Theta'], 'r--', label='Theoretical theta')
+plt.axhline(y=eta_hat_true, color='b', linestyle=':', label='True eta')
+plt.axhline(y=theta_hat_true, color='r', linestyle=':', label='True theta')
 plt.xlabel('Misclassification Rate')
 plt.ylabel('Elasticity Estimate')
 plt.title('Elasticity Estimates vs Misclassification Rate')
 plt.legend()
 plt.grid(True)
-
 plt.show()
 
 
-misclassification_ests = pd.DataFrame(zip(misclassification_rates, eta_estimates, theta_estimates), columns=['Misclassification Rate', 'Eta Estimate', 'Theta Estimate'])
-misclassification_ests['Eta_First_Diff']   = misclassification_ests['Eta Estimate'].diff()
-misclassification_ests['Theta_First_Diff'] = misclassification_ests['Theta Estimate'].diff()
-
-print(misclassification_ests)
 
 
+misclassification_ests['Eta_First_Diff']   = misclassification_ests['Estimated_Eta'].diff()
+misclassification_ests['Theta_First_Diff'] = misclassification_ests['Estimated_Theta'].diff()
+misclassification_ests['Theoretical_Eta_First_Diff'] = misclassification_ests['Theoretical_Eta'].diff()
+misclassification_ests['Theoretical_Theta_First_Diff'] = misclassification_ests['Theoretical_Theta'].diff()
+
+
+
+# Create the second plot for first differences
+plt.figure(figsize=(12, 6))
+plt.plot(misclassification_ests['Misclassification_Rate'], misclassification_ests['Eta_First_Diff'], 'b-o', label='Estimated Eta First Difference')
+plt.plot(misclassification_ests['Misclassification_Rate'], misclassification_ests['Theta_First_Diff'], 'r-o', label='Estimated Theta First Difference')
+plt.plot(misclassification_ests['Misclassification_Rate'], misclassification_ests['Theoretical_Eta_First_Diff'], 'b--', label='Theoretical Eta First Difference')
+plt.plot(misclassification_ests['Misclassification_Rate'], misclassification_ests['Theoretical_Theta_First_Diff'], 'r--', label='Theoretical Theta First Difference')
+plt.xlabel('Misclassification Rate')
+plt.ylabel('First Difference')
+plt.title('First Differences of Elasticity Estimates')
+plt.legend()
+plt.grid(True)
+plt.show()
+
+print(misclassification_ests[['Misclassification_Rate', 'Estimated_Eta', 'Estimated_Theta', 'Theoretical_Eta', 'Theoretical_Theta', 'HHI', 'HHI w/ error', 'Theoretical_Eta_First_Diff', 'Theoretical_Theta_First_Diff']])
 
 
 
 ###########
 # The above show that improper market definitions have huge implicatons for paraemter estimates. Now we would like to come up with some metric for how much different market definitions differ from each other.
+
+
+
+
