@@ -20,6 +20,7 @@ import time
 import subprocess
 import tempfile
 import ast
+import pyfixest as pf
 
 # Global variables used by run_stata_code()
 PRINT_STATA_LOG = False
@@ -428,7 +429,7 @@ def estimate_eta_hat(reg_df2, estimation_strategy):
         absorb_var = 'worker_mkt_id'
     else:
         raise ValueError("Invalid estimation strategy.")
-    
+    '''
     eta_hat = run_stata_regression(
         dataframe=reg_df2,
         regression_type=regression_type,
@@ -438,7 +439,12 @@ def estimate_eta_hat(reg_df2, estimation_strategy):
         absorb_var=absorb_var,
         scalar_name='eta_hat'
     )
-    
+    '''
+    if regression_type=='ols':
+        fit = pf.feols(f"{dependent_var} ~ {independent_var} | {absorb_var}", data=reg_df2)
+    elif regression_type=='iv':
+        fit = pf.feols(f"{dependent_var} ~ 1 | {absorb_var} | {independent_var} ~ {instrument_var} ", data=reg_df2)
+    eta_hat = fit.coef().loc[independent_var] - 1
     return eta_hat
 
 def prepare_step2_data(reg_df2, eta_hat, estimation_strategy):
@@ -476,8 +482,8 @@ def prepare_step2_data(reg_df2, eta_hat, estimation_strategy):
 def estimate_theta_hat(reg_df3, estimation_strategy):
     if estimation_strategy == 'ols':
         regression_type = 'ols'
-        dependent_var = 'ln_ell_iota_gamma'
-        independent_var = 'ln_wage_ces_index'
+        dependent_var = 'ln_ell_iota_gamma_post_shock'
+        independent_var = 'ln_wage_ces_index_post_shock'
         absorb_var = 'worker_type_id'
     elif estimation_strategy == 'panel_ols':
         regression_type = 'ols'
@@ -492,7 +498,7 @@ def estimate_theta_hat(reg_df3, estimation_strategy):
         absorb_var = 'worker_type_id'
     else:
         raise ValueError("Invalid estimation strategy.")
-    
+    '''
     theta_hat = run_stata_regression(
         dataframe=reg_df3,
         regression_type=regression_type,
@@ -502,7 +508,12 @@ def estimate_theta_hat(reg_df3, estimation_strategy):
         absorb_var=absorb_var,
         scalar_name='theta_hat'
     )
-    
+    '''
+    if regression_type=='ols':
+        fit = pf.feols(f"{dependent_var} ~ {independent_var} | {absorb_var}", data=reg_df3)
+    elif regression_type=='iv':
+        fit = pf.feols(f"{dependent_var} ~ 1 | {absorb_var} | {independent_var} ~ {instrument_var} ", data=reg_df3)
+    theta_hat = fit.coef().loc[independent_var] - 1
     return theta_hat
 
 def run_stata_regression(dataframe, regression_type, dependent_var, independent_var, instrument_var=None, absorb_var=None, scalar_name='parameter_hat'):
@@ -606,23 +617,55 @@ reg_df.to_parquet(root + 'Data/derived/MarketPower_reghdfe_data.parquet')
 #######################################################################
 # Estimate iota-gamma and jid FEs
 
-# Your Stata code as a Python string
-stata_code = f"""
-clear
-set more off
-log using "log_file_path", replace
-
-use "dta_path", clear
-reghdfe y_tilde, absorb(jid_masked_fes=jid_masked iota_gamma_fes=iota_gamma, savefe) residuals(resid)
-
-save "results_path", replace
-"""
-
 # Run the function with your Stata code
-results_reg1 = run_stata_code(reg_df, stata_code)
-reg_df_w_FEs = results_reg1['results_df']
 
+compute_fes_with_stata = True
+if compute_fes_with_stata==True:
+    # Your Stata code as a Python string
+    stata_code = f"""
+    clear
+    set more off
+    log using "log_file_path", replace
+    
+    use "dta_path", clear
+    reghdfe y_tilde, absorb(jid_masked_fes=jid_masked iota_gamma_fes=iota_gamma, savefe) residuals(resid)
+    
+    save "results_path", replace
+    """
 
+    results_reg1 = run_stata_code(reg_df, stata_code)
+    reg_df_w_FEs = results_reg1['results_df']
+
+compute_fes_with_pyfixest = False
+if compute_fes_with_pyfixest==True:
+    # Perform the regression with fixed effects for 'jid_masked' and 'iota_gamma'
+    fit_ols = pf.feols("y_tilde ~ 1 | jid_masked + iota_gamma", data=reg_df)
+    # Extract the fixed effects as a dictionary
+    fixed_effects = fit_ols.fixef()
+    # Pickle the dictionary
+    import pickle
+    with open(root + 'fixed_effects.pkl', 'wb') as file:
+        pickle.dump(fixed_effects, file)
+        
+    # Loop through each fixed effect group and add it to the original DataFrame
+    i = 1
+    for fe_var, fe_values in fixed_effects.items():
+        print(fe_var, fe_values)
+        i+=1
+        if i>10:
+            break  
+        # Convert the fixed effects to a DataFrame
+        fe_df = fe_values.reset_index()
+        fe_df.columns = [fe_var, f"{fe_var}_fes"]  # Rename columns for merging
+        
+        # Merge the fixed effect estimates back to the original DataFrame
+        reg_df = reg_df.merge(fe_df, on=fe_var, how='left')
+
+    # Verify that the new fixed effect columns are added to the DataFrame
+    print(reg_df.head())
+    reg_df_w_FEs = reg_df.copy()
+    
+    
 collapsed_df = reg_df_w_FEs.groupby(['iota', 'gamma', 'iota_gamma', 'jid_masked']).agg({
     'jid_masked_fes': 'first',          # These don't vary within the group, so we can take the first value
     'iota_gamma_fes': 'first',          # These don't vary within the group, so we can take the first value
@@ -808,8 +851,9 @@ for r in misclassification_rates:
     tilde_beta_1 = run_stata_regression(collapsed_df_w_shock_w_error, 'ols', 'ln_wage_demeaned_within_gamma', 'ln_wage_demeaned_within_m', instrument_var=None, absorb_var=None, scalar_name='parameter_hat')
     tilde_beta_2 = run_stata_regression(collapsed_df_w_shock_w_error, 'ols', 'wbar_minus_mu', 'ln_wage_demeaned_within_m', instrument_var=None, absorb_var=None, scalar_name='parameter_hat')
     bias_v2 = (theta_hat_true-eta_hat_true) * (1 - tilde_beta_1 - tilde_beta_2)
-    '''
+
     collapsed_df_w_shock_w_error[['ln_wage_demeaned_within_gamma','ln_wage_demeaned_within_m','wbar_minus_mu']].cov()
+    '''
     ### 
     # 3rd attempt at measuring theoretical bias without ignoring terms we assumed was negligible.
     
@@ -858,7 +902,7 @@ plt.show()
 misclassification_ests['Eta_First_Diff']   = misclassification_ests['Estimated_Eta'].diff()
 misclassification_ests['Theta_First_Diff'] = misclassification_ests['Estimated_Theta'].diff()
 misclassification_ests['Theoretical_Eta_First_Diff'] = misclassification_ests['Theoretical_Eta'].diff()
-misclassification_ests['Theoretical_Theta_First_Diff'] = misclassification_ests['Theoretical_Theta'].diff()
+#misclassification_ests['Theoretical_Theta_First_Diff'] = misclassification_ests['Theoretical_Theta'].diff()
 
 
 
@@ -867,16 +911,13 @@ plt.figure(figsize=(12, 6))
 plt.plot(misclassification_ests['Misclassification_Rate'], misclassification_ests['Eta_First_Diff'], 'b-o', label='Estimated Eta First Difference')
 plt.plot(misclassification_ests['Misclassification_Rate'], misclassification_ests['Theta_First_Diff'], 'r-o', label='Estimated Theta First Difference')
 plt.plot(misclassification_ests['Misclassification_Rate'], misclassification_ests['Theoretical_Eta_First_Diff'], 'b--', label='Theoretical Eta First Difference')
-plt.plot(misclassification_ests['Misclassification_Rate'], misclassification_ests['Theoretical_Theta_First_Diff'], 'r--', label='Theoretical Theta First Difference')
+#plt.plot(misclassification_ests['Misclassification_Rate'], misclassification_ests['Theoretical_Theta_First_Diff'], 'r--', label='Theoretical Theta First Difference')
 plt.xlabel('Misclassification Rate')
 plt.ylabel('First Difference')
 plt.title('First Differences of Elasticity Estimates')
 plt.legend()
 plt.grid(True)
 plt.show()
-
-print(misclassification_ests[['Misclassification_Rate', 'Estimated_Eta', 'Estimated_Theta', 'Theoretical_Eta', 'Theoretical_Theta', 'HHI', 'HHI w/ error', 'Theoretical_Eta_First_Diff', 'Theoretical_Theta_First_Diff']])
-
 
 
 ###########
