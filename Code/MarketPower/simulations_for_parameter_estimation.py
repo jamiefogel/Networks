@@ -516,7 +516,8 @@ def run_stata_regression(dataframe, regression_type, dependent_var, independent_
     
     if absorb_var:
         regression_command += f", absorb({absorb_var})"
-    
+    else:
+        regression_command += ", noabsorb"
     # Build the Stata code
     stata_code = f"""
     clear
@@ -793,6 +794,27 @@ for r in misclassification_rates:
     bias = (theta_hat_true - eta_hat_true) * ( r**2 / (  (within_variance / between_variance) + r**2))
     eta_theo = eta_hat_true + bias
     eta_theoretical.append(eta_theo)
+    
+    ### 
+    # 2nd attempt at measuring theoretical bias without ignoring terms we assumed was negligible. BUT THIS IS WRONG
+    '''
+    collapsed_df_w_shock_w_error['ln_wage_demeaned_within_gamma'] = collapsed_df_w_shock_w_error['ln_real_hrly_wage_dec'] - collapsed_df_w_shock_w_error.groupby('gamma'      )['ln_real_hrly_wage_dec'].transform('mean')
+    collapsed_df_w_shock_w_error['ln_wage_demeaned_within_m']     = collapsed_df_w_shock_w_error['ln_real_hrly_wage_dec'] - collapsed_df_w_shock_w_error.groupby('gamma_error')['ln_real_hrly_wage_dec'].transform('mean')
+    
+    collapsed_df_w_shock_w_error['temp'] = collapsed_df_w_shock_w_error['ln_real_hrly_wage_dec'] * np.exp(1+eta_hat_true)
+    collapsed_df_w_shock_w_error['mu_gamma_j'] = np.log( collapsed_df_w_shock_w_error.groupby('gamma')['temp'].transform('sum') )  / (1 + eta_hat_true)
+    collapsed_df_w_shock_w_error['wbar_minus_mu'] = collapsed_df_w_shock_w_error.groupby('gamma')['ln_real_hrly_wage_dec'].transform('mean') - collapsed_df_w_shock_w_error['mu_gamma_j']
+    
+    tilde_beta_1 = run_stata_regression(collapsed_df_w_shock_w_error, 'ols', 'ln_wage_demeaned_within_gamma', 'ln_wage_demeaned_within_m', instrument_var=None, absorb_var=None, scalar_name='parameter_hat')
+    tilde_beta_2 = run_stata_regression(collapsed_df_w_shock_w_error, 'ols', 'wbar_minus_mu', 'ln_wage_demeaned_within_m', instrument_var=None, absorb_var=None, scalar_name='parameter_hat')
+    bias_v2 = (theta_hat_true-eta_hat_true) * (1 - tilde_beta_1 - tilde_beta_2)
+    '''
+    collapsed_df_w_shock_w_error[['ln_wage_demeaned_within_gamma','ln_wage_demeaned_within_m','wbar_minus_mu']].cov()
+    ### 
+    # 3rd attempt at measuring theoretical bias without ignoring terms we assumed was negligible.
+    
+    
+    
 
     # Print the results (optional, for checking)
     print(f"\nMisclassification rate: {r}")
