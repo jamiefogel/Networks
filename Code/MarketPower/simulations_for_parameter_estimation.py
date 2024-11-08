@@ -20,24 +20,30 @@ import time
 import subprocess
 import tempfile
 import ast
-import pyfixest as pf
+import platform
+
 
 # Global variables used by run_stata_code()
 PRINT_STATA_LOG = False
 
 homedir = os.path.expanduser('~')
+os_name = platform.system()
 if getpass.getuser()=='p13861161':
-    if os.name == 'nt':
-        homedir = os.path.expanduser('//storage6/usuarios')  # for running this code on windows
-        root = homedir + '/labormkt_rafaelpereira/NetworksGit/'
-        print("Running on IPEA Windows")
+    if os_name == 'Windows':
+        print("Running on Windows") 
+        root = "//storage6/usuarios/labormkt_rafaelpereira/NetworksGit/"
+        rais = "//storage6/bases/DADOS/RESTRITO/RAIS/"
+        sys.path.append(root + 'Code/Modules')
         sys.path.append(r'C:\ProgramData\anaconda3\Lib\site-packages\src')
-        #import pystata
-        #import stata_setup
-        #stata_sysdir = 'C:\Program Files (x86)\Stata14'
-        #stata_setup.config(stata_sysdir, 'mp')
-    else:
-        root = homedir + '/labormkt/labormkt_rafaelpereira/NetworksGit/'
+        stata_or_python = "Stata"
+    elif os_name == 'Linux':
+        print("Running on Linux") 
+        root = "/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/"
+        rais = "/home/DLIPEA/p13861161/rais/RAIS/"
+        sys.path.append(root + 'Code/Modules')
+        import pyfixest as pf
+        stata_or_python = "Python"
+
 elif getpass.getuser()=='jfogel':
     print("Running on Jamie's home laptop")
     root = homedir + '/NetworksGit/'
@@ -364,18 +370,18 @@ def generate_shocks(df, alpha=2, beta=5, delta=0):
     
     return df
 
-def run_two_step_estimation(collapsed_df_w_shock, estimation_strategy, delta=0, workertypevar = ['iota'], mktvar = ['gamma']):
+def run_two_step_estimation(collapsed_df_w_shock, estimation_strategy, delta=0, workertypevar = ['iota'], mktvar = ['gamma'], stata_or_python='Python'):
     # Step 1: Data Preparation
     reg_df2 = prepare_step1_data(collapsed_df_w_shock, estimation_strategy, workertypevar = workertypevar, mktvar = mktvar, delta = delta)
     
     # Step 1: Estimate eta_hat
-    eta_hat = estimate_eta_hat(reg_df2, estimation_strategy)
+    eta_hat = estimate_eta_hat(reg_df2, estimation_strategy, stata_or_python)
     
     # Step 2: Data Preparation
     reg_df3 = prepare_step2_data(reg_df2, eta_hat, estimation_strategy)
     
     # Step 2: Estimate theta_hat
-    theta_hat = estimate_theta_hat(reg_df3, estimation_strategy)
+    theta_hat = estimate_theta_hat(reg_df3, estimation_strategy, stata_or_python)
     
     return eta_hat, theta_hat
 
@@ -410,7 +416,7 @@ def prepare_step1_data(collapsed_df_w_shock, estimation_strategy, workertypevar,
     
     return reg_df2
 
-def estimate_eta_hat(reg_df2, estimation_strategy):
+def estimate_eta_hat(reg_df2, estimation_strategy, stata_or_python):
     if estimation_strategy == 'ols':
         regression_type = 'ols'
         dependent_var = 'ln_ell_iota_j_post_shock'
@@ -429,22 +435,23 @@ def estimate_eta_hat(reg_df2, estimation_strategy):
         absorb_var = 'worker_mkt_id'
     else:
         raise ValueError("Invalid estimation strategy.")
-    '''
-    eta_hat = run_stata_regression(
-        dataframe=reg_df2,
-        regression_type=regression_type,
-        dependent_var=dependent_var,
-        independent_var=independent_var,
-        instrument_var=instrument_var if estimation_strategy == 'panel_iv' else None,
-        absorb_var=absorb_var,
-        scalar_name='eta_hat'
-    )
-    '''
-    if regression_type=='ols':
-        fit = pf.feols(f"{dependent_var} ~ {independent_var} | {absorb_var}", data=reg_df2)
-    elif regression_type=='iv':
-        fit = pf.feols(f"{dependent_var} ~ 1 | {absorb_var} | {independent_var} ~ {instrument_var} ", data=reg_df2)
-    eta_hat = fit.coef().loc[independent_var] - 1
+    
+    if stata_or_python=='Stata':
+        eta_hat = run_stata_regression(
+            dataframe=reg_df2,
+            regression_type=regression_type,
+            dependent_var=dependent_var,
+            independent_var=independent_var,
+            instrument_var=instrument_var if estimation_strategy == 'panel_iv' else None,
+            absorb_var=absorb_var,
+            scalar_name='eta_hat'
+        )
+    if stata_or_python=='Python':
+        if regression_type=='ols':
+            fit = pf.feols(f"{dependent_var} ~ {independent_var} | {absorb_var}", data=reg_df2)
+        elif regression_type=='iv':
+            fit = pf.feols(f"{dependent_var} ~ 1 | {absorb_var} | {independent_var} ~ {instrument_var} ", data=reg_df2)
+        eta_hat = fit.coef().loc[independent_var] - 1
     return eta_hat
 
 def prepare_step2_data(reg_df2, eta_hat, estimation_strategy):
@@ -479,7 +486,7 @@ def prepare_step2_data(reg_df2, eta_hat, estimation_strategy):
     
     return reg_df3
 
-def estimate_theta_hat(reg_df3, estimation_strategy):
+def estimate_theta_hat(reg_df3, estimation_strategy, stata_or_python):
     if estimation_strategy == 'ols':
         regression_type = 'ols'
         dependent_var = 'ln_ell_iota_gamma_post_shock'
@@ -498,22 +505,22 @@ def estimate_theta_hat(reg_df3, estimation_strategy):
         absorb_var = 'worker_type_id'
     else:
         raise ValueError("Invalid estimation strategy.")
-    '''
-    theta_hat = run_stata_regression(
-        dataframe=reg_df3,
-        regression_type=regression_type,
-        dependent_var=dependent_var,
-        independent_var=independent_var,
-        instrument_var=instrument_var if estimation_strategy == 'panel_iv' else None,
-        absorb_var=absorb_var,
-        scalar_name='theta_hat'
-    )
-    '''
-    if regression_type=='ols':
-        fit = pf.feols(f"{dependent_var} ~ {independent_var} | {absorb_var}", data=reg_df3)
-    elif regression_type=='iv':
-        fit = pf.feols(f"{dependent_var} ~ 1 | {absorb_var} | {independent_var} ~ {instrument_var} ", data=reg_df3)
-    theta_hat = fit.coef().loc[independent_var] - 1
+    if stata_or_python=='Stata':
+        theta_hat = run_stata_regression(
+            dataframe=reg_df3,
+            regression_type=regression_type,
+            dependent_var=dependent_var,
+            independent_var=independent_var,
+            instrument_var=instrument_var if estimation_strategy == 'panel_iv' else None,
+            absorb_var=absorb_var,
+            scalar_name='theta_hat'
+        )
+    if stata_or_python=='Python':
+        if regression_type=='ols':
+            fit = pf.feols(f"{dependent_var} ~ {independent_var} | {absorb_var}", data=reg_df3)
+        elif regression_type=='iv':
+            fit = pf.feols(f"{dependent_var} ~ 1 | {absorb_var} | {independent_var} ~ {instrument_var} ", data=reg_df3)
+        theta_hat = fit.coef().loc[independent_var] - 1
     return theta_hat
 
 def run_stata_regression(dataframe, regression_type, dependent_var, independent_var, instrument_var=None, absorb_var=None, scalar_name='parameter_hat'):
@@ -618,11 +625,9 @@ reg_df.to_parquet(root + 'Data/derived/MarketPower_reghdfe_data.parquet')
 # Estimate iota-gamma and jid FEs
 
 # Run the function with your Stata code
-
-compute_fes_with_stata = True
-if compute_fes_with_stata==True:
+if stata_or_python=="Stata":
     # Your Stata code as a Python string
-    stata_code = f"""
+    stata_code = """
     clear
     set more off
     log using "log_file_path", replace
@@ -636,33 +641,20 @@ if compute_fes_with_stata==True:
     results_reg1 = run_stata_code(reg_df, stata_code)
     reg_df_w_FEs = results_reg1['results_df']
 
-compute_fes_with_pyfixest = False
-if compute_fes_with_pyfixest==True:
+if stata_or_python=="Python":
     # Perform the regression with fixed effects for 'jid_masked' and 'iota_gamma'
     fit_ols = pf.feols("y_tilde ~ 1 | jid_masked + iota_gamma", data=reg_df)
     # Extract the fixed effects as a dictionary
     fixed_effects = fit_ols.fixef()
-    # Pickle the dictionary
-    import pickle
-    with open(root + 'fixed_effects.pkl', 'wb') as file:
-        pickle.dump(fixed_effects, file)
-        
     # Loop through each fixed effect group and add it to the original DataFrame
     i = 1
     for fe_var, fe_values in fixed_effects.items():
-        print(fe_var, fe_values)
-        i+=1
-        if i>10:
-            break  
-        # Convert the fixed effects to a DataFrame
-        fe_df = fe_values.reset_index()
-        fe_df.columns = [fe_var, f"{fe_var}_fes"]  # Rename columns for merging
-        
+        print(fe_var)
+        fe_varname = fe_var[fe_var.find("(") + 1 : fe_var.find(")")]
+        fe_df = pd.DataFrame(list(fixed_effects[fe_var].items()), columns=[fe_varname,f'{fe_varname}_fes'])
+        fe_df[fe_varname] = fe_df[fe_varname].astype(reg_df[fe_varname].dtype)
         # Merge the fixed effect estimates back to the original DataFrame
-        reg_df = reg_df.merge(fe_df, on=fe_var, how='left')
-
-    # Verify that the new fixed effect columns are added to the DataFrame
-    print(reg_df.head())
+        reg_df = reg_df.merge(fe_df, on=fe_varname, how='left', validate='m:1', indicator=f'_merge_{fe_varname}')
     reg_df_w_FEs = reg_df.copy()
     
     
@@ -722,26 +714,26 @@ collapsed_df_w_shock = pd.read_pickle(root + 'Data/derived/tmp_collapsed_df_w_sh
 
 
 # "Oracle" spec: use the full instrument   reg_df2['shock_iv'] = reg_df2['jid_masked_shock'] + reg_df2['iota_gamma_shock']
-eta_hat, theta_hat = run_two_step_estimation(collapsed_df_w_shock, 'panel_iv', delta=0)
+eta_hat, theta_hat = run_two_step_estimation(collapsed_df_w_shock, 'panel_iv', delta=0, stata_or_python=stata_or_python)
 panel_iv_oracle = (eta_hat, theta_hat)
 # Print the results
 print(f"Estimated eta_hat: {eta_hat}")
 print(f"Estimated theta_hat: {theta_hat}")
 
 # "Realistic" spec: use the partial instrument   reg_df2['shock_iv'] = reg_df2['Z_j']
-eta_hat, theta_hat = run_two_step_estimation(collapsed_df_w_shock, 'panel_iv', delta=None)
+eta_hat, theta_hat = run_two_step_estimation(collapsed_df_w_shock, 'panel_iv', delta=None, stata_or_python=stata_or_python)
 panel_iv = (eta_hat, theta_hat)
 # Print the results
 print(f"Estimated eta_hat: {eta_hat}")
 print(f"Estimated theta_hat: {theta_hat}")
 
-eta_hat, theta_hat = run_two_step_estimation(collapsed_df_w_shock, 'panel_ols', delta=0)
+eta_hat, theta_hat = run_two_step_estimation(collapsed_df_w_shock, 'panel_ols', delta=0, stata_or_python=stata_or_python)
 panel_ols = (eta_hat, theta_hat)
 # Print the results
 print(f"Estimated eta_hat: {eta_hat}")
 print(f"Estimated theta_hat: {theta_hat}")
 
-eta_hat, theta_hat = run_two_step_estimation(collapsed_df_w_shock, 'ols', delta=0)
+eta_hat, theta_hat = run_two_step_estimation(collapsed_df_w_shock, 'ols', delta=0, stata_or_python=stata_or_python)
 ols = (eta_hat, theta_hat)
 # Print the results
 print(f"Estimated eta_hat: {eta_hat}")
@@ -751,12 +743,12 @@ print(f"Estimated theta_hat: {theta_hat}")
 # Other market definitons
 wkr = ['iota']
 for mkt in [['gamma'], ['occ2'], ['code_micro'], ['occ2', 'code_micro']]:
-    eta_hat, theta_hat = run_two_step_estimation(collapsed_df_w_shock, 'panel_iv', delta=None, workertypevar=wkr, mktvar=mkt)
+    eta_hat, theta_hat = run_two_step_estimation(collapsed_df_w_shock, 'panel_iv', delta=None, workertypevar=wkr, mktvar=mkt, stata_or_python=stata_or_python)
     print('WORKERTYPE = '+ str(wkr) +', MKT =' + str(mkt) + ', eta = ' + str(eta_hat) + ', theta = ', str(theta_hat))
     
 wkr = ['occ2']
 for mkt in [['code_micro']]:
-    eta_hat, theta_hat = run_two_step_estimation(collapsed_df_w_shock, 'panel_iv', delta=0, workertypevar=wkr, mktvar=mkt)
+    eta_hat, theta_hat = run_two_step_estimation(collapsed_df_w_shock, 'panel_iv', delta=0, workertypevar=wkr, mktvar=mkt, stata_or_python=stata_or_python)
     print('WORKERTYPE = '+ str(wkr) +', MKT =' + str(mkt) + ', eta = ' + str(eta_hat) + ', theta = ', str(theta_hat))
 
 
@@ -797,7 +789,7 @@ def compute_market_hhi(df, market_col='gamma'):
     return hhi
 
 # First, let's get the true estimates from the correctly classified data
-eta_hat_true, theta_hat_true = run_two_step_estimation(collapsed_df_w_shock, 'ols', delta=0, workertypevar=['iota'], mktvar=['gamma'])
+eta_hat_true, theta_hat_true = run_two_step_estimation(collapsed_df_w_shock, 'ols', delta=0, workertypevar=['iota'], mktvar=['gamma'], stata_or_python=stata_or_python)
 
 print(f"True eta_hat: {eta_hat_true}")
 print(f"True theta_hat: {theta_hat_true}")
@@ -815,7 +807,7 @@ hhi_w_error_values = []
 # Now, let's modify the loop to collect data
 for r in misclassification_rates:
     collapsed_df_w_shock_w_error = introduce_misclassification_by_jid(collapsed_df_w_shock, r)
-    eta_hat_e, theta_hat_e = run_two_step_estimation(collapsed_df_w_shock_w_error, 'ols', delta=0,  workertypevar=['iota'], mktvar=['gamma_error'])
+    eta_hat_e, theta_hat_e = run_two_step_estimation(collapsed_df_w_shock_w_error, 'ols', delta=0,  workertypevar=['iota'], mktvar=['gamma_error'], stata_or_python=stata_or_python)
     
     eta_estimates.append(eta_hat_e)
     theta_estimates.append(theta_hat_e)
