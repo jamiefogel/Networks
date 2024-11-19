@@ -21,6 +21,8 @@ import subprocess
 import tempfile
 import ast
 import platform
+import statsmodels.api as sm
+
 
 
 # Global variables used by run_stata_code()
@@ -575,6 +577,41 @@ def find_equilibrium(df, eta, theta, tol=1e-4, max_iter=100):
         iter_count += 1
     return df['wage_guess']
 
+def introduce_misclassification_by_jid(df, misclassification_rate):
+    # Create a copy of the dataframe to avoid modifying the original
+    df_misclassified = df.copy()
+    
+    # Calculate the probability distribution of gammas
+    gamma_probs = df_misclassified['gamma'].value_counts(normalize=True)
+    
+    # Get unique jid_masked values
+    unique_jids = df_misclassified['jid_masked'].unique()
+    
+    # Generate new gammas for all unique jids
+    new_gammas = np.random.choice(gamma_probs.index, size=len(unique_jids), p=gamma_probs.values)
+    
+    # Create a mask for jids to be misclassified
+    misclassify_mask = np.random.random(len(unique_jids)) < misclassification_rate
+    
+    # Create a dictionary mapping jids to their new gammas (only for misclassified jids)
+    new_gamma_dict = dict(zip(unique_jids[misclassify_mask], new_gammas[misclassify_mask]))
+    
+    # Apply new gammas to misclassified jids
+    df_misclassified['gamma_error'] = df_misclassified['jid_masked'].map(new_gamma_dict).fillna(df_misclassified['gamma'])
+    
+    return df_misclassified
+
+def compute_market_hhi(df, market_col='gamma'):
+    # Compute market shares
+    market_shares = df[market_col].value_counts(normalize=True)
+    
+    # Compute HHI
+    hhi = (market_shares**2).sum()
+    
+    return hhi
+
+
+
 
 ###############################################################################
 # Process data
@@ -755,39 +792,6 @@ for mkt in [['code_micro']]:
 ##################
 # Experiment with misclassification
 
-def introduce_misclassification_by_jid(df, misclassification_rate):
-    # Create a copy of the dataframe to avoid modifying the original
-    df_misclassified = df.copy()
-    
-    # Calculate the probability distribution of gammas
-    gamma_probs = df_misclassified['gamma'].value_counts(normalize=True)
-    
-    # Get unique jid_masked values
-    unique_jids = df_misclassified['jid_masked'].unique()
-    
-    # Generate new gammas for all unique jids
-    new_gammas = np.random.choice(gamma_probs.index, size=len(unique_jids), p=gamma_probs.values)
-    
-    # Create a mask for jids to be misclassified
-    misclassify_mask = np.random.random(len(unique_jids)) < misclassification_rate
-    
-    # Create a dictionary mapping jids to their new gammas (only for misclassified jids)
-    new_gamma_dict = dict(zip(unique_jids[misclassify_mask], new_gammas[misclassify_mask]))
-    
-    # Apply new gammas to misclassified jids
-    df_misclassified['gamma_error'] = df_misclassified['jid_masked'].map(new_gamma_dict).fillna(df_misclassified['gamma'])
-    
-    return df_misclassified
-
-def compute_market_hhi(df, market_col='gamma'):
-    # Compute market shares
-    market_shares = df[market_col].value_counts(normalize=True)
-    
-    # Compute HHI
-    hhi = (market_shares**2).sum()
-    
-    return hhi
-
 # First, let's get the true estimates from the correctly classified data
 eta_hat_true, theta_hat_true = run_two_step_estimation(collapsed_df_w_shock, 'ols', delta=0, workertypevar=['iota'], mktvar=['gamma'], stata_or_python=stata_or_python)
 
@@ -800,6 +804,8 @@ misclassification_rates = np.arange(0,1.1,0.1)
 eta_estimates = []
 theta_estimates = []
 eta_theoretical = []
+tilde_beta_1_list = []
+tilde_beta_2_list = []
 theta_theoretical = []
 hhi_values = []
 hhi_w_error_values = []
@@ -819,37 +825,25 @@ for r in misclassification_rates:
     hhi_values.append(hhi)
     hhi_w_error_values.append(hhi_w_error)
     
-    # Calculate theoretical elasticities based on the derivations we came up with on 10/28/2024
-    within_means = collapsed_df_w_shock_w_error.groupby('gamma')['ln_real_hrly_wage_dec'].mean()
-    collapsed_df_w_shock_w_error['within_deviation'] = collapsed_df_w_shock_w_error['ln_real_hrly_wage_dec'] - collapsed_df_w_shock_w_error['gamma'].map(within_means)
-    within_variance = collapsed_df_w_shock_w_error.groupby('gamma')['within_deviation'].var().mean()
+    # Calculate theoretical elasticities based on the derivations we came up with on 10/28/2024    
+    collapsed_df_w_shock_w_error['ln_wage_post_shock'] = np.log(collapsed_df_w_shock_w_error['wage_post_shock'])
+    collapsed_df_w_shock_w_error['ln_wage_demeaned_within_iota_gamma'] = collapsed_df_w_shock_w_error['ln_wage_post_shock'] - collapsed_df_w_shock_w_error.groupby(['iota','gamma'])['ln_wage_post_shock'].transform('mean')
+    collapsed_df_w_shock_w_error['ln_wage_demeaned_within_iota_m']     = collapsed_df_w_shock_w_error['ln_wage_post_shock'] - collapsed_df_w_shock_w_error.groupby(['iota','gamma_error'])['ln_wage_post_shock'].transform('mean')
+    
+    collapsed_df_w_shock_w_error['temp2'] = np.exp( collapsed_df_w_shock_w_error['ln_wage_post_shock'] * (1+eta_hat_true) )
+    collapsed_df_w_shock_w_error['mu_iota_gamma_j'] = np.log( collapsed_df_w_shock_w_error.groupby(['iota','gamma'])['temp2'].transform('sum') )  / (1 + eta_hat_true)
+    collapsed_df_w_shock_w_error['wbar_minus_mu_ig'] = collapsed_df_w_shock_w_error.groupby(['iota','gamma'])['ln_wage_post_shock'].transform('mean') - collapsed_df_w_shock_w_error['mu_iota_gamma_j']
+    
 
-    overall_mean = collapsed_df_w_shock_w_error['ln_real_hrly_wage_dec'].mean()
-    between_variance = ((within_means - overall_mean) ** 2).mean()
-    bias = (theta_hat_true - eta_hat_true) * ( r**2 / (  (within_variance / between_variance) + r**2))
+    # Fit the model and get the coefficient in fewer steps
+    tilde_beta_1 = sm.OLS(collapsed_df_w_shock_w_error['ln_wage_demeaned_within_iota_gamma'], sm.add_constant(collapsed_df_w_shock_w_error['ln_wage_demeaned_within_iota_m'])).fit().params[1]
+    # Beta_1 measures the correlation between the deviation of my wage from my gamma average and the deviation of my wage from my miscalssified market wage. 
+    tilde_beta_2 = sm.OLS(collapsed_df_w_shock_w_error['wbar_minus_mu_ig'], sm.add_constant(collapsed_df_w_shock_w_error['ln_wage_demeaned_within_iota_m'])).fit().params[1]
+    bias = (theta_hat_true-eta_hat_true) * (1 - tilde_beta_1 - tilde_beta_2)
     eta_theo = eta_hat_true + bias
     eta_theoretical.append(eta_theo)
-    
-    ### 
-    # 2nd attempt at measuring theoretical bias without ignoring terms we assumed was negligible. BUT THIS IS WRONG
-    '''
-    collapsed_df_w_shock_w_error['ln_wage_demeaned_within_gamma'] = collapsed_df_w_shock_w_error['ln_real_hrly_wage_dec'] - collapsed_df_w_shock_w_error.groupby('gamma'      )['ln_real_hrly_wage_dec'].transform('mean')
-    collapsed_df_w_shock_w_error['ln_wage_demeaned_within_m']     = collapsed_df_w_shock_w_error['ln_real_hrly_wage_dec'] - collapsed_df_w_shock_w_error.groupby('gamma_error')['ln_real_hrly_wage_dec'].transform('mean')
-    
-    collapsed_df_w_shock_w_error['temp'] = collapsed_df_w_shock_w_error['ln_real_hrly_wage_dec'] * np.exp(1+eta_hat_true)
-    collapsed_df_w_shock_w_error['mu_gamma_j'] = np.log( collapsed_df_w_shock_w_error.groupby('gamma')['temp'].transform('sum') )  / (1 + eta_hat_true)
-    collapsed_df_w_shock_w_error['wbar_minus_mu'] = collapsed_df_w_shock_w_error.groupby('gamma')['ln_real_hrly_wage_dec'].transform('mean') - collapsed_df_w_shock_w_error['mu_gamma_j']
-    
-    tilde_beta_1 = run_stata_regression(collapsed_df_w_shock_w_error, 'ols', 'ln_wage_demeaned_within_gamma', 'ln_wage_demeaned_within_m', instrument_var=None, absorb_var=None, scalar_name='parameter_hat')
-    tilde_beta_2 = run_stata_regression(collapsed_df_w_shock_w_error, 'ols', 'wbar_minus_mu', 'ln_wage_demeaned_within_m', instrument_var=None, absorb_var=None, scalar_name='parameter_hat')
-    bias_v2 = (theta_hat_true-eta_hat_true) * (1 - tilde_beta_1 - tilde_beta_2)
-
-    collapsed_df_w_shock_w_error[['ln_wage_demeaned_within_gamma','ln_wage_demeaned_within_m','wbar_minus_mu']].cov()
-    '''
-    ### 
-    # 3rd attempt at measuring theoretical bias without ignoring terms we assumed was negligible.
-    
-    
+    tilde_beta_1_list.append(tilde_beta_1)
+    tilde_beta_2_list.append(tilde_beta_2)
     
 
     # Print the results (optional, for checking)
@@ -857,7 +851,8 @@ for r in misclassification_rates:
     print(f"Estimated eta_hat: {eta_hat_e:.4f}")
     print(f"Estimated theta_hat: {theta_hat_e:.4f}")
     print(f"Theoretical eta: {eta_theo:.4f}")
-    #print(f"Theoretical theta: {theta_theo:.4f}")
+    print(f"tilde beta 1: {tilde_beta_1:.4f}")
+    print(f"tilde beta 2: {tilde_beta_2:.4f}")
     print(f"HHI: {hhi:.4f}")
     print(f"HHI w/ error: {hhi_w_error:.4f}")
 
@@ -867,6 +862,8 @@ misclassification_ests = pd.DataFrame({
     'Estimated_Eta': eta_estimates,
     'Estimated_Theta': theta_estimates,
     'Theoretical_Eta': eta_theoretical,
+    'Tilde Beta 1': tilde_beta_1_list,
+    'Tilde Beta 2': tilde_beta_2_list,
     #'Theoretical_Theta': theta_theoretical,
     'HHI': hhi_values,
     'HHI w/ error': hhi_w_error_values
@@ -875,45 +872,17 @@ misclassification_ests = pd.DataFrame({
 
 # Create the first plot for elasticity estimates
 plt.figure(figsize=(12, 6))
-plt.plot(misclassification_ests['Misclassification_Rate'], misclassification_ests['Estimated_Eta'], 'b-o', label='Estimated eta')
-plt.plot(misclassification_ests['Misclassification_Rate'], misclassification_ests['Estimated_Theta'], 'r-o', label='Estimated theta')
-plt.plot(misclassification_ests['Misclassification_Rate'], misclassification_ests['Theoretical_Eta'], 'b--', label='Theoretical eta')
-#plt.plot(misclassification_ests['Misclassification_Rate'], misclassification_ests['Theoretical_Theta'], 'r--', label='Theoretical theta')
 plt.axhline(y=eta_hat_true, color='b', linestyle=':', label='True eta')
+plt.plot(misclassification_ests['Misclassification_Rate'], misclassification_ests['Estimated_Eta'], 'b-o', label='Estimated eta')
+plt.plot(misclassification_ests['Misclassification_Rate'], misclassification_ests['Theoretical_Eta'], color='darkorange', linestyle=':', linewidth=2.5, label='Theoretical eta')
 plt.axhline(y=theta_hat_true, color='r', linestyle=':', label='True theta')
+plt.plot(misclassification_ests['Misclassification_Rate'], misclassification_ests['Estimated_Theta'], 'r-o', label='Estimated theta')
 plt.xlabel('Misclassification Rate')
 plt.ylabel('Elasticity Estimate')
 plt.title('Elasticity Estimates vs Misclassification Rate')
 plt.legend()
 plt.grid(True)
 plt.show()
-
-
-
-
-misclassification_ests['Eta_First_Diff']   = misclassification_ests['Estimated_Eta'].diff()
-misclassification_ests['Theta_First_Diff'] = misclassification_ests['Estimated_Theta'].diff()
-misclassification_ests['Theoretical_Eta_First_Diff'] = misclassification_ests['Theoretical_Eta'].diff()
-#misclassification_ests['Theoretical_Theta_First_Diff'] = misclassification_ests['Theoretical_Theta'].diff()
-
-
-
-# Create the second plot for first differences
-plt.figure(figsize=(12, 6))
-plt.plot(misclassification_ests['Misclassification_Rate'], misclassification_ests['Eta_First_Diff'], 'b-o', label='Estimated Eta First Difference')
-plt.plot(misclassification_ests['Misclassification_Rate'], misclassification_ests['Theta_First_Diff'], 'r-o', label='Estimated Theta First Difference')
-plt.plot(misclassification_ests['Misclassification_Rate'], misclassification_ests['Theoretical_Eta_First_Diff'], 'b--', label='Theoretical Eta First Difference')
-#plt.plot(misclassification_ests['Misclassification_Rate'], misclassification_ests['Theoretical_Theta_First_Diff'], 'r--', label='Theoretical Theta First Difference')
-plt.xlabel('Misclassification Rate')
-plt.ylabel('First Difference')
-plt.title('First Differences of Elasticity Estimates')
-plt.legend()
-plt.grid(True)
-plt.show()
-
-
-###########
-# The above show that improper market definitions have huge implicatons for paraemter estimates. Now we would like to come up with some metric for how much different market definitions differ from each other.
 
 
 
