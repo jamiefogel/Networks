@@ -113,8 +113,7 @@ def compute_s_MarketWorkertype(df, jobvar, workertypevar, marketvar, eta, theta)
     merged['s_MarketWorkertype'] = merged['market_sum_powered_gi'] / merged['market_sum_powered_i']
     return merged[[workertypevar, marketvar, 's_MarketWorkertype']]
 
-def run_stata_code(reg_df, stata_code, dta_path=None, results_path=None, do_file_path=None, log_file_path=None, scalar_results_path=None, stata_path=None):
-    global PRINT_STATA_LOG 
+def run_stata_code(reg_df, stata_code, dta_path=None, results_path=None, do_file_path=None, log_file_path=None, scalar_results_path=None, stata_path=None, PRINT_STATA_LOG = False):
     # Create temporary directory if needed
     temp_dir = tempfile.mkdtemp() if any(path is None for path in [dta_path, results_path, do_file_path, log_file_path, scalar_results_path]) else None
 
