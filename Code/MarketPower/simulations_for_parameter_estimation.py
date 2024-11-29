@@ -16,9 +16,6 @@ import sys
 import matplotlib.pyplot as plt
 import getpass
 import platform
-import statsmodels.api as sm
-
-
 
 
 homedir = os.path.expanduser('~')
@@ -54,7 +51,9 @@ from market_power_utils import (
     run_two_step_estimation,
     find_equilibrium,
     introduce_misclassification_by_jid,
-    compute_market_hhi
+    compute_market_hhi,
+    compute_theoretical_eta, 
+    compute_theoretical_theta
 )
 
 
@@ -283,63 +282,17 @@ def main():
         ################################################################################################
         # Calculate theoretical elasticities based on the derivations we came up with on 10/28/2024  
         ################################################################################################
-        
+
         #######################
         # eta
-        collapsed_df_w_shock_w_error['ln_wage_post_shock'] = np.log(collapsed_df_w_shock_w_error['wage_post_shock'])
-        collapsed_df_w_shock_w_error['ln_wage_demeaned_within_iota_gamma'] = collapsed_df_w_shock_w_error['ln_wage_post_shock'] - collapsed_df_w_shock_w_error.groupby(['iota','gamma'])['ln_wage_post_shock'].transform('mean')
-        collapsed_df_w_shock_w_error['ln_wage_demeaned_within_iota_m']     = collapsed_df_w_shock_w_error['ln_wage_post_shock'] - collapsed_df_w_shock_w_error.groupby(['iota','gamma_error'])['ln_wage_post_shock'].transform('mean')
-        
-        collapsed_df_w_shock_w_error['temp2'] = np.exp( collapsed_df_w_shock_w_error['ln_wage_post_shock'] * (1+eta_hat_true) )
-        collapsed_df_w_shock_w_error['mu_iota_gamma_j'] = np.log( collapsed_df_w_shock_w_error.groupby(['iota','gamma'])['temp2'].transform('sum') )  / (1 + eta_hat_true)
-        collapsed_df_w_shock_w_error['wbar_minus_mu_ig'] = collapsed_df_w_shock_w_error.groupby(['iota','gamma'])['ln_wage_post_shock'].transform('mean') - collapsed_df_w_shock_w_error['mu_iota_gamma_j']
-        
-        tilde_beta_1 = sm.OLS(collapsed_df_w_shock_w_error['ln_wage_demeaned_within_iota_gamma'], sm.add_constant(collapsed_df_w_shock_w_error['ln_wage_demeaned_within_iota_m'])).fit().params[1]
-        # Beta_1 measures the correlation between the deviation of my wage from my gamma average and the deviation of my wage from my miscalssified market wage. 
-        tilde_beta_2 = sm.OLS(collapsed_df_w_shock_w_error['wbar_minus_mu_ig'], sm.add_constant(collapsed_df_w_shock_w_error['ln_wage_demeaned_within_iota_m'])).fit().params[1]
-        bias = (theta_hat_true-eta_hat_true) * (1 - tilde_beta_1 - tilde_beta_2)
-        eta_theo = eta_hat_true + bias
+        eta_theo, tilde_beta_1, tilde_beta_2 = compute_theoretical_eta(collapsed_df_w_shock_w_error, 'wage_post_shock', 'iota', 'gamma', 'gamma_error', eta_hat_true, theta_hat_true, return_betas=True) 
         eta_theoretical.append(eta_theo)
         tilde_beta_1_list.append(tilde_beta_1)
         tilde_beta_2_list.append(tilde_beta_2)
-        
+
         #######################
         # theta
-        
-        # Compute mu_iota_m. This will be collapsed to the iota-m level
-        collapsed_df_w_shock_w_error['temp_inner_m'] =  np.exp((1+eta_theo)*collapsed_df_w_shock_w_error['ln_wage_post_shock'])
-        collapsed_df_w_shock_w_error['mu_iota_m'] = np.log( (collapsed_df_w_shock_w_error.groupby(['iota','gamma_error'])['temp_inner_m'].transform('sum') )**(1/(1+eta_theo)) )
-        #iota_m_df =  np.log( (collapsed_df_w_shock_w_error.groupby(['iota','gamma_error'])['temp_inner_m'].sum() )**(1/(1+eta_theo)) ).reset_index().rename(columns={'temp_inner_m': 'mu_iota_m'}) 
-        
-        # Compute mu_iota_gamma. This will remain at the iota-j level because we collapse it to the iota-m level weighting by s_iota_j_m
-        collapsed_df_w_shock_w_error['temp_inner_g'] =  np.exp((1+eta_hat_true)*collapsed_df_w_shock_w_error['ln_wage_post_shock'])
-        collapsed_df_w_shock_w_error['mu_iota_g'] =  np.log( (collapsed_df_w_shock_w_error.groupby(['iota','gamma'      ])['temp_inner_g'].transform('sum') )**(1/(1+eta_hat_true)) )
-        
-        collapsed_df_w_shock_w_error['s_iota_j_m'] = np.exp(  (1+eta_hat_true)*(collapsed_df_w_shock_w_error['ln_wage_post_shock'] - collapsed_df_w_shock_w_error['mu_iota_m'])  )
-        
-        # XX Do I need to fill in rows that are zeros here?
-        df_iota_m = collapsed_df_w_shock_w_error[['iota', 'gamma_error', 'mu_iota_m']].drop_duplicates()
-        uniqueness_check = df_iota_m.groupby(['iota', 'gamma_error']).size().max() == 1
-        if not uniqueness_check:
-            raise ValueError("The result is not uniquely identified by 'iota' and 'gamma_error'.")
-        df_iota_m['mu_iota_bar'] = df_iota_m.groupby('iota')['mu_iota_m'].transform('mean')
-        df_iota_m['mu_iota_m_demeaned'] = df_iota_m['mu_iota_m'] - df_iota_m['mu_iota_bar']
-    
-        collapsed_df_w_shock_w_error['temp3'] = collapsed_df_w_shock_w_error['s_iota_j_m'] * collapsed_df_w_shock_w_error['mu_iota_g']
-        sum_s_mu = collapsed_df_w_shock_w_error.groupby(['iota','gamma_error'])['temp3'].sum().reset_index().rename(columns={'temp3':'sum_s_mu'})
-        df_iota_m = df_iota_m.merge(sum_s_mu, on=['iota','gamma_error'], validate='1:1')
-        
-        # Compute the delta ("Jensen bias" term)
-        collapsed_df_w_shock_w_error['temp4'] = np.exp((theta_hat_true - eta_hat_true)*collapsed_df_w_shock_w_error['mu_iota_g'] ) * collapsed_df_w_shock_w_error['s_iota_j_m']
-        delta_term1 = ((1/(theta_hat_true - eta_hat_true)) * np.log(collapsed_df_w_shock_w_error.groupby(['iota','gamma_error'])['temp4'].sum())).reset_index().rename(columns={'temp4':'delta_term1'})
-        df_iota_m = df_iota_m.merge(delta_term1, on=['iota','gamma_error'], validate='1:1')
-        df_iota_m['delta_iota_m'] = df_iota_m['delta_term1'] - df_iota_m['sum_s_mu']
-        
-    
-        coef1 = sm.OLS(df_iota_m['sum_s_mu'], sm.add_constant(df_iota_m['mu_iota_m_demeaned'])).fit().params[1]
-        coef2 = sm.OLS(df_iota_m['delta_iota_m'], sm.add_constant(df_iota_m['mu_iota_m_demeaned'])).fit().params[1]
-        bias = (eta_hat_true - theta_hat_true) * ( 1 - coef1 - coef2)
-        theta_theo = theta_hat_true + bias
+        theta_theo, coef1, coef2 = compute_theoretical_theta(collapsed_df_w_shock_w_error, 'wage_post_shock', 'iota', 'gamma', 'gamma_error', eta_hat_true, eta_theo, theta_hat_true, return_betas=True) 
         theta_theoretical.append(theta_theo)
         print(theta_theo)
         print(theta_hat_e)
@@ -351,10 +304,12 @@ def main():
         print(f"Theoretical eta: {eta_theo:.4f}")
         print(f"Estimated theta_hat: {theta_hat_e:.4f}")
         print(f"Theoretical theta: {theta_theo:.4f}")
-        print(f"tilde beta 1: {tilde_beta_1:.4f}")
-        print(f"tilde beta 2: {tilde_beta_2:.4f}")
-        print(f"HHI: {hhi:.4f}")
-        print(f"HHI w/ error: {hhi_w_error:.4f}")
+        #print(f"tilde beta 1: {tilde_beta_1:.4f}")
+        #print(f"tilde beta 2: {tilde_beta_2:.4f}")
+        #print(f"HHI: {hhi:.4f}")
+        #print(f"HHI w/ error: {hhi_w_error:.4f}")
+        print(f"Theta coef 1: {coef1:.4f}")
+        print(f"Theta coef 2: {coef2:.4f}")
         print('--------------------------------------------')
     
     # Create a DataFrame with the results

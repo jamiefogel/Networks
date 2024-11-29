@@ -16,6 +16,8 @@ import subprocess
 import tempfile
 import ast
 import platform
+import statsmodels.api as sm
+
 
 
 homedir = os.path.expanduser('~')
@@ -568,3 +570,64 @@ def compute_market_hhi(df, market_col='gamma'):
     return hhi
 
 
+def compute_theoretical_eta(df, wagevar, worker_type_true, job_type_true, job_type_misclassified, eta_true, theta_true, return_betas=False):
+    df['ln_wage_post_shock'] = np.log(df[wagevar])
+    df['ln_wage_demeaned_within_iota_gamma'] = df['ln_wage_post_shock'] - df.groupby([worker_type_true, job_type_true])['ln_wage_post_shock'].transform('mean')
+    df['ln_wage_demeaned_within_iota_m']     = df['ln_wage_post_shock'] - df.groupby([worker_type_true, job_type_misclassified])['ln_wage_post_shock'].transform('mean')
+    
+    df['temp2'] = np.exp( df['ln_wage_post_shock'] * (1+eta_true) )
+    df['mu_iota_gamma_j'] = np.log( df.groupby([worker_type_true,job_type_true])['temp2'].transform('sum') )  / (1 + eta_true)
+    df['wbar_minus_mu_ig'] = df.groupby([worker_type_true,job_type_true])['ln_wage_post_shock'].transform('mean') - df['mu_iota_gamma_j']
+    
+    tilde_beta_1 = sm.OLS(df['ln_wage_demeaned_within_iota_gamma'], sm.add_constant(df['ln_wage_demeaned_within_iota_m'])).fit().params.iloc[1]
+    # Beta_1 measures the correlation between the deviation of my wage from my gamma average and the deviation of my wage from my miscalssified market wage. 
+    tilde_beta_2 = sm.OLS(df['wbar_minus_mu_ig'], sm.add_constant(df['ln_wage_demeaned_within_iota_m'])).fit().params.iloc[1]
+    bias = (theta_true-eta_true) * (1 - tilde_beta_1 - tilde_beta_2)
+    eta_hat_theoretical = eta_true + bias
+    if return_betas:
+        return eta_hat_theoretical, tilde_beta_1, tilde_beta_2
+    else:
+        return eta_hat_theoretical
+   
+
+def compute_theoretical_theta(df, wagevar, worker_type_true, job_type_true, job_type_misclassified, eta_true, eta_theo, theta_true, return_betas=False):
+
+    df['ln_wage_post_shock'] = np.log(df[wagevar])
+    
+    # Compute mu_iota_m. This will be collapsed to the iota-m level
+    df['temp_inner_m'] =  np.exp((1+eta_theo)*df['ln_wage_post_shock'])
+    df['mu_iota_m'] = np.log( (df.groupby([worker_type_true,job_type_misclassified])['temp_inner_m'].transform('sum') )**(1/(1+eta_theo)) )
+    #iota_m_df =  np.log( (df.groupby([worker_type_true,job_type_misclassified])['temp_inner_m'].sum() )**(1/(1+eta_theo)) ).reset_index().rename(columns={'temp_inner_m': 'mu_iota_m'}) 
+    
+    # Compute mu_iota_gamma. This will remain at the iota-j level because we collapse it to the iota-m level weighting by s_iota_j_m
+    df['temp_inner_g'] =  np.exp((1+eta_true)*df['ln_wage_post_shock'])
+    df['mu_iota_g'] =  np.log( (df.groupby([worker_type_true,'gamma'      ])['temp_inner_g'].transform('sum') )**(1/(1+eta_true)) )
+    
+    df['s_iota_j_m'] = np.exp(  (1+eta_true)*(df['ln_wage_post_shock'] - df['mu_iota_m'])  )
+    
+    df_iota_m = df[[worker_type_true, job_type_misclassified, 'mu_iota_m']].drop_duplicates()
+    uniqueness_check = df_iota_m.groupby([worker_type_true, job_type_misclassified]).size().max() == 1
+    if not uniqueness_check:
+        raise ValueError("The result is not uniquely identified by worker_type_true and job_type_misclassified.")
+    df_iota_m['mu_iota_bar'] = df_iota_m.groupby(worker_type_true)['mu_iota_m'].transform('mean')
+    df_iota_m['mu_iota_m_demeaned'] = df_iota_m['mu_iota_m'] - df_iota_m['mu_iota_bar']
+
+    df['temp3'] = df['s_iota_j_m'] * df['mu_iota_g']
+    sum_s_mu = df.groupby([worker_type_true,job_type_misclassified])['temp3'].sum().reset_index().rename(columns={'temp3':'sum_s_mu'})
+    df_iota_m = df_iota_m.merge(sum_s_mu, on=[worker_type_true,job_type_misclassified], validate='1:1')
+    
+    # Compute the delta ("Jensen bias" term)
+    df['temp4'] = np.exp((theta_true - eta_true)*df['mu_iota_g'] ) * df['s_iota_j_m']
+    delta_term1 = ((1/(theta_true - eta_true)) * np.log(df.groupby([worker_type_true,job_type_misclassified])['temp4'].sum())).reset_index().rename(columns={'temp4':'delta_term1'})
+    df_iota_m = df_iota_m.merge(delta_term1, on=[worker_type_true,job_type_misclassified], validate='1:1')
+    df_iota_m['delta_iota_m'] = df_iota_m['delta_term1'] - df_iota_m['sum_s_mu']
+    
+    coef1 = sm.OLS(df_iota_m['sum_s_mu'], sm.add_constant(df_iota_m['mu_iota_m_demeaned'])).fit().params.iloc[1]
+    coef2 = sm.OLS(df_iota_m['delta_iota_m'], sm.add_constant(df_iota_m['mu_iota_m_demeaned'])).fit().params.iloc[1]
+    bias = (eta_true - theta_true) * ( 1 - coef1 - coef2)
+    theta_hat_theoretical  = theta_true + bias
+    if return_betas:
+        return theta_hat_theoretical, coef1, coef2
+    else:
+        return theta_hat_theoretical
+    
