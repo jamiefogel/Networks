@@ -9,28 +9,12 @@ Created on Tue Nov 19 17:07:24 2024
 import os
 import pandas as pd
 import numpy as np
-import sys
-import getpass
 import time
 import subprocess
 import tempfile
 import ast
-import platform
 import statsmodels.api as sm
 
-
-
-homedir = os.path.expanduser('~')
-os_name = platform.system()
-if getpass.getuser()=='p13861161':
-    if os_name == 'Windows':
-        print("Running on Windows") 
-        root = "//storage6/usuarios/labormkt_rafaelpereira/NetworksGit/"
-        sys.path.append(root + 'Code/Modules')
-    elif os_name == 'Linux':
-        root = "/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/"
-        sys.path.append(root + 'Code/Modules')
-        import pyfixest as pf
 
 
 # Equation 45 and 47 (because the term in 47 is part of 45)
@@ -331,9 +315,9 @@ def generate_shocks(df, alpha=2, beta=5, delta=0):
     
     return df
 
-def run_two_step_estimation(collapsed_df_w_shock, estimation_strategy, delta=0, workertypevar = ['iota'], mktvar = ['gamma'], stata_or_python='Python'):
+def run_two_step_estimation(reg_df_w_FEs_w_shock, estimation_strategy, delta=0, workertypevar = ['iota'], mktvar = ['gamma'], stata_or_python='Python'):
     # Step 1: Data Preparation
-    reg_df2 = prepare_step1_data(collapsed_df_w_shock, estimation_strategy, workertypevar = workertypevar, mktvar = mktvar, delta = delta)
+    reg_df2 = prepare_step1_data(reg_df_w_FEs_w_shock, estimation_strategy, workertypevar = workertypevar, mktvar = mktvar, delta = delta)
     
     # Step 1: Estimate eta_hat
     eta_hat = estimate_eta_hat(reg_df2, estimation_strategy, stata_or_python)
@@ -347,12 +331,12 @@ def run_two_step_estimation(collapsed_df_w_shock, estimation_strategy, delta=0, 
     return eta_hat, theta_hat
 
 
-def prepare_step1_data(collapsed_df_w_shock, estimation_strategy, workertypevar, mktvar, delta=0):
+def prepare_step1_data(reg_df_w_FEs_w_shock, estimation_strategy, workertypevar, mktvar, delta=0):
     for var in workertypevar + mktvar:
-        collapsed_df_w_shock[var] = collapsed_df_w_shock[var].astype(str)
+        reg_df_w_FEs_w_shock[var] = reg_df_w_FEs_w_shock[var].astype(str)
         
-    collapsed_df_w_shock['worker_mkt_id'] = collapsed_df_w_shock.groupby(workertypevar + mktvar).ngroup()
-    collapsed_df_w_shock['worker_type_id'] = collapsed_df_w_shock.groupby(workertypevar).ngroup()
+    reg_df_w_FEs_w_shock['worker_mkt_id'] = reg_df_w_FEs_w_shock.groupby(workertypevar + mktvar).ngroup()
+    reg_df_w_FEs_w_shock['worker_type_id'] = reg_df_w_FEs_w_shock.groupby(workertypevar).ngroup()
         
     variables = [
         'ell_iota_j_pre_shock', 'ell_iota_j_post_shock', 'wage_pre_shock', 'wage_post_shock',
@@ -360,7 +344,7 @@ def prepare_step1_data(collapsed_df_w_shock, estimation_strategy, workertypevar,
     ]
     if estimation_strategy == 'panel_iv':
         variables += ['jid_masked_shock', 'iota_gamma_shock', 'Z_j']
-    reg_df2 = collapsed_df_w_shock[variables].copy()
+    reg_df2 = reg_df_w_FEs_w_shock[variables].copy()
     
     for var in ['ell_iota_j_pre_shock', 'ell_iota_j_post_shock', 'wage_pre_shock', 'wage_post_shock']:
         reg_df2['ln_' + var]   = np.log(reg_df2[var])
@@ -408,6 +392,7 @@ def estimate_eta_hat(reg_df2, estimation_strategy, stata_or_python):
             scalar_name='eta_hat'
         )
     if stata_or_python=='Python':
+        import pyfixest as pf
         if regression_type=='ols':
             fit = pf.feols(f"{dependent_var} ~ {independent_var} | {absorb_var}", data=reg_df2)
         elif regression_type=='iv':
@@ -528,7 +513,7 @@ def find_equilibrium(df, eta, theta, tol=1e-4, max_iter=100):
         # Update wage_guess
         df['wage_guess_new'] = df['epsilon_j']/(1+df['epsilon_j']) * df['phi_iota_j_new']
         diff = np.abs(df['wage_guess_new'] - df['wage_guess']).sum()
-        #diff_l = np.abs(collapsed_df_w_shock['wage_guess_new'] - collapsed_df_w_shock['wage_guess_new']).sum()
+        #diff_l = np.abs(reg_df_w_FEs_w_shock['wage_guess_new'] - reg_df_w_FEs_w_shock['wage_guess_new']).sum()
         df['wage_guess'] = df['wage_guess_new']
         if True: #iter%10==0:
             print(iter_count)

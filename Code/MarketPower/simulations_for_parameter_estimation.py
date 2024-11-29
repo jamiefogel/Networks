@@ -9,40 +9,15 @@ Created on August 13 2024
 """
 
 
-import os
 import pandas as pd
 import numpy as np
-import sys
 import matplotlib.pyplot as plt
-import getpass
-import platform
+from config import homedir, os_name, root, rais, figuredir
 
-
-homedir = os.path.expanduser('~')
-os_name = platform.system()
-if getpass.getuser()=='p13861161':
-    if os_name == 'Windows':
-        print("Running on Windows") 
-        root = "//storage6/usuarios/labormkt_rafaelpereira/NetworksGit/"
-        rais = "//storage6/bases/DADOS/RESTRITO/RAIS/"
-        sys.path.append(root + 'Code/Modules')
-        sys.path.append(r'C:\ProgramData\anaconda3\Lib\site-packages\src')
-        stata_or_python = "Stata"
-    elif os_name == 'Linux':
-        print("Running on Linux") 
-        root = "/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/"
-        rais = "/home/DLIPEA/p13861161/rais/RAIS/"
-        sys.path.append(root + 'Code/Modules')
-        import pyfixest as pf
-        stata_or_python = "Python"
-
-elif getpass.getuser()=='jfogel':
-    print("Running on Jamie's home laptop")
-    root = homedir + '/NetworksGit/'
-
-sys.path.append(root + 'Code/Modules')
-figuredir = root + 'Results/'
-
+if os_name=='Windows':
+    stata_or_python = "Stata"
+elif os_name=='Linux':
+    stata_or_python = "Python"
 
 from market_power_utils import (
     run_stata_code,
@@ -68,56 +43,47 @@ theta_bhm = .45
 
 np.random.seed(734)
 
-def main():
-    
-    ###############################################################################
-    # Process data
-    ###############################################################################
-    
-    
+
+def load_and_prepare_data(root, eta_bhm, theta_bhm):
     # Pull region codes
     region_codes = pd.read_csv(root + '/Data/raw/munic_microregion_rm.csv', encoding='latin1')
-    muni_micro_cw = pd.DataFrame({'code_micro':region_codes.code_micro,'codemun':region_codes.code_munic//10})
-    
-    # The 2013 to 2016 panel doesn't keep cnpj_raiz, which we need to compute HHIs following Mayara. I could probably re-run the create_earnings_panel to get it, but don't want to deal with that now 
-    #mle_data_filename      = root + "Data/derived/earnings_panel/panel_3states_2013to2016_new_level_0.csv"
-    mle_data_filename      = root + "Data/derived/earnings_panel/panel_3states_2009to2011_level_0.csv"
-    
-    
-    usecols = ['wid_masked', 'jid_masked', 'year', 'iota', 'gamma', 'cnpj_raiz','id_estab', 'real_hrly_wage_dec', 'ln_real_hrly_wage_dec', 'codemun', 'occ2', 'occ2_first', 'code_meso', 'occ2Xmeso', 'occ2Xmeso_first']
-    
+    muni_micro_cw = pd.DataFrame({'code_micro': region_codes.code_micro, 'codemun': region_codes.code_munic // 10})
+
+    # Load earnings panel data
+    mle_data_filename = root + "Data/derived/earnings_panel/panel_3states_2009to2011_level_0.csv"
+
+    usecols = ['wid_masked', 'jid_masked', 'year', 'iota', 'gamma', 'cnpj_raiz', 'id_estab',
+               'real_hrly_wage_dec', 'ln_real_hrly_wage_dec', 'codemun', 'occ2', 'occ2_first',
+               'code_meso', 'occ2Xmeso', 'occ2Xmeso_first']
+
     data_full = pd.read_csv(mle_data_filename, usecols=usecols)
-    data_full = data_full.loc[(data_full.iota!=-1) & (data_full.gamma!=-1) & (data_full.jid_masked!=-1)]
+    data_full = data_full.loc[(data_full.iota != -1) & (data_full.gamma != -1) & (data_full.jid_masked != -1)]
     data_full = data_full.merge(muni_micro_cw, on='codemun', how='left', validate='m:1', indicator='_merge')
-    
+
     # Create variable for Mayara's market definitions
     data_full['mkt_mayara'] = data_full.groupby(['occ2', 'code_micro']).ngroup()
-    
-    
+
     # Compute Markdowns and merge on
-    
     markdown_w_iota = compute_markdowns_w_iota(data_full, 'real_hrly_wage_dec', 'jid_masked', 'gamma', 'iota', eta_bhm, theta_bhm)
-    data_full = data_full.merge(pd.DataFrame(markdown_w_iota).reset_index().rename(columns={0:'markdown_w_iota'}), on='jid_masked', how='outer',validate='m:1', indicator=False)
-    
-    reg_df = data_full[['wid_masked','jid_masked','iota','gamma', 'occ2', 'code_micro', 'ln_real_hrly_wage_dec', 'markdown_w_iota']]
-    
+    markdown_w_iota = pd.DataFrame(markdown_w_iota).reset_index().rename(columns={0:'markdown_w_iota'})
+    data_full = data_full.merge(markdown_w_iota, on='jid_masked', how='outer', validate='m:1')
+
+    reg_df = data_full[['wid_masked', 'jid_masked', 'iota', 'gamma', 'occ2', 'code_micro', 'mkt_mayara',
+                        'ln_real_hrly_wage_dec', 'markdown_w_iota']].copy()
     reg_df['y_tilde'] = reg_df.ln_real_hrly_wage_dec + np.log(reg_df.markdown_w_iota)
-    #reg_df['iota_gamma_id'] = reg_df.groupby(['iota', 'gamma']).ngroup()
-    reg_df['iota_gamma'] = reg_df.iota.astype(int).astype(str) + '_' + reg_df.gamma.astype(int).astype(str)
-    
-    ### Trim approximately top 1% of wages
-    reg_df = reg_df.loc[reg_df.ln_real_hrly_wage_dec<5]
-    
-    # Save dataframe as .dta file
+    reg_df['iota_gamma'] = reg_df.iota.astype(str) + '_' + reg_df.gamma.astype(str)
+
+    # Trim approximately top 1% of wages
+    reg_df = reg_df.loc[reg_df.ln_real_hrly_wage_dec < 5]
+
+    # Save dataframe as parquet file
     reg_df.to_parquet(root + 'Data/derived/MarketPower_reghdfe_data.parquet')
-    
-    
-    
-    #######################################################################
-    # Estimate iota-gamma and jid FEs
-    
-    # Run the function with your Stata code
-    if stata_or_python=="Stata":
+
+    return reg_df
+
+# Estimate job and iota-gamma FEs
+def estimate_fixed_effects(reg_df, stata_or_python):
+    if stata_or_python == "Stata":
         # Your Stata code as a Python string
         stata_code = """
         clear
@@ -129,27 +95,26 @@ def main():
         
         save "results_path", replace
         """
-    
+
         results_reg1 = run_stata_code(reg_df, stata_code)
         reg_df_w_FEs = results_reg1['results_df']
-    
-    if stata_or_python=="Python":
+    elif stata_or_python == "Python":
+        import pyfixest as pf
         # Perform the regression with fixed effects for 'jid_masked' and 'iota_gamma'
         fit_ols = pf.feols("y_tilde ~ 1 | jid_masked + iota_gamma", data=reg_df)
         # Extract the fixed effects as a dictionary
         fixed_effects = fit_ols.fixef()
         # Loop through each fixed effect group and add it to the original DataFrame
         for fe_var, fe_values in fixed_effects.items():
-            print(fe_var)
-            fe_varname = fe_var[fe_var.find("(") + 1 : fe_var.find(")")]
-            fe_df = pd.DataFrame(list(fixed_effects[fe_var].items()), columns=[fe_varname,f'{fe_varname}_fes'])
+            fe_varname = fe_var[fe_var.find("(") + 1: fe_var.find(")")]
+            fe_df = pd.DataFrame(list(fixed_effects[fe_var].items()), columns=[fe_varname, f'{fe_varname}_fes'])
             fe_df[fe_varname] = fe_df[fe_varname].astype(reg_df[fe_varname].dtype)
             # Merge the fixed effect estimates back to the original DataFrame
             reg_df = reg_df.merge(fe_df, on=fe_varname, how='left', validate='m:1', indicator=f'_merge_{fe_varname}')
-        reg_df_w_FEs = reg_df.copy()
+    else:
+        raise ValueError("Invalid value for 'stata_or_python'. Should be 'Stata' or 'Python'.")
         
-        
-    collapsed_df = reg_df_w_FEs.groupby(['iota', 'gamma', 'iota_gamma', 'jid_masked']).agg({
+    reg_df_w_FEs = reg_df.groupby(['iota', 'gamma', 'iota_gamma', 'jid_masked']).agg({
         'jid_masked_fes': 'first',          # These don't vary within the group, so we can take the first value
         'iota_gamma_fes': 'first',          # These don't vary within the group, so we can take the first value
         'markdown_w_iota': 'first',         # These don't vary within the group, so we can take the first value
@@ -160,143 +125,88 @@ def main():
     }).reset_index()
     
     # Rename the count column to something more descriptive
-    collapsed_df = collapsed_df.rename(columns={'wid_masked': 'iota_gamma_jid_count'})
+    reg_df_w_FEs = reg_df_w_FEs.rename(columns={'wid_masked': 'iota_gamma_jid_count'})
+
+    return reg_df_w_FEs
+
+
+def generate_shocks_and_find_equilibrium(reg_df_w_FEs, delta, eta, theta):
+    reg_df_w_FEs_w_shock = generate_shocks(reg_df_w_FEs, delta=delta)
     
-    
-    ####################################################################################
-    ####################################################################################
-    # Randomly generate shocks and then find new equilibrium
-    ####################################################################################
-    ####################################################################################
-    
-    ###########################
-    # This is the simple shock 
-    
-    
-    delta = 0.5
-    collapsed_df_w_shock = generate_shocks(collapsed_df, delta=delta)
-        
-    collapsed_df_w_shock['wage_guess_initial'] = collapsed_df_w_shock['markdown_w_iota'] * collapsed_df_w_shock['phi_iota_j_new']
-    collapsed_df_w_shock['wage_guess'] = collapsed_df_w_shock['wage_guess_initial']
-    collapsed_df_w_shock['iota_count'] = collapsed_df_w_shock.groupby('iota')['iota_gamma_jid_count'].transform('sum')
-    
-    
+    reg_df_w_FEs_w_shock['wage_guess_initial'] = reg_df_w_FEs_w_shock['markdown_w_iota'] * reg_df_w_FEs_w_shock['phi_iota_j_new']
+    reg_df_w_FEs_w_shock['wage_guess'] = reg_df_w_FEs_w_shock['wage_guess_initial']
+    reg_df_w_FEs_w_shock['iota_count'] = reg_df_w_FEs_w_shock.groupby('iota')['iota_gamma_jid_count'].transform('sum')
+
     # Next steps:
     #   1. Compute ell_iota_j following eq (45)
     #   2. Then iterate through 45-50
     #   3. Iterate until ell and w stabilize
-    
-    collapsed_df_w_shock['real_hrly_wage_dec'] = np.exp(collapsed_df_w_shock['ln_real_hrly_wage_dec'])
-    
-    # Restricting to jid-iotas with non-missing wages. We have 78862 missing values, all of which correspond to missing FEs and are iota_gamma_jid singletons.  
-    collapsed_df_w_shock = collapsed_df_w_shock.loc[collapsed_df_w_shock['wage_guess'].notna()]
-    
-    
-    collapsed_df_w_shock['wage_post_shock'] = find_equilibrium(collapsed_df_w_shock, eta_bhm, theta_bhm)
-    
-    collapsed_df_w_shock.rename(columns={'iota_gamma_jid_count':'ell_iota_j_pre_shock', 'ell_iota_j':'ell_iota_j_post_shock', 'real_hrly_wage_dec':'wage_pre_shock'}, inplace=True)
-    
-    
-    collapsed_df_w_shock.to_pickle(root + 'Data/derived/tmp_collapsed_df_w_shock.p')
-    collapsed_df_w_shock = pd.read_pickle(root + 'Data/derived/tmp_collapsed_df_w_shock.p')
-    
-    
-    # Run the two-step estimation 
-    
-    
-    # "Oracle" spec: use the full instrument   reg_df2['shock_iv'] = reg_df2['jid_masked_shock'] + reg_df2['iota_gamma_shock']
-    eta_hat, theta_hat = run_two_step_estimation(collapsed_df_w_shock, 'panel_iv', delta=0, stata_or_python=stata_or_python)
-    panel_iv_oracle = (eta_hat, theta_hat)
-    # Print the results
-    print(f"Estimated eta_hat: {eta_hat}")
-    print(f"Estimated theta_hat: {theta_hat}")
-    
-    # "Realistic" spec: use the partial instrument   reg_df2['shock_iv'] = reg_df2['Z_j']
-    eta_hat, theta_hat = run_two_step_estimation(collapsed_df_w_shock, 'panel_iv', delta=None, stata_or_python=stata_or_python)
-    panel_iv = (eta_hat, theta_hat)
-    # Print the results
-    print(f"Estimated eta_hat: {eta_hat}")
-    print(f"Estimated theta_hat: {theta_hat}")
-    
-    eta_hat, theta_hat = run_two_step_estimation(collapsed_df_w_shock, 'panel_ols', delta=0, stata_or_python=stata_or_python)
-    panel_ols = (eta_hat, theta_hat)
-    # Print the results
-    print(f"Estimated eta_hat: {eta_hat}")
-    print(f"Estimated theta_hat: {theta_hat}")
-    
-    eta_hat, theta_hat = run_two_step_estimation(collapsed_df_w_shock, 'ols', delta=0, stata_or_python=stata_or_python)
-    ols = (eta_hat, theta_hat)
-    # Print the results
-    print(f"Estimated eta_hat: {eta_hat}")
-    print(f"Estimated theta_hat: {theta_hat}")
-    
-    ########################
-    # Other market definitons
-    wkr = ['iota']
-    for mkt in [['gamma'], ['occ2'], ['code_micro'], ['occ2', 'code_micro']]:
-        eta_hat, theta_hat = run_two_step_estimation(collapsed_df_w_shock, 'panel_iv', delta=None, workertypevar=wkr, mktvar=mkt, stata_or_python=stata_or_python)
-        print('WORKERTYPE = '+ str(wkr) +', MKT =' + str(mkt) + ', eta = ' + str(eta_hat) + ', theta = ', str(theta_hat))
-        
-    wkr = ['occ2']
-    for mkt in [['code_micro']]:
-        eta_hat, theta_hat = run_two_step_estimation(collapsed_df_w_shock, 'panel_iv', delta=0, workertypevar=wkr, mktvar=mkt, stata_or_python=stata_or_python)
-        print('WORKERTYPE = '+ str(wkr) +', MKT =' + str(mkt) + ', eta = ' + str(eta_hat) + ', theta = ', str(theta_hat))
-    
-    
-    ##################
-    # Experiment with misclassification
-    
-    # First, let's get the true estimates from the correctly classified data
-    eta_hat_true, theta_hat_true = run_two_step_estimation(collapsed_df_w_shock, 'ols', delta=0, workertypevar=['iota'], mktvar=['gamma'], stata_or_python=stata_or_python)
-    
+
+    reg_df_w_FEs_w_shock['real_hrly_wage_dec'] = np.exp(reg_df_w_FEs_w_shock['ln_real_hrly_wage_dec'])
+
+    # Restricting to jid-iotas with non-missing wages.
+    reg_df_w_FEs_w_shock = reg_df_w_FEs_w_shock.loc[reg_df_w_FEs_w_shock['wage_guess'].notna()]
+
+    reg_df_w_FEs_w_shock['wage_post_shock'] = find_equilibrium(reg_df_w_FEs_w_shock, eta, theta)
+
+    reg_df_w_FEs_w_shock.rename(columns={
+        'iota_gamma_jid_count': 'ell_iota_j_pre_shock',
+        'ell_iota_j': 'ell_iota_j_post_shock',
+        'real_hrly_wage_dec': 'wage_pre_shock'
+    }, inplace=True)
+
+    return reg_df_w_FEs_w_shock
+
+
+def misclassification_experiment(reg_df_w_FEs_w_shock, stata_or_python):
+    # First, get the true estimates from the correctly classified data
+    eta_hat_true, theta_hat_true = run_two_step_estimation(reg_df_w_FEs_w_shock, 'ols', delta=0, workertypevar=['iota'], mktvar=['gamma'], stata_or_python=stata_or_python)
+
     print(f"True eta_hat: {eta_hat_true}")
     print(f"True theta_hat: {theta_hat_true}")
-    
-    
+
     # Create lists to store our results
-    misclassification_rates = np.arange(0,1.1,0.1)
+    misclassification_rates = np.arange(0, 1.1, 0.1)
     eta_estimates = []
     theta_estimates = []
     eta_theoretical = []
     theta_theoretical = []
-    tilde_beta_1_list = []
-    tilde_beta_2_list = []
+    beta_1_eta_list = []
+    beta_2_eta_list = []
+    beta_1_theta_list = []
+    beta_2_theta_list = []
     hhi_values = []
     hhi_w_error_values = []
-    
-    # Now, let's modify the loop to collect data
+
+    # Loop over misclassification rates
     for r in misclassification_rates:
-        collapsed_df_w_shock_w_error = introduce_misclassification_by_jid(collapsed_df_w_shock, r)
-        eta_hat_e, theta_hat_e = run_two_step_estimation(collapsed_df_w_shock_w_error, 'ols', delta=0,  workertypevar=['iota'], mktvar=['gamma_error'], stata_or_python=stata_or_python)
-        
+        reg_df_w_FEs_w_shock_w_error = introduce_misclassification_by_jid(reg_df_w_FEs_w_shock, r)
+        eta_hat_e, theta_hat_e = run_two_step_estimation(reg_df_w_FEs_w_shock_w_error, 'ols', delta=0,
+                                                         workertypevar=['iota'], mktvar=['gamma_error'], stata_or_python=stata_or_python)
+
         eta_estimates.append(eta_hat_e)
         theta_estimates.append(theta_hat_e)
-        
+
         # Calculate HHI
-        hhi = compute_market_hhi(collapsed_df_w_shock_w_error, market_col='gamma')
-        hhi_w_error = compute_market_hhi(collapsed_df_w_shock_w_error, market_col='gamma_error')
-    
+        hhi = compute_market_hhi(reg_df_w_FEs_w_shock_w_error, market_col='gamma')
+        hhi_w_error = compute_market_hhi(reg_df_w_FEs_w_shock_w_error, market_col='gamma_error')
+
         hhi_values.append(hhi)
         hhi_w_error_values.append(hhi_w_error)
-        
-        ################################################################################################
-        # Calculate theoretical elasticities based on the derivations we came up with on 10/28/2024  
-        ################################################################################################
 
-        #######################
-        # eta
-        eta_theo, tilde_beta_1, tilde_beta_2 = compute_theoretical_eta(collapsed_df_w_shock_w_error, 'wage_post_shock', 'iota', 'gamma', 'gamma_error', eta_hat_true, theta_hat_true, return_betas=True) 
+        # Calculate theoretical elasticities
+        eta_theo, beta_1_eta, beta_2_eta = compute_theoretical_eta(
+            reg_df_w_FEs_w_shock_w_error, 'wage_post_shock', 'iota', 'gamma', 'gamma_error', eta_hat_true, theta_hat_true, return_betas=True)
         eta_theoretical.append(eta_theo)
-        tilde_beta_1_list.append(tilde_beta_1)
-        tilde_beta_2_list.append(tilde_beta_2)
+        beta_1_eta_list.append(beta_1_eta)
+        beta_2_eta_list.append(beta_2_eta)
 
-        #######################
-        # theta
-        theta_theo, coef1, coef2 = compute_theoretical_theta(collapsed_df_w_shock_w_error, 'wage_post_shock', 'iota', 'gamma', 'gamma_error', eta_hat_true, eta_theo, theta_hat_true, return_betas=True) 
+        theta_theo, beta_1_theta, beta_2_theta = compute_theoretical_theta(
+            reg_df_w_FEs_w_shock_w_error, 'wage_post_shock', 'iota', 'gamma', 'gamma_error', eta_hat_true, eta_theo, theta_hat_true, return_betas=True)
         theta_theoretical.append(theta_theo)
-        print(theta_theo)
-        print(theta_hat_e)
-        
+        beta_1_theta_list.append(beta_1_theta)
+        beta_2_theta_list.append(beta_2_theta)
+
         # Print the results (optional, for checking)
         print('--------------------------------------------')
         print(f"\nMisclassification rate: {r}")
@@ -304,14 +214,12 @@ def main():
         print(f"Theoretical eta: {eta_theo:.4f}")
         print(f"Estimated theta_hat: {theta_hat_e:.4f}")
         print(f"Theoretical theta: {theta_theo:.4f}")
-        #print(f"tilde beta 1: {tilde_beta_1:.4f}")
-        #print(f"tilde beta 2: {tilde_beta_2:.4f}")
-        #print(f"HHI: {hhi:.4f}")
-        #print(f"HHI w/ error: {hhi_w_error:.4f}")
-        print(f"Theta coef 1: {coef1:.4f}")
-        print(f"Theta coef 2: {coef2:.4f}")
+        #print(f"Eta coef 1: {beta_1_eta:.4f}")
+        #print(f"Eta coef 2: {beta_2_eta:.4f}")
+        #print(f"Theta coef 1: {beta_1_theta:.4f}")
+        #print(f"Theta coef 2: {beta_2_theta:.4f}")
         print('--------------------------------------------')
-    
+
     # Create a DataFrame with the results
     misclassification_ests = pd.DataFrame({
         'Misclassification_Rate': misclassification_rates,
@@ -319,14 +227,15 @@ def main():
         'Estimated_Theta': theta_estimates,
         'Theoretical_Eta': eta_theoretical,
         'Theoretical_Theta': theta_theoretical,
-        'Tilde Beta 1': tilde_beta_1_list,
-        'Tilde Beta 2': tilde_beta_2_list,
-        #'Theoretical_Theta': theta_theoretical,
+        'Beta 1 Eta': beta_1_eta_list,
+        'Beta 2 Eta': beta_2_eta_list,
+        'Beta 1 Theta': beta_1_theta_list,
+        'Beta 2 Theta': beta_2_theta_list,
         'HHI': hhi_values,
         'HHI w/ error': hhi_w_error_values
     })
 
-    # Create the first plot for elasticity estimates
+    # Create the plot for elasticity estimates
     plt.figure(figsize=(12, 6))
     plt.axhline(y=eta_hat_true, color='b', linestyle=':', label='True eta')
     plt.plot(misclassification_ests['Misclassification_Rate'], misclassification_ests['Estimated_Eta'], 'b-o', label='Estimated eta')
@@ -340,6 +249,103 @@ def main():
     plt.legend()
     plt.grid(True)
     plt.show()
+
+    return misclassification_ests
+
+
+def run_estimations_for_combinations(data, combinations, stata_or_python='Python'):
+    """
+    Runs estimations for each combination of worker type, market definition, estimation type, and delta.
+    
+    Parameters:
+    - data: pandas DataFrame containing the necessary data for estimations.
+    - combinations: list of tuples, where each tuple is (workertypevar, mktvar, est_type, delta).
+      - workertypevar: list of strings representing worker type variables.
+      - mktvar: list of strings representing market variables.
+      - est_type: string representing the estimation type (e.g., 'panel_iv', 'panel_ols', 'ols').
+      - delta: float or None, delta parameter to pass to run_two_step_estimation.
+    - stata_or_python: string, either 'Stata' or 'Python'. Default is 'Python'.
+    
+    Returns:
+    - estimates_df: pandas DataFrame containing the estimation results.
+    """
+    estimates_list = []
+    
+    for combo in combinations:
+        wkr, mkt, est_type, delta = combo
+        # Convert the lists to strings for better readability
+        wkr_key = ','.join(wkr)
+        mkt_key = ','.join(mkt)
+        
+        # Run estimation
+        eta_hat, theta_hat = run_two_step_estimation(
+            data,
+            est_type,
+            delta=delta,
+            workertypevar=wkr,
+            mktvar=mkt,
+            stata_or_python=stata_or_python
+        )
+        
+        # Append the result as a record to the list
+        estimates_list.append({
+            'WORKERTYPE': wkr_key,
+            'MKT': mkt_key,
+            'EST_TYPE': est_type,
+            'DELTA': delta,
+            'ETA_HAT': eta_hat,
+            'THETA_HAT': theta_hat
+        })
+        print(f'WORKERTYPE = {wkr}, MKT = {mkt}, EST_TYPE = {est_type}, DELTA = {delta}, eta = {eta_hat}, theta = {theta_hat}')
+    
+    # Convert the list of records to a DataFrame
+    estimates_df = pd.DataFrame(estimates_list)
+    
+    return estimates_df
+
+
+def main():
+
+    reg_df = load_and_prepare_data(root, eta_bhm, theta_bhm)
+    
+    # Estimate fixed effects and collapse to jid-iota-gamma-level (really that's just jid-iota level b/c gamma nested w/in jid)
+    reg_df_w_FEs = estimate_fixed_effects(reg_df, stata_or_python)
+
+    # Generate shocks and find equilibrium
+    delta = 0.5
+    reg_df_w_FEs_w_shock = generate_shocks_and_find_equilibrium(reg_df_w_FEs, delta, eta_bhm, theta_bhm)
+    reg_df_w_FEs_w_shock.to_pickle(root + 'Data/derived/tmp_reg_df_w_FEs_w_shock.p')
+    reg_df_w_FEs_w_shock = pd.read_pickle(root + 'Data/derived/tmp_reg_df_w_FEs_w_shock.p')
+    
+    ##############################################################################################
+    
+    # Define the list of combinations (wkr, mkt, est_type, delta)
+    combinations = [
+        # The initial four estimations with default worker type and market variables
+        (['iota'], ['gamma'], 'panel_iv', 0),               # "Oracle" spec: use the full instrument   reg_df2['shock_iv'] = reg_df2['jid_masked_shock'] + reg_df2['iota_gamma_shock']
+        (['iota'], ['gamma'], 'panel_iv', None), # "Realistic" spec: use the partial instrument   reg_df2['shock_iv'] = reg_df2['Z_j']
+        (['iota'], ['gamma'], 'panel_ols', 0),             # delta = 0
+        (['iota'], ['gamma'], 'ols', 0),                   # delta = 0
+        # Other market definitions
+        (['iota'], ['gamma'], 'panel_iv', None),                    # delta = None
+        (['iota'], ['occ2', 'code_micro'], 'panel_iv', None),       # delta = None
+        (['occ2'], ['code_micro'], 'panel_iv', None),               # delta = None
+    ]
+    
+    
+    # Run the estimations
+    estimates_df = run_estimations_for_combinations(
+        data=reg_df_w_FEs_w_shock,
+        combinations=combinations,
+        stata_or_python=stata_or_python
+    )
+    print(estimates_df)
+
+    
+    
+    ##################
+    # Experiment with misclassification
+    misclassification_ests = misclassification_experiment(reg_df_w_FEs_w_shock, stata_or_python)
 
 if __name__ == "__main__":
     main()
