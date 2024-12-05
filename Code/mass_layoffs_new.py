@@ -6,27 +6,27 @@ Created on Mon May 13 20:40:18 2024
 """
 
 
-from datetime import datetime
 import pickle
 import pandas as pd
 import numpy as np
 import os
-import gc
 import platform
 import sys
 import getpass
 from linearmodels.iv import AbsorbingLS
-from linearmodels.panel import PanelOLS
 import statsmodels.api as sm
 import matplotlib.pyplot as plt
 from tqdm import tqdm # to calculate progress of some operations for geolocation
 import pyproj # for converting geographic degree measures of lat and lon to the UTM system (i.e. in meters)
-from scipy.integrate import simps # to calculate the AUC for the decay function
+#from scipy.integrate import simps # to calculate the AUC for the decay function
 
-
+modelname = '3states_2013to2016_mcmc'
+firstyear_panel = 2012 
+lastyear_panel = 2019
 nrows = None
 pull_raw = True
-load_iotas_gammas = True
+run_load_iotas_gammas = True
+create_worker_panel_balanced = True
 pd.set_option('display.max_columns', None)
 pd.set_option('display.width', 400)
 
@@ -62,6 +62,7 @@ if getpass.getuser()=='jfogel':
 from merge_aguinaldo_onet import merge_aguinaldo_onet
 
 
+
 def load_iotas_gammas(root):
     # Load iotas and gammas                    
     jcolumns = ['jid']     
@@ -84,8 +85,16 @@ def process_iotas_gammas(root, iotas, gammas):
     # Load data that was used for the SBM so I can compute P_gi
     # Available columns: ['cbo2002', 'clas_cnae20', 'codemun', 'data_adm', 'data_deslig', 'data_nasc', 'horas_contr', 'id_estab', 'idade', 'ind2', 'jid', 'occ4', 'rem_dez_r', 'sector_IBGE', 'tipo_salario', 'tipo_vinculo', 'wid', 'year', 'yob']
     appended = pd.read_pickle(root + 'Data/derived/appended_sbm_3states_2013to2016_new.p')
+    appended.to_parquet(root + 'Data/derived/appended_sbm_3states_2013to2016_new.parquet')
     appended = appended[['wid','jid','year','ind2','codemun','cbo2002','clas_cnae20']]
     
+    
+    ###################################################################################
+    ## XXBM: it seems like we need gammas for the command below 
+    #iotas, gammas = load_iotas_gammas(root)
+    ###################################################################################
+    
+    # XX Should I be using 2013to2016_new or 2013to2016_mcmc
     # Merge on gammas
     appended = appended.merge(gammas, how='inner', validate='m:1', on='jid')
     # Merge on iotas
@@ -112,94 +121,6 @@ def process_iotas_gammas(root, iotas, gammas):
     E_N_gamma_given_iota = E_N_gamma_given_iota.reset_index()
     E_N_gamma_given_iota['iota'] = E_N_gamma_given_iota['iota'].astype(int)
     return E_N_gamma_given_iota, appended
-  
-    
-  
-''' Exploratory code for computing spatial variances. This is taken from lines 230-300 of mkt_geography_stats.py
-
-
-
-# Converting coordinates to UTM, so the units are in meters
-# Function to convert geographic coordinates to UTM using a fixed zone 23S for Sao Paulo
-# Create the transformer object for UTM zone 23S
-transformer = pyproj.Transformer.from_crs("epsg:4326", "epsg:32723", always_xy=True)
-# Function to convert geographic coordinates to UTM
-def convert_to_utm(lon, lat):
-    return transformer.transform(lon, lat)
-
-
-GEOLOCATION FOR RAIS ESTABLISHMENTS
-
-# filepath: \\storage6\bases\DADOS\RESTRITO\RAIS\geocode
-# file of type: rais_geolocalizada_2009
-years = appended.year.unique().tolist()
-
-high_precision_cat = ['POI',
-                        'PointAddress',
-                        'StreetAddress',
-                        'StreetAddressExt',
-                        'StreetName',
-                        'street_number',
-                        'route',
-                        'airport',
-                        'amusement_park',
-                        'intersection',
-                        'premise',
-                        'town_square']
-
-# Initialize an empty list to hold the DataFrames
-geo_list = []
-
-for year in years:
-    print(str(year))
-    # Read the parquet file for the given year and rename columns
-    geo = pd.read_parquet(f'{rais}/geocode/rais_geolocalizada_{year}.parquet')
-    geo['year'] = year
-    geo.rename(columns={'lon': 'lon_estab', 'lat': 'lat_estab'}, inplace=True)
-    # Drop large columns that we don't need to save memory
-    geo.drop(columns=['Match_addr','Match_type','h3_res8','h3_res9'], inplace=True)
-    # Append the DataFrame to the list
-    geo_list.append(geo)
-
-# Concatenate all the DataFrames in the list into a single DataFrame
-geo_estab = pd.concat(geo_list, ignore_index=True)
-del geo, geo_list 
-
-
-# Initialize lists to store the UTM coordinates
-utm_lon = []
-utm_lat = []
-
-# Convert latitude and longitude to UTM with progress indicator
-for lon, lat in tqdm(zip(geo_estab['lon_estab'].values, geo_estab['lat_estab'].values), total=len(geo_estab)):
-    utm_x, utm_y = convert_to_utm(lon, lat)
-    utm_lon.append(utm_x)
-    utm_lat.append(utm_y)
-
-# Assign the UTM coordinates back to the DataFrame
-geo_estab['utm_lon_estab'] = utm_lon
-geo_estab['utm_lat_estab'] = utm_lat
-
-# Drop duplicates based on the specified columns in place
-geo_estab.drop_duplicates(subset=['year', 'id_estab', 'lat_estab', 'lon_estab', 'Addr_type', 'h3_res7'], inplace=True)
-# Optionally, reset the index in place
-geo_estab.reset_index(drop=True, inplace=True)
-
-# Group by 'year' and 'id_estab' and count the occurrences
-duplicates = geo_estab.groupby(['year','id_estab']).size().reset_index(name='count')
-print((duplicates.iloc[:,2].value_counts() /  duplicates.iloc[:,2].sum()).round(4))
-geo_estab = geo_estab.merge(duplicates, on=['year', 'id_estab'], how='left')
-
-geo_estab['is_high_precision'] = geo_estab['Addr_type'].isin(high_precision_cat).astype(int)
-
-geo_estab[(geo_estab['count'] > 1) & (geo_estab['is_high_precision'] == 0)].shape[0] / (geo_estab['count'] > 1).sum()
-
-geo_estab = geo_estab.sort_values('is_high_precision', ascending=False).drop_duplicates(subset=['year', 'id_estab'], keep='first')
-geo_estab = geo_estab.drop_duplicates(subset=['year', 'id_estab'])
-
-
-
-'''
   
     
   
@@ -258,16 +179,16 @@ region_codes = pd.read_csv(root + '/Data/raw/munic_microregion_rm.csv', encoding
 muni_micro_cw = pd.DataFrame({'code_micro':region_codes.code_micro,'codemun':region_codes.code_munic//10})
 
 # Load iotas and gammas and compute the expected number of jobs for each iota
-
-iotas, gammas = load_iotas_gammas(root)
-
-E_N_gamma_given_iota, appended = process_iotas_gammas(root, iotas, gammas)
-E_N_gamma_given_iota.to_pickle(root + "Data/derived/mass_layoffs_E_N_gamma_given_iota.p")   
+if run_load_iotas_gammas==True:
+    iotas, gammas = load_iotas_gammas(root)
+    E_N_gamma_given_iota, appended = process_iotas_gammas(root, iotas, gammas)
+    E_N_gamma_given_iota.to_pickle(root + "Data/derived/mass_layoffs_E_N_gamma_given_iota.p", protocol=4)   
+    E_N_gamma_given_iota.to_parquet(root + "Data/derived/mass_layoffs_E_N_gamma_given_iota.parquet")   
+    # Compute skill and spatial variance of each iota
+    weighted_variances = compute_skill_variance(appended, root)
+    weighted_variances.to_pickle(root + "Data/derived/mass_layoffs_weighted_variances.p", protocol=4)  
 
  
-# Compute skill and spatial variance of each iota
-weighted_variances = compute_skill_variance(appended, root)
-weighted_variances.to_pickle(root + "Data/derived/mass_layoffs_weighted_variances.p")  
 
 # XX Need to compute spatial variance
 
@@ -317,9 +238,7 @@ def process_estab_data(rais):
     
     return closure_df, mkt_size_df
 
-closure_df, mkt_size_df = process_estab_data(rais)
-closure_df.to_pickle(root + "Data/derived/mass_layoffs_closure_df.p")
- 
+
     
 ##########################################################
 # Pulling worker data to replicate Moretti and Yi
@@ -367,18 +286,12 @@ def identify_laid_off_workers(rais, date_formats, closure_df):
     possible_laid_off_worker_list = worker_estab_panel.wid.drop_duplicates()
     return possible_laid_off_worker_list
     
-possible_laid_off_worker_list = identify_laid_off_workers(rais, date_formats, closure_df)
-possible_laid_off_worker_list.to_pickle(root + "Data/derived/mass_layoffs_possible_laid_off_worker_list.p")
-
-
 
 ############################################################################
 # Load data for workers at risk of layoff, make a balanced monthly panel based on data_adm, data_deslig, and monthly earnings. 
 # Extend to 2019 sowe have at least 3 years of a post-period for all layoffs occurring in 2013-2016
-    
-possible_laid_off_worker_list = pd.read_pickle(root + "Data/derived/mass_layoffs_possible_laid_off_worker_list.p")
 
-def process_worker_data(rais, date_formats, possible_laid_off_worker_list, nrows=None):    
+def process_worker_data(rais, date_formats, possible_laid_off_worker_list, iotas, gammas, nrows=None):    
     # List of columns to keep
     # Initialize df to store worker bdays
     worker_dob = pd.DataFrame()
@@ -391,7 +304,7 @@ def process_worker_data(rais, date_formats, possible_laid_off_worker_list, nrows
     # XX Can I make this more efficient by loading through 2019 in the loop above but then subsetting to 2013-2016 to come up with the possibly laid off worker data? Or actually should we be looking only at layoffs for 2014-2016 so we have a year of pre-period for everyone? 
     dfs = []
     dfs_mkt_size = []
-    for year in range(2012,2019+1):
+    for year in range(firstyear_panel,lastyear_panel+1):
         print(year)
         if ((year < 1998) | (year==2016) | (year==2018) | (year==2019)):
             sep = ';'
@@ -412,6 +325,11 @@ def process_worker_data(rais, date_formats, possible_laid_off_worker_list, nrows
         
         df = df[~df['tipo_vinculo'].isin([30,31,35])]
         df = df[df['codemun'].fillna(99).astype(str).str[:2].astype('int').isin([31, 33, 35])]
+        
+        ###################################################################################
+        ## XXBM: it seems like we need gammas for the command below 
+        #iotas, gammas = load_iotas_gammas(root)
+        ###################################################################################
         
         # Merge on iotas and gammas
         df = df.merge(gammas, how='left', validate='m:1', on='jid')
@@ -452,17 +370,28 @@ def process_worker_data(rais, date_formats, possible_laid_off_worker_list, nrows
     worker_panel_mkt_size = pd.concat(dfs_mkt_size)
     mkt_size_df_worker = worker_panel_mkt_size.groupby(['ind2','code_micro']).size()
     mkt_size_df_worker = mkt_size_df_worker.reset_index(name='count')
-    mkt_size_df_worker.to_pickle(root + "Data/derived/mass_layoffs_mkt_size_df_worker.p")
+    mkt_size_df_worker.to_pickle(root + "Data/derived/mass_layoffs_mkt_size_df_worker.p", protocol=4)
+    mkt_size_df_worker.to_parquet(root + "Data/derived/mass_layoffs_mkt_size_df_worker.parquet")
     worker_panel = pd.concat(dfs)
     # data_nasc is missing for some years so process these separately
     # Restrict to people who are between 22 and 62 in 2012
     worker_panel = worker_panel.merge(worker_dob, on='wid', validate='m:1', how='left',indicator='_merge_yob')
     worker_panel = worker_panel.loc[worker_panel['yob'].between(1950, 1990)]
-    worker_panel.to_pickle(root + "Data/derived/mass_layoffs_worker_panel.p")
+    worker_panel.to_pickle(root + "Data/derived/mass_layoffs_worker_panel.p", protocol=4)
+    worker_panel.to_parquet(root + "Data/derived/mass_layoffs_worker_panel.parquet")
     del worker_panel_mkt_size
 
-process_worker_data(rais, date_formats, possible_laid_off_worker_list)
-
+if pull_raw==True:
+    closure_df, mkt_size_df = process_estab_data(rais)
+    closure_df.to_pickle(root + "Data/derived/mass_layoffs_closure_df.p", protocol=4)
+    closure_df.to_parquet(root + "Data/derived/mass_layoffs_closure_df.parquet")
+    
+    possible_laid_off_worker_list = identify_laid_off_workers(rais, date_formats, closure_df)
+    possible_laid_off_worker_list.to_pickle(root + "Data/derived/mass_layoffs_possible_laid_off_worker_list.p", protocol=4)
+    pd.DataFrame(possible_laid_off_worker_list).to_parquet(root + "Data/derived/mass_layoffs_possible_laid_off_worker_list.parquet")
+    
+    process_worker_data(rais, date_formats, possible_laid_off_worker_list, iotas, gammas)
+    
 closure_df          = pd.read_pickle(root + "Data/derived/mass_layoffs_closure_df.p")
 worker_panel        = pd.read_pickle(root + "Data/derived/mass_layoffs_worker_panel.p")
 E_N_gamma_given_iota= pd.read_pickle(root + "Data/derived/mass_layoffs_E_N_gamma_given_iota.p")
@@ -471,248 +400,412 @@ mkt_size_df_worker  = pd.read_pickle(root + "Data/derived/mass_layoffs_mkt_size_
 
 
 
-# Step 1: Reshape to long format on wid, year, and month
-value_vars = [f'vl_rem_{i:02d}' for i in range(1, 13)]
-worker_panel_long = pd.melt(worker_panel, 
-                            id_vars=['wid', 'id_estab', 'id_firm', 'data_adm', 'data_deslig', 'genero', 'iota','gamma',
-                                     'causa_deslig', 'clas_cnae20', 'ind2', 'cbo2002', 'codemun', 'code_micro', 'yob',
-                                     'grau_instr', 'salario', 'rem_med_sm', 'rem_med_r', 'year', 'raca_cor', 'nacionalidad'],
-                            value_vars=value_vars, 
-                            var_name='month', 
-                            value_name='vl_rem')
-
-# Convert month from 'vl_rem_{i:02d}' to integer
-worker_panel_long['month'] = worker_panel_long['month'].str.extract('(\d+)').astype(int)
-
-# Restrict to people with at least 24 months of positive earnings
-valid_months = (worker_panel_long['vl_rem'] > 0)
-valid_month_counts = worker_panel_long[valid_months].groupby('wid').size()
-workers_to_keep = valid_month_counts[valid_month_counts >= 24].index
-worker_panel_long = worker_panel_long[worker_panel_long['wid'].isin(workers_to_keep)]
-
-
-# Print the shape of the resulting dataframe
-print(f"Resulting dataframe shape: {worker_panel_long.shape}")
-
-
-# Step 2: Keep only the job with the highest earnings for each worker-month. But also compute the sum of earnings across all jobs. 
-worker_panel_long['total_earnings_month'] = worker_panel_long.groupby(['wid', 'year', 'month'])['vl_rem'].transform('sum')
-worker_panel_long['num_jobs_month'] = worker_panel_long.groupby(['wid', 'year', 'month'])['vl_rem'].transform('count')
-
-worker_panel_long = worker_panel_long.sort_values(by='vl_rem', ascending=False).drop_duplicates(subset=['wid', 'year', 'month'])
-worker_panel_long.sort_values(by=['wid', 'year', 'month'], inplace=True)
-
-# Combine 'year' and 'month' into a single date variable
-worker_panel_long['calendar_date'] = pd.to_datetime(worker_panel_long[['year','month']].assign(day=1))
-
-
-# Step 3: Flag months where the worker is employed at the given establishment
-worker_panel_long['employment_indicator'] = (
-    (worker_panel_long['data_adm'] <= worker_panel_long['calendar_date']) & 
-    ((worker_panel_long['data_deslig'].isna()) | (worker_panel_long['data_deslig'] >= worker_panel_long['calendar_date'])) 
-).astype(int)
-
-
-# Step 4: Merge with mass layoff data and flag mass layoff months
-# Assuming closure_df contains the mass layoff data with columns 'id_estab' and 'data_encerramento'
-
-worker_panel_long = worker_panel_long.merge(closure_df[['id_estab', 'data_encerramento']], on='id_estab', how='left', validate='m:1', indicator=True)
-worker_panel_long.drop(columns='_merge', inplace=True)
-
-# Create flag for worker being employed at estab in month in which mass layoff occurred. This is defined as the layoff firm being one's primary (highest earnings) firm in the month in which the firm closure occurred. 
-worker_panel_long['mass_layoff_flag'] = (worker_panel_long['calendar_date'].dt.year == worker_panel_long['data_encerramento'].dt.year) & (worker_panel_long['calendar_date'].dt.month == worker_panel_long['data_encerramento'].dt.month) & (worker_panel_long['employment_indicator']==1)
-
-# Create a variable within each wid containing the first month in which the worker was exposed to an establishment closure
-worker_panel_long['mass_layoff_month'] = worker_panel_long.loc[worker_panel_long['mass_layoff_flag']==1, 'calendar_date']
-worker_panel_long['mass_layoff_month'] = worker_panel_long.groupby('wid')['mass_layoff_month'].transform('min')
-
-# Flag and keep workers who were employed at a mass layoff estab when the mass layoff happened
-worker_panel_long['mass_layoff_ever'] = worker_panel_long.groupby('wid')['mass_layoff_flag'].transform('max')
-worker_panel_long = worker_panel_long.loc[worker_panel_long['mass_layoff_ever']==1]
-
-
-worker_panel_long['event_time'] = (worker_panel_long['calendar_date'].dt.to_period('M') -worker_panel_long['mass_layoff_month'].dt.to_period('M')).apply(lambda x: x.n if pd.notna(x) else np.nan)
-
-# Identify characteristics of the firm that closes
-pre_layoff_obs = worker_panel_long.loc[(worker_panel_long['mass_layoff_month']==worker_panel_long['calendar_date']), ['wid', 'id_estab', 'id_firm', 'clas_cnae20', 'cbo2002', 'codemun', 'code_micro', 'salario', 'calendar_date']]
-pre_layoff_obs = pre_layoff_obs.rename(columns={col: col + '_pre' for col in pre_layoff_obs.columns if col != 'wid'})
-
-
-
-
-
-############################################################################################################
-# Create a balanced worker panel where time is measured by event time
-
-invariant = ['wid', 'iota', 'genero', 'grau_instr', 'yob', 'nacionalidad', 'raca_cor']
-variant = ['id_estab', 'id_firm', 'gamma', 'data_adm', 'data_deslig', 'causa_deslig', 'clas_cnae20', 'ind2', 'cbo2002', 'codemun', 'code_micro', 'salario', 'rem_med_sm', 'rem_med_r', 'vl_rem', 'total_earnings_month', 'num_jobs_month', 'calendar_date',  'employment_indicator', 'data_encerramento', 'mass_layoff_month']
-
-unique_wids=worker_panel_long['wid'].unique()
-spine = pd.DataFrame({'wid':np.tile(unique_wids, 49), 'event_time':np.repeat(np.arange(-12,36+1),unique_wids.shape[0])})        
-worker_panel_balanced = spine.merge(worker_panel_long[['wid','event_time'] + variant], how='left', on=['wid','event_time'], indicator=True, validate='1:1')
-
-# Merge on time-invariant variables to ensure they are defined when the person is not employed
-worker_panel_balanced = worker_panel_balanced.merge(worker_panel_long[invariant].drop_duplicates(subset='wid', keep='last'), how='left', on='wid', indicator='_merge_invariant', validate='m:1')
-
-# Use event_time to ensure we have a calendar date for all rows
-base_date = worker_panel_balanced.loc[worker_panel_balanced.event_time==0, ['wid','calendar_date']].rename(columns={'calendar_date':'base_date'})
-worker_panel_balanced = worker_panel_balanced.merge(base_date, how='left', on='wid', indicator='_merge_base_date', validate='m:1')
-dates = worker_panel_balanced['base_date'].values.astype('datetime64[M]')
-adjusted_dates = dates + np.array(worker_panel_balanced['event_time'], dtype='timedelta64[M]')
-worker_panel_balanced['calendar_date'] = adjusted_dates
-
-
-# Calculate tenure for each worker at the time of displacement
-worker_panel_balanced['tenure_years'] = (worker_panel_balanced['mass_layoff_month'] - worker_panel_balanced['data_adm']).dt.days / 365.25
-
-# Calculate tenure at event_time = -1 and merge back to all observations
-tenure_at_minus_one = worker_panel_balanced.loc[worker_panel_balanced['event_time'] == -1,['wid','mass_layoff_month','data_adm']]
-tenure_at_minus_one['tenure_years'] = (tenure_at_minus_one['mass_layoff_month'] - tenure_at_minus_one['data_adm']).dt.days / 365.25
-worker_panel_balanced = worker_panel_balanced.merge(tenure_at_minus_one[['wid', 'tenure_years']], on='wid', how='left')
-
-# Filter the sample to include only workers with at least 1 year of tenure
-
-# Check for people who are employed at the pre-layoff firm post-layoff. Drop these people. Also also identify each worker's first post-layoff firm and identify layoff firms where >50% of laid off workers end up at the same post-layoff firm. These should not be counted as true layoffs. 
-
-
-# Merge on iotas and then E_N_gamma_given_iota
-# XX This should no longer be necessary as of 7/11 because I am keeping iota and gamma when creating the panel now
-#worker_panel_balanced['wid'] = worker_panel_balanced.wid.astype('Int64').astype(str)
-#worker_panel_balanced = worker_panel_balanced.merge(iotas, how='inner', validate='m:1', on='wid',indicator='_merge_iotas')
-#worker_panel_balanced = worker_panel_balanced.merge(E_N_gamma_given_iota, how='inner', validate='m:1', on='iota')
-
-
-''' I don't see what the point of this code is. Probably delete it
-# XX need to do this for everyone in the 3 states in 2013-2016, not just the mass layoff sample
-worker_panel['wid'] = worker_panel.wid.astype('Int64').astype(str)
-worker_panel = worker_panel.merge(iotas, how='inner', validate='m:1', on='wid',indicator='_merge_iotas')
-print('Merge stats for iotas')
-print(worker_panel._merge_iotas.value_counts())
-worker_panel.drop(columns=['_merge_iotas'], inplace=True)
-'''
-
-
-######
-# Create variables for regression in Moretti and Yi's equation 3
-
-# Some workers have multiple YOBs listed so I'll just take the mode
-worker_panel_balanced['age']    = (worker_panel_balanced['calendar_date'].dt.to_period('Y') - pd.to_datetime(worker_panel_balanced['yob'].astype(int), format='%Y').dt.to_period('Y') ).apply(lambda x: x.n if pd.notna(x) else np.nan)
-worker_panel_balanced['age_sq'] = worker_panel_balanced['age']**2
-worker_panel_balanced['foreign']= (worker_panel_balanced['nacionalidad']!=10)
-worker_panel_balanced['raca_cor'] = pd.Categorical(worker_panel_balanced['raca_cor'])
-worker_panel_balanced['genero'] = pd.Categorical(worker_panel_balanced['genero'])
-
-
-
-###################
-# Create pre- and post-layoff variables as well as indicators for changing jobs, occs, industries, etc
-
-# Get pre-layoff values
-pre_layoff = worker_panel_balanced[worker_panel_balanced['event_time'] == -1].set_index('wid')
-
-# Get first post-layoff values
-post_layoff = worker_panel_balanced[(worker_panel_balanced['event_time'] > 0) & 
-                                    (worker_panel_balanced['employment_indicator'] == 1)].groupby('wid').first()
-# Loop over the specified variables
-variables = ['id_firm', 'cbo2002', 'clas_cnae20', 'ind2', 'code_micro', 'gamma']
-for var in variables:
-    pre_col = f'pre_layoff_{var}'
-    post_col = f'post_layoff_{var}'
-    same_first_col = f'same_first_{var}'
-    same_col = f'same_{var}'
+if create_worker_panel_balanced==True:
     
-    worker_panel_balanced[pre_col] = worker_panel_balanced['wid'].map(pre_layoff[var])
-    worker_panel_balanced[post_col] = worker_panel_balanced['wid'].map(post_layoff[var])
-    worker_panel_balanced[same_first_col] = (worker_panel_balanced[pre_col] == worker_panel_balanced[post_col]).astype(int)
-    worker_panel_balanced[same_col] = (worker_panel_balanced[pre_col] == worker_panel_balanced[var]).astype(int)
+    # Step 1: Reshape to long format on wid, year, and month
+    value_vars = [f'vl_rem_{i:02d}' for i in range(1, 13)]
+    worker_panel_long = pd.melt(worker_panel, 
+                                id_vars=['wid', 'id_estab', 'id_firm', 'data_adm', 'data_deslig', 'genero', 'iota','gamma',
+                                         'causa_deslig', 'clas_cnae20', 'ind2', 'cbo2002', 'codemun', 'code_micro', 'yob',
+                                         'grau_instr', 'salario', 'rem_med_sm', 'rem_med_r', 'year', 'raca_cor', 'nacionalidad'],
+                                value_vars=value_vars, 
+                                var_name='month', 
+                                value_name='vl_rem')
+    
+    # Convert month from 'vl_rem_{i:02d}' to integer
+    worker_panel_long['month'] = worker_panel_long['month'].str.extract('(\d+)').astype(int)
+    
+    # Restrict to people with at least 24 months of positive earnings
+    valid_months = (worker_panel_long['vl_rem'] > 0)
+    valid_month_counts = worker_panel_long[valid_months].groupby('wid').size()
+    workers_to_keep = valid_month_counts[valid_month_counts >= 24].index
+    worker_panel_long = worker_panel_long[worker_panel_long['wid'].isin(workers_to_keep)]
+    
+    
+    # Print the shape of the resulting dataframe
+    print(f"Resulting dataframe shape: {worker_panel_long.shape}")
+    
+    
+    # Step 2: Keep only the job with the highest earnings for each worker-month. But also compute the sum of earnings across all jobs. 
+    worker_panel_long['total_earnings_month'] = worker_panel_long.groupby(['wid', 'year', 'month'])['vl_rem'].transform('sum')
+    worker_panel_long['num_jobs_month'] = worker_panel_long.groupby(['wid', 'year', 'month'])['vl_rem'].transform('count')
+    
+    worker_panel_long = worker_panel_long.sort_values(by='vl_rem', ascending=False).drop_duplicates(subset=['wid', 'year', 'month'])
+    worker_panel_long.sort_values(by=['wid', 'year', 'month'], inplace=True)
+    
+    # Combine 'year' and 'month' into a single date variable
+    worker_panel_long['calendar_date'] = pd.to_datetime(worker_panel_long[['year','month']].assign(day=1))
+    
+    
+    # Step 3: Flag months where the worker is employed at the given establishment
+    worker_panel_long['employment_indicator'] = (
+        (worker_panel_long['data_adm'] <= worker_panel_long['calendar_date']) & 
+        ((worker_panel_long['data_deslig'].isna()) | (worker_panel_long['data_deslig'] >= worker_panel_long['calendar_date'])) 
+    ).astype(int)
+    
+    
+    # Step 4: Merge with mass layoff data and flag mass layoff months
+    # Assuming closure_df contains the mass layoff data with columns 'id_estab' and 'data_encerramento'
+    
+    worker_panel_long = worker_panel_long.merge(closure_df[['id_estab', 'data_encerramento']], on='id_estab', how='left', validate='m:1', indicator=True)
+    worker_panel_long.drop(columns='_merge', inplace=True)
+    
+    # Create flag for worker being employed at estab in month in which mass layoff occurred. This is defined as the layoff firm being one's primary (highest earnings) firm in the month in which the firm closure occurred. 
+    worker_panel_long['mass_layoff_flag'] = (worker_panel_long['calendar_date'].dt.year == worker_panel_long['data_encerramento'].dt.year) & (worker_panel_long['calendar_date'].dt.month == worker_panel_long['data_encerramento'].dt.month) & (worker_panel_long['employment_indicator']==1)
+    
+    # Create a variable within each wid containing the first month in which the worker was exposed to an establishment closure
+    worker_panel_long['mass_layoff_month'] = worker_panel_long.loc[worker_panel_long['mass_layoff_flag']==1, 'calendar_date']
+    worker_panel_long['mass_layoff_month'] = worker_panel_long.groupby('wid')['mass_layoff_month'].transform('min')
+    
+    # Flag and keep workers who were employed at a mass layoff estab when the mass layoff happened
+    worker_panel_long['mass_layoff_ever'] = worker_panel_long.groupby('wid')['mass_layoff_flag'].transform('max')
+    worker_panel_long = worker_panel_long.loc[worker_panel_long['mass_layoff_ever']==1]
+    
+    
+    worker_panel_long['event_time'] = (worker_panel_long['calendar_date'].dt.to_period('M') -worker_panel_long['mass_layoff_month'].dt.to_period('M')).apply(lambda x: x.n if pd.notna(x) else np.nan)
+    
+    # Identify characteristics of the firm that closes
+    pre_layoff_obs = worker_panel_long.loc[(worker_panel_long['mass_layoff_month']==worker_panel_long['calendar_date']), ['wid', 'id_estab', 'id_firm', 'clas_cnae20', 'cbo2002', 'codemun', 'code_micro', 'salario', 'calendar_date']]
+    pre_layoff_obs = pre_layoff_obs.rename(columns={col: col + '_pre' for col in pre_layoff_obs.columns if col != 'wid'})
+    
+    
+    
+    
+    
+    ############################################################################################################
+    # Create a balanced worker panel where time is measured by event time
+    
+    invariant = ['wid', 'iota', 'genero', 'grau_instr', 'yob', 'nacionalidad', 'raca_cor']
+    variant = ['id_estab', 'id_firm', 'gamma', 'data_adm', 'data_deslig', 'causa_deslig', 'clas_cnae20', 'ind2', 'cbo2002', 'codemun', 'code_micro', 'salario', 'rem_med_sm', 'rem_med_r', 'vl_rem', 'total_earnings_month', 'num_jobs_month', 'calendar_date',  'employment_indicator', 'data_encerramento', 'mass_layoff_month']
+    
+    unique_wids=worker_panel_long['wid'].unique()
+    spine = pd.DataFrame({'wid':np.tile(unique_wids, 49), 'event_time':np.repeat(np.arange(-12,36+1),unique_wids.shape[0])})        
+    worker_panel_balanced = spine.merge(worker_panel_long[['wid','event_time'] + variant], how='left', on=['wid','event_time'], indicator=True, validate='1:1')
+    # create a calendar-year variable in the worker_panel_balance, label it as year
+    worker_panel_balanced['calendar_date'] = worker_panel_balanced['mass_layoff_month'].dt.to_period('M') + worker_panel_balanced['event_time']
+    worker_panel_balanced['year'] = worker_panel_balanced['calendar_date'].dt.year.replace(-1, pd.NA).astype('Int64') # For some reason NaTs are converted to -1 so fixing that
+    
+    # Merge on time-invariant variables to ensure they are defined when the person is not employed
+    worker_panel_balanced = worker_panel_balanced.merge(worker_panel_long[invariant].drop_duplicates(subset='wid', keep='last'), how='left', on='wid', indicator='_merge_invariant', validate='m:1')
+    
+    # Use event_time to ensure we have a calendar date for all rows
+    base_date = worker_panel_balanced.loc[worker_panel_balanced.event_time==0, ['wid','calendar_date']].rename(columns={'calendar_date':'base_date'})
+    worker_panel_balanced = worker_panel_balanced.merge(base_date, how='left', on='wid', indicator='_merge_base_date', validate='m:1')
+    dates = worker_panel_balanced['base_date'].values.astype('datetime64[M]')
+    adjusted_dates = dates + np.array(worker_panel_balanced['event_time'], dtype='timedelta64[M]')
+    worker_panel_balanced['calendar_date'] = adjusted_dates
+    
+    
+    # Calculate tenure at event_time = -1 and merge back to all observations
+    tenure_at_minus_one = worker_panel_balanced.loc[worker_panel_balanced['event_time'] == -1,['wid','mass_layoff_month','data_adm']]
+    tenure_at_minus_one['tenure_years'] = (tenure_at_minus_one['mass_layoff_month'] - tenure_at_minus_one['data_adm']).dt.days / 365.25
+    worker_panel_balanced = worker_panel_balanced.merge(tenure_at_minus_one[['wid', 'tenure_years']], on='wid', how='left')
+    
+    # Filter the sample to include only workers with at least 1 year of tenure
+    
+    # Check for people who are employed at the pre-layoff firm post-layoff. Drop these people. Also also identify each worker's first post-layoff firm and identify layoff firms where >50% of laid off workers end up at the same post-layoff firm. These should not be counted as true layoffs. 
+    
+    
+    # Merge on iotas and then E_N_gamma_given_iota
+    # XX This should no longer be necessary as of 7/11 because I am keeping iota and gamma when creating the panel now
+    #worker_panel_balanced['wid'] = worker_panel_balanced.wid.astype('Int64').astype(str)
+    #worker_panel_balanced = worker_panel_balanced.merge(iotas, how='inner', validate='m:1', on='wid',indicator='_merge_iotas')
+    #worker_panel_balanced = worker_panel_balanced.merge(E_N_gamma_given_iota, how='inner', validate='m:1', on='iota')
+    
+    
+    ''' I don't see what the point of this code is. Probably delete it
+    # XX need to do this for everyone in the 3 states in 2013-2016, not just the mass layoff sample
+    worker_panel['wid'] = worker_panel.wid.astype('Int64').astype(str)
+    worker_panel = worker_panel.merge(iotas, how='inner', validate='m:1', on='wid',indicator='_merge_iotas')
+    print('Merge stats for iotas')
+    print(worker_panel._merge_iotas.value_counts())
+    worker_panel.drop(columns=['_merge_iotas'], inplace=True)
+    '''
+    
+    
+    ######
+    # Create variables for regression in Moretti and Yi's equation 3
+    
+    # Some workers have multiple YOBs listed so I'll just take the mode
+    worker_panel_balanced['age']    = (worker_panel_balanced['calendar_date'].dt.to_period('Y') - pd.to_datetime(worker_panel_balanced['yob'].astype(int), format='%Y').dt.to_period('Y') ).apply(lambda x: x.n if pd.notna(x) else np.nan)
+    worker_panel_balanced['age_sq'] = worker_panel_balanced['age']**2
+    worker_panel_balanced['foreign']= (worker_panel_balanced['nacionalidad']!=10)
+    worker_panel_balanced['raca_cor'] = pd.Categorical(worker_panel_balanced['raca_cor'])
+    worker_panel_balanced['genero'] = pd.Categorical(worker_panel_balanced['genero'])
+    
+    # XX Could merge on coordinates here and then compute distances below, once we have pre-layoff and post-layoff id_estab
+    ###########################
+    # GEOLOCATION FOR RAIS ESTABLISHMENTS
+    years = list(range(firstyear_panel,lastyear_panel+1))
 
-# Get first reemployment time
-first_reemployment = worker_panel_balanced[(worker_panel_balanced['event_time'] > 0) & 
-                                           (worker_panel_balanced['employment_indicator'] == 1)].groupby('wid')['event_time'].min()
-worker_panel_balanced['first_reemployment_time'] = worker_panel_balanced['wid'].map(first_reemployment)
+    def pull_estab_geos(years):    
+        transformer = pyproj.Transformer.from_crs("epsg:4326", "epsg:32723", always_xy=True)
+        # Function to convert geographic coordinates to UTM
+        def convert_to_utm(lon, lat):
+            return transformer.transform(lon, lat)
+        
+        
+        high_precision_cat = ['POI',
+                                'PointAddress',
+                                'StreetAddress',
+                                'StreetAddressExt',
+                                'StreetName',
+                                'street_number',
+                                'route',
+                                'airport',
+                                'amusement_park',
+                                'intersection',
+                                'premise',
+                                'town_square']
+        
+        # Initialize an empty list to hold the DataFrames
+        geo_list = []
+        
+        for year in years:
+            print(str(year))
+            # Read the parquet file for the given year and rename columns
+            geo = pd.read_parquet(f'{rais}/geocode/rais_geolocalizada_{year}.parquet')
+            geo['year'] = year
+            geo.rename(columns={'lon': 'lon_estab', 'lat': 'lat_estab'}, inplace=True)
+            # Append the DataFrame to the list
+            geo_list.append(geo)
+        
+        # Concatenate all the DataFrames in the list into a single DataFrame
+        geo_estab = pd.concat(geo_list, ignore_index=True)
+        del geo, geo_list 
+        
+        ############################
+        
+        # Initialize lists to store the UTM coordinates
+        utm_lon = []
+        utm_lat = []
+        
+        # Convert latitude and longitude to UTM with progress indicator
+        for lon, lat in tqdm(zip(geo_estab['lon_estab'].values, geo_estab['lat_estab'].values), total=len(geo_estab)):
+            utm_x, utm_y = convert_to_utm(lon, lat)
+            utm_lon.append(utm_x)
+            utm_lat.append(utm_y)
+        
+        # Assign the UTM coordinates back to the DataFrame
+        geo_estab['utm_lon_estab'] = utm_lon
+        geo_estab['utm_lat_estab'] = utm_lat
+        
+        # Drop duplicates based on the specified columns in place
+        geo_estab.drop_duplicates(subset=['year', 'id_estab', 'lat_estab', 'lon_estab', 'Addr_type', 'h3_res7'], inplace=True)
+        # Optionally, reset the index in place
+        geo_estab.reset_index(drop=True, inplace=True)
+        
+        # Group by 'year' and 'id_estab' and count the occurrences
+        duplicates = geo_estab.groupby(['year','id_estab']).size().reset_index(name='count')
+        print((duplicates.iloc[:,2].value_counts() /  duplicates.iloc[:,2].sum()).round(4))
+        geo_estab = geo_estab.merge(duplicates, on=['year', 'id_estab'], how='left')
+        
+        geo_estab['is_high_precision'] = geo_estab['Addr_type'].isin(high_precision_cat).astype(int)
+        
+        geo_estab[(geo_estab['count'] > 1) & (geo_estab['is_high_precision'] == 0)].shape[0] / (geo_estab['count'] > 1).sum()
+        
+        geo_estab = geo_estab.sort_values('is_high_precision', ascending=False).drop_duplicates(subset=['year', 'id_estab'], keep='first')
+        geo_estab = geo_estab.drop_duplicates(subset=['year', 'id_estab'])
+        return geo_estab
+    
+    geo_estab = pull_estab_geos(years)
+    # The municipality geolocation comes from mkt_geography_stats.py that was run in the linux server because we don't have geobr on Windows
+    munis = pd.read_pickle(root + f'/Data/derived/munis_{modelname}.p') 
+    ###########################################
+    
+    ## XXBM: Merge geolocation to the worker balanced panel
+        
+    # Merge municipality geolocation to worker_balanced_panel
+    worker_panel_balanced = worker_panel_balanced.merge(munis[['geometry', 'lon_munic', 'lat_munic', 'codemun', 'utm_lon_munic', 'utm_lat_munic']], on='codemun',how='left', indicator='_merge_munics')
+    worker_panel_balanced['_merge_munics'].value_counts()
+    
+    # Merge establishment geolocation to worker_balanced_panel
+    worker_panel_balanced['id_estab'] = worker_panel_balanced['id_estab'].astype(str).str.zfill(14)
+    worker_panel_balanced = worker_panel_balanced.merge(geo_estab[['id_estab', 'year', 'Addr_type', 'lon_estab', 'lat_estab', 'utm_lat_estab', 'utm_lon_estab', 'h3_res7']], on=['year', 'id_estab'], how='left', validate='m:1', indicator='_merge_geo_estab')
+    worker_panel_balanced.columns
+    worker_panel_balanced._merge_geo_estab.value_counts()
+    
+    del geo_estab # Save memory
+
+    # Stats on establishments with missing geolocation
+    for l in ['lat_', 'lon_', 'utm_lat_', 'utm_lon_']:
+        print('----------------------------------------')
+        print('MISSING VALUES FOR ' + l + 'munic')
+        print(worker_panel_balanced[l + 'munic'].isna().sum(),'/',worker_panel_balanced.shape[0])
+
+    # Replace NaN values in *_estab columns with values from their *_munic counterparts
+    for l in ['lat_', 'lon_', 'utm_lat_', 'utm_lon_']:
+        print('----------------------------------------')
+        print('MISSING VALUES FOR ' + l + 'estab, BEFORE INPUTATION')
+        print(worker_panel_balanced[l + 'estab'].isna().sum(),'/',worker_panel_balanced.shape[0])
+        worker_panel_balanced[l + 'estab'] = worker_panel_balanced[l + 'estab'].fillna(worker_panel_balanced[l + 'munic'])
+        print('Missings after replacement with ' + l + 'munic, after inputation')
+        print(worker_panel_balanced[l + 'estab'].isna().sum(),'/',worker_panel_balanced.shape[0])
+
+
+    ###########################################
+    
+    ###################
+    # Create pre- and post-layoff variables as well as indicators for changing jobs, occs, industries, etc
+    # Get pre-layoff values
+    pre_layoff = worker_panel_balanced[worker_panel_balanced['event_time'] == -1].set_index('wid')
+    
+    # Get first post-layoff values
+    post_layoff = worker_panel_balanced[(worker_panel_balanced['event_time'] > 0) & 
+                                        (worker_panel_balanced['employment_indicator'] == 1)].groupby('wid').first()
+    # Loop over the specified variables
+    variables = ['id_firm', 'id_estab', 'cbo2002', 'clas_cnae20', 'ind2', 'code_micro', 'gamma', 'utm_lat_estab', 'utm_lon_estab']
+    for var in variables:
+        pre_col = f'pre_layoff_{var}'
+        post_col = f'post_layoff_{var}'
+        same_first_col = f'same_first_{var}'
+        same_col = f'same_{var}'
+        
+        worker_panel_balanced[pre_col] = worker_panel_balanced['wid'].map(pre_layoff[var])
+        worker_panel_balanced[post_col] = worker_panel_balanced['wid'].map(post_layoff[var])
+        worker_panel_balanced[same_first_col] = (worker_panel_balanced[pre_col] == worker_panel_balanced[post_col]).astype(int)
+        worker_panel_balanced[same_col] = (worker_panel_balanced[pre_col] == worker_panel_balanced[var]).astype(int)
+    
+    # Get first reemployment time
+    first_reemployment = worker_panel_balanced[(worker_panel_balanced['event_time'] > 0) & 
+                                               (worker_panel_balanced['employment_indicator'] == 1)].groupby('wid')['event_time'].min()
+    worker_panel_balanced['first_reemployment_time'] = worker_panel_balanced['wid'].map(first_reemployment)
+    
+    
+    
+    
+    # Identify and workers who are employed at the "layoff firm after the layoff occurred and then drop them
+    wids_to_drop = worker_panel_balanced.loc[(worker_panel_balanced['same_id_firm'] == 1) & (worker_panel_balanced['event_time'] > 0), 'wid'].unique()
+    worker_panel_balanced = worker_panel_balanced[~worker_panel_balanced['wid'].isin(wids_to_drop)]
+    
+    
+    
+    
+    
+    # Supplementary steps to identify and drop firms where >50% of laid off workers end up employed at the same firm as each other post-layoff
+    
+    # Step 1: Count the number of workers moving to each post_layoff_id_firm for each pre_layoff_id_firm
+    grouped = worker_panel_balanced.loc[worker_panel_balanced.event_time==0].groupby(['pre_layoff_id_firm', 'post_layoff_id_firm']).size().reset_index(name='counts')
+    
+    # Step 2: Calculate the total number of workers for each pre_layoff_id_firm
+    total_workers = grouped.groupby('pre_layoff_id_firm')['counts'].sum().reset_index(name='total')
+    
+    # Step 3: Merge to calculate the share of each post_layoff_id_firm
+    grouped = grouped.merge(total_workers, on='pre_layoff_id_firm')
+    grouped['share'] = grouped['counts'] / grouped['total']
+    
+    # Step 4: Flag pre_layoff_id_firm where any post_layoff_id_firm has a share > 50%
+    flagged_firms = grouped[grouped['share'] > 0.5]['pre_layoff_id_firm'].unique()
+    
+    # Display the flagged firms
+    print("Firms where a single post-layoff firm has >50% share:")
+    print(flagged_firms)
+    
+    worker_panel_balanced = worker_panel_balanced[~worker_panel_balanced['pre_layoff_id_firm'].isin(flagged_firms)]
+    
+    
+    
+    
+    
+    
+    # Recode the 'grau_instr' variable into coarser bins
+    bins = [0, 4, 6, 7, 8, 11]
+    labels = ['Less than middle school', 'Less than HS', 'HS', 'Some college', 'College']
+    worker_panel_balanced['educ'] = pd.cut(worker_panel_balanced['grau_instr'], bins=bins, labels=labels, right=True)
+    
+    
+    worker_panel_balanced['ind2'] = worker_panel_balanced['clas_cnae20'] // 1000
+    t_minus_1 = worker_panel_balanced[worker_panel_balanced['event_time'] == -1][['wid', 'code_micro','ind2']]
+    worker_panel_balanced = worker_panel_balanced.merge(t_minus_1, on='wid', suffixes=('', '_t_minus_1'))
+    
+    worker_panel_balanced['educ_micro']         = pd.Categorical(worker_panel_balanced.educ.astype(str) + '_' + worker_panel_balanced.code_micro_t_minus_1.astype(str)) 
+    worker_panel_balanced['educ_ind2']          = pd.Categorical(worker_panel_balanced.educ.astype(str) + '_' + worker_panel_balanced.ind2_t_minus_1.astype(str))
+    worker_panel_balanced['educ_layoff_date']   = pd.Categorical(worker_panel_balanced.educ.astype(str) + '_' + worker_panel_balanced.mass_layoff_month.astype(str)) 
+    
+    
+    # Replace NAs with 0 for earnings and employment
+    worker_panel_balanced['employment_indicator'].fillna(0, inplace=True)
+    worker_panel_balanced['total_earnings_month'].fillna(0, inplace=True)
+    worker_panel_balanced['vl_rem'].fillna(0, inplace=True)
+    
+    # Compute the ratio of actual wages to wages in terms of the minimum wage to get a deflator to convert vl_rem to vl_rem_sm
+    worker_panel_balanced['ratio'] = worker_panel_balanced['rem_med_r'] / worker_panel_balanced['rem_med_sm']
+    deflator = worker_panel_balanced.groupby('calendar_date')['ratio'].mean().reset_index(name='deflator')
+    worker_panel_balanced.drop(columns='ratio', inplace=True)
+    worker_panel_balanced = worker_panel_balanced.merge(deflator, on='calendar_date', how='left', validate='m:1')
+    
+    worker_panel_balanced['vl_rem_sm'] = worker_panel_balanced['vl_rem']/worker_panel_balanced['deflator']
+    worker_panel_balanced['total_earnings_month_sm'] = worker_panel_balanced['total_earnings_month']/worker_panel_balanced['deflator']
+    worker_panel_balanced['total_earnings_month_sm'].fillna(0, inplace=True)
+    
+    
+    ############################################################################
+    # Cutting on market size
+    
+    # Merge on P_ig and E_N
+    E_N_gamma_given_iota['market_size_tercile'] = pd.qcut(E_N_gamma_given_iota['E_N_gamma_given_iota'], q=3, labels=['low', 'medium', 'high'])
+    # Drop markets with fewer than 10 workers
+    mkt_size_df_worker = mkt_size_df_worker.loc[mkt_size_df_worker['count']>=10]
+    mkt_size_df_worker['market_size_tercile_ind2_micro'] = pd.qcut(mkt_size_df_worker['count'], q=3, labels=['low', 'medium', 'high'])
+    
+    worker_panel_balanced = worker_panel_balanced.merge(E_N_gamma_given_iota, on='iota', how='left', validate='m:1')
+    worker_panel_balanced = worker_panel_balanced.merge(mkt_size_df_worker.drop(columns='count'), left_on=['ind2','code_micro'], right_on=['ind2','code_micro'], how='left', validate='m:1')
+    
+    
+    worker_panel_balanced.to_pickle(root + "Data/derived/mass_layoffs_worker_panel_balanced.p", protocol=4)
+    #worker_panel_balanced.to_parquet(root + "Data/derived/mass_layoffs_worker_panel_balanced.parquet")
+    with open(root + "Data/derived/mass_layoffs_worker_panel_balanced_dtypes.p", 'wb') as f:
+        pickle.dump(worker_panel_balanced.dtypes.to_dict(), f)
+        
 
 
 
+worker_panel_balanced = pd.read_pickle(root + "Data/derived/mass_layoffs_worker_panel_balanced.p")
+#worker_panel_balanced = pd.read_parquet(root + "Data/derived/mass_layoffs_worker_panel_balanced.parquet")
+with open(root + 'Data/derived/mass_layoffs_worker_panel_balanced_dtypes.p', 'rb') as f:
+    worker_panel_balanced_dtypes = pickle.load(f)
+worker_panel_balanced = worker_panel_balanced.astype(worker_panel_balanced_dtypes)
+weighted_variances = pd.read_pickle(root + "Data/derived/mass_layoffs_weighted_variances.p")  
 
-# Identify and workers who are employed at the "layoff firm after the layoff occurred and then drop them
-wids_to_drop = worker_panel_balanced.loc[(worker_panel_balanced['same_id_firm'] == 1) & (worker_panel_balanced['event_time'] > 0), 'wid'].unique()
-worker_panel_balanced_filtered = worker_panel_balanced[~worker_panel_balanced['wid'].isin(wids_to_drop)]
-
-
-#####
-# Identify firms where >50% of people end up reemployed at the same firm (some of this may be the firm closure dates occurring before people actually leave the firm)
-# Drop people who are employed at the same firm right after layoff. This will include some poeple who seem to continue to be employed after the layoff date. 
-
-
-worker_panel_balanced['same_id_firm']
-
-# Step 1: Compute the fraction of people with same_firm == 1 for each pre-layoff firm
-firm_fractions = worker_panel_balanced.groupby('pre_layoff_id_firm')['p_layoff_id_firm'].mean()
-# Step 2: Identify firms where more than 50% of people have same_first_id_firm == 1
-firms_to_drop = firm_fractions[firm_fractions > 0.5].index
-
-# Step 3: Drop all rows corresponding to these firms
-worker_panel_balanced = worker_panel_balanced[~worker_panel_balanced['pre_layoff_id_firm'].isin(firms_to_drop)]
+iotas_w_attributes = pd.read_parquet(root + 'Data/derived/iotas_w_attributes_geo_estab_3states_2013to2016_mcmc.parquet')
 
 
+def calculate_distance(row, lat1, lon1, lat2, lon2):
+    if np.isnan(row[lat2]) or np.isnan(row[lon2]):
+        return np.nan
+    else:
+        return np.sqrt(
+            (row[lat2] - row[lat1])**2 +
+            (row[lon2] - row[lon1])**2
+        )
 
+# Usage
+worker_panel_balanced['move_distance_km'] = worker_panel_balanced.apply(
+    calculate_distance, 
+    axis=1,
+    args=(
+        'pre_layoff_utm_lat_estab',
+        'pre_layoff_utm_lon_estab',
+        'post_layoff_utm_lat_estab',
+        'post_layoff_utm_lon_estab'
+    )
+) / 1000
 
-
-
-# Supplementary steps to identify and drop firms where >50% of laid off workers end up employed at the same firm as each other post-layoff
-
-# Step 1: Count the number of workers moving to each post_layoff_id_firm for each pre_layoff_id_firm
-grouped = worker_panel_balanced.loc[worker_panel_balanced.event_time==0].groupby(['pre_layoff_id_firm', 'post_layoff_id_firm']).size().reset_index(name='counts')
-
-# Step 2: Calculate the total number of workers for each pre_layoff_id_firm
-total_workers = grouped.groupby('pre_layoff_id_firm')['counts'].sum().reset_index(name='total')
-
-# Step 3: Merge to calculate the share of each post_layoff_id_firm
-grouped = grouped.merge(total_workers, on='pre_layoff_id_firm')
-grouped['share'] = grouped['counts'] / grouped['total']
-
-# Step 4: Flag pre_layoff_id_firm where any post_layoff_id_firm has a share > 50%
-flagged_firms = grouped[grouped['share'] > 0.5]['pre_layoff_id_firm'].unique()
-
-# Display the flagged firms
-print("Firms where a single post-layoff firm has >50% share:")
-print(flagged_firms)
-
-worker_panel_balanced = worker_panel_balanced[~worker_panel_balanced['pre_layoff_id_firm'].isin(flagged_firms)]
+worker_panel_balanced['dist_from_pre_layoff_job_km'] = worker_panel_balanced.apply(
+    calculate_distance, 
+    axis=1,
+    args=(
+        'pre_layoff_utm_lat_estab',
+        'pre_layoff_utm_lon_estab',
+        'utm_lat_estab',
+        'utm_lon_estab'
+    )
+) / 1000
 
 
 
-
-
-
-# Recode the 'grau_instr' variable into coarser bins
-bins = [0, 4, 6, 7, 8, 11]
-labels = ['Less than middle school', 'Less than HS', 'HS', 'Some college', 'College']
-worker_panel_balanced['educ'] = pd.cut(worker_panel_balanced['grau_instr'], bins=bins, labels=labels, right=True)
-
-
-worker_panel_balanced['ind2'] = worker_panel_balanced['clas_cnae20'] // 1000
-t_minus_1 = worker_panel_balanced[worker_panel_balanced['event_time'] == -1][['wid', 'code_micro','ind2']]
-worker_panel_balanced = worker_panel_balanced.merge(t_minus_1, on='wid', suffixes=('', '_t_minus_1'))
-
-worker_panel_balanced['educ_micro']         = pd.Categorical(worker_panel_balanced.educ.astype(str) + '_' + worker_panel_balanced.code_micro_t_minus_1.astype(str)) 
-worker_panel_balanced['educ_ind2']          = pd.Categorical(worker_panel_balanced.educ.astype(str) + '_' + worker_panel_balanced.ind2_t_minus_1.astype(str))
-worker_panel_balanced['educ_layoff_date']   = pd.Categorical(worker_panel_balanced.educ.astype(str) + '_' + worker_panel_balanced.mass_layoff_month.astype(str)) 
-
-
-# Replace NAs with 0 for earnings and employment
-worker_panel_balanced['employment_indicator'].fillna(0, inplace=True)
-worker_panel_balanced['total_earnings_month'].fillna(0, inplace=True)
-worker_panel_balanced['vl_rem'].fillna(0, inplace=True)
-
-# Compute the ratio of actual wages to wages in terms of the minimum wage to get a deflator to convert vl_rem to vl_rem_sm
-worker_panel_balanced['ratio'] = worker_panel_balanced['rem_med_r'] / worker_panel_balanced['rem_med_sm']
-deflator = worker_panel_balanced.groupby('calendar_date')['ratio'].mean().reset_index(name='deflator')
-worker_panel_balanced.drop(columns='ratio', inplace=True)
-worker_panel_balanced = worker_panel_balanced.merge(deflator, on='calendar_date', how='left', validate='m:1')
-
-worker_panel_balanced['vl_rem_sm'] = worker_panel_balanced['vl_rem']/worker_panel_balanced['deflator']
-worker_panel_balanced['total_earnings_month_sm'] = worker_panel_balanced['total_earnings_month']/worker_panel_balanced['deflator']
+#######################################
+# Compute correlations between move distances and other stuff like that and various iota attributes
 
 
 
@@ -889,7 +982,6 @@ if run_preliminary_figures==True:
     ####################################################################
     # Earnings
     
-    worker_panel_balanced['total_earnings_month_sm'].fillna(0, inplace=True)
     
     # Define the dependent variable and the independent variables
     y = worker_panel_balanced['total_earnings_month_sm']
@@ -939,22 +1031,9 @@ if run_preliminary_figures==True:
     
 
 
-############################################################################
-# Cutting on market size
-
-# Merge on P_ig and E_N
-E_N_gamma_given_iota['market_size_tercile'] = pd.qcut(E_N_gamma_given_iota['E_N_gamma_given_iota'], q=3, labels=['low', 'medium', 'high'])
-# Drop markets with fewer than 10 workers
-mkt_size_df_worker = mkt_size_df_worker.loc[mkt_size_df_worker['count']>=10]
-mkt_size_df_worker['market_size_tercile_ind2_micro'] = pd.qcut(mkt_size_df_worker['count'], q=3, labels=['low', 'medium', 'high'])
-
-worker_panel_balanced = worker_panel_balanced.merge(E_N_gamma_given_iota, on='iota', how='left', validate='m:1')
-worker_panel_balanced = worker_panel_balanced.merge(mkt_size_df_worker.drop(columns='count'), left_on=['ind2','code_micro'], right_on=['ind2','code_micro'], how='left', validate='m:1')
-
-
 
 def event_studies_by_mkt_size(worker_panel_balanced, y_var, continuous_controls, fixed_effects_cols, 
-                              market_size_var, omitted_category, baseline_category = 'low', print_regression=False, savefig=None):
+                              market_size_var, omitted_category, baseline_category = 'low', print_regression=False, savefig=None, title=None):
     """
     Perform event studies by market size.
     
@@ -1046,7 +1125,10 @@ def event_studies_by_mkt_size(worker_panel_balanced, y_var, continuous_controls,
     plt.axhline(0, color='black', linewidth=1, linestyle='--')
     plt.xlabel('Months Since Firm Closure')
     plt.ylabel('Coefficient')
-    plt.title(f'{y_var} by {market_size_var}')
+    if title is None:
+        plt.title(f'{y_var} by {market_size_var}')
+    else:
+        plt.title(title)
     plt.grid(True)
     plt.legend()
     if savefig is not None:
@@ -1152,7 +1234,7 @@ vars = ['same_cbo2002', 'same_clas_cnae20', 'same_ind2', 'same_code_micro', 'sam
 for v in vars:
     print(v)
     results, coef_df = event_studies_by_mkt_size(
-        worker_panel_balanced.loc[worker_panel_balanced.total_earnings_month_sm.notna()],
+        worker_panel_balanced.loc[( worker_panel_balanced.tenure_years>=.5)],
         y_var=v,
         continuous_controls=['age', 'age_sq'],
         fixed_effects_cols=['educ_micro', 'educ_ind2', 'educ_layoff_date', 'foreign', 'genero', 'raca_cor'],
@@ -1160,47 +1242,79 @@ for v in vars:
         omitted_category='medium'
     )
 
+
 # Restricted to college-educated workers only
 results, coef_df = event_studies_by_mkt_size(
-    worker_panel_balanced.loc[( worker_panel_balanced['total_earnings_month_sm']<20) & (worker_panel_balanced['educ']=='College')],
+    worker_panel_balanced.loc[( worker_panel_balanced.tenure_years>=.5) & (worker_panel_balanced['educ']=='College')],
     y_var='employment_indicator',
     continuous_controls=['age', 'age_sq'],
     fixed_effects_cols=['educ_micro', 'educ_ind2', 'educ_layoff_date', 'foreign', 'genero', 'raca_cor'],
     market_size_var='market_size_tercile',
     omitted_category='medium',
-    savefig=root + 'Results/employment_indicator_after_layoff_by_market_size_tercile_college.pdf'
+    title='employment_indicator by market size tercile (College only)',
+    savefig=root + 'Results/employment_indicator_after_layoff_by_market_size_tercile_College.pdf'
 )
 
 results, coef_df = event_studies_by_mkt_size(
-    worker_panel_balanced.loc[( worker_panel_balanced['total_earnings_month_sm']<20) & (worker_panel_balanced['educ']=='College')],
+    worker_panel_balanced.loc[( worker_panel_balanced.tenure_years>=.5) & (worker_panel_balanced['educ']=='College')],
     y_var='earnings_primary_job',
     continuous_controls=['age', 'age_sq'],
     fixed_effects_cols=['educ_micro', 'educ_ind2', 'educ_layoff_date', 'foreign', 'genero', 'raca_cor'],
     market_size_var='market_size_tercile',
     omitted_category='medium',
-    savefig=root + 'Results/earnings_primary_job_after_layoff_by_market_size_tercile_college.pdf'
+    title='earnings_primary_job by market size tercile (College only)',
+    savefig=root + 'Results/earnings_primary_job_after_layoff_by_market_size_tercile_College.pdf'
 )
 
 # Restricted to high school-educated workers only
 results, coef_df = event_studies_by_mkt_size(
-    worker_panel_balanced.loc[( worker_panel_balanced['total_earnings_month_sm']<20) & (worker_panel_balanced['educ']=='HS')],
+    worker_panel_balanced.loc[( worker_panel_balanced.tenure_years>=.5) & (worker_panel_balanced['educ']=='HS')],
     y_var='employment_indicator',
     continuous_controls=['age', 'age_sq'],
     fixed_effects_cols=['educ_micro', 'educ_ind2', 'educ_layoff_date', 'foreign', 'genero', 'raca_cor'],
     market_size_var='market_size_tercile',
     omitted_category='medium',
-    savefig=root + 'Results/employment_indicator_after_layoff_by_market_size_tercile_college.pdf'
+    title='employment_indicator by market size tercile (HS only)',
+    savefig=root + 'Results/employment_indicator_after_layoff_by_market_size_tercile_HS.pdf'
 )
 
 results, coef_df = event_studies_by_mkt_size(
-    worker_panel_balanced.loc[( worker_panel_balanced['total_earnings_month_sm']<20) & (worker_panel_balanced['educ']=='HS')],
+    worker_panel_balanced.loc[(worker_panel_balanced.tenure_years>=.5) & (worker_panel_balanced['educ']=='HS')],
     y_var='earnings_primary_job',
     continuous_controls=['age', 'age_sq'],
     fixed_effects_cols=['educ_micro', 'educ_ind2', 'educ_layoff_date', 'foreign', 'genero', 'raca_cor'],
     market_size_var='market_size_tercile',
     omitted_category='medium',
-    savefig=root + 'Results/earnings_primary_job_after_layoff_by_market_size_tercile_college.pdf'
+    title='earnings_primary_job by market size tercile (HS only)',
+    savefig=root + 'Results/earnings_primary_job_after_layoff_by_market_size_tercile_HS.pdf'
 )
+
+
+
+
+
+
+
+
+results, coef_df = event_studies_by_mkt_size(
+    worker_panel_balanced.loc[( worker_panel_balanced.tenure_years>=.5) & (worker_panel_balanced['dist_from_pre_layoff_job_km'].notna())],
+    y_var='dist_from_pre_layoff_job_km',
+    continuous_controls=['age', 'age_sq'],
+    fixed_effects_cols=['educ_micro', 'educ_ind2', 'educ_layoff_date', 'foreign', 'genero', 'raca_cor'],
+    market_size_var='market_size_tercile',
+    omitted_category='medium',
+    title='Distance from original job by market size tercile',
+    savefig=root + 'Results/dist_from_pre_layoff_job_km_by_market_size_tercile.pdf'
+)
+
+
+
+
+
+
+
+
+
 
 
 

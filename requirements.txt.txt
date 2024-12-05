@@ -1,0 +1,47 @@
+LINUX ENVIRONMENT AS OF 08/21/2024
+numpy==1.19.5
+pandas==1.3.0
+matplotlib==3.4.2
+statsmodels==0.12.2
+linearmodels==4.24
+tqdm==4.61.2
+pyproj==3.0.1
+torch==1.9.0
+scipy==1.5.4
+
+
+pip3 install --upgrade --user stata_setup
+
+set STATA_PATH=C:\Program Files (x86)\Stata14\StataMP-64.exe
+set STATA_PATH=C:\Program Files (x86)\Stata14
+import pystata
+pystata.config.set_stata_path('C:\Program Files (x86)\StataSE-64.exe')
+
+
+pip3 install --upgrade stata_setup
+stata_setup.config('C:/Program Files (x86)/Stata14/', 'mp')
+
+
+CREATING OUR OWN VIRTUAL ENVIRONMENT: labor
+# go to the windows menu and look for the Anaconda prompt (not the powershell prompt)
+
+# create a new environment
+conda create --name rafa python=3.12
+
+# environment saved at
+C:\ProgramData\anaconda3\envs\rafa
+
+# activate the environment to install packages (to return to the base environment, conda deactivate)
+conda activate rafa
+
+# installing stuff to make it work
+conda install spyder-kernels=2.4
+conda install numpy==1.22.3      (DIFFERENT FROM LINUX: it had to be compatible with python 3.11)
+conda install pandas matplotlib statsmodel tqdm pyproj
+conda install -c conda-forge linearmodels
+conda install -c conda-forge pytorch
+conda install -c conda-forge graph-tool
+
+# link spyder to our new environment
+Go to the menu Tools, Preferences, Interpreter, and then choose the python exe that is here: C:\ProgramData\anaconda3\envs\labor
+Apply changes and restart spyder.

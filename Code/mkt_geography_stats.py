@@ -6,7 +6,6 @@ import os
 import sys
 import matplotlib.pyplot as plt
 import pyproj # for converting geographic degree measures of lat and lon to the UTM system (i.e. in meters)
-from scipy.integrate import simps # to calculate the AUC for the decay function
 import statsmodels.api as sm
 from tqdm import tqdm # to calculate progress of some operations for geolocation
 import gc
@@ -14,6 +13,15 @@ import glob
 import platform
 import sys
 import getpass
+
+import geopandas as gpd
+import matplotlib.pyplot as plt
+from shapely.geometry import Point
+from sklearn.metrics import pairwise_distances
+import matplotlib.gridspec as gridspec
+import matplotlib.image as mpimg
+from scipy.stats import gaussian_kde
+
 
 rcounts = []
 rc = 0
@@ -28,6 +36,7 @@ if getpass.getuser()=='p13861161':
         root = "//storage6/usuarios/labormkt_rafaelpereira/NetworksGit/"
         rais = "//storage6/bases/DADOS/RESTRITO/RAIS/"
         sys.path.append(root + 'Code/Modules')
+        from scipy.integrate import simpson as simps # to calculate the AUC for the decay function
     elif os_name == 'Linux':
         print("Running on Linux") 
         root = "/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/"
@@ -44,6 +53,10 @@ if getpass.getuser()=='p13861161':
         from correlogram import correlogram
         import binsreg
         import geobr
+        from geobr import read_state, read_municipality
+        from scipy.integrate import simps # to calculate the AUC for the decay function
+
+
 
 if getpass.getuser()=='jfogel':
     print("Running on Jamie's home laptop")
@@ -52,6 +65,8 @@ if getpass.getuser()=='jfogel':
 
 
 from pull_one_year import pull_one_year
+from mass_layoffs_parquet_functions import pull_estab_geos
+
 
 state_codes = [31, 33, 35]
 region_codes = pd.read_csv(root + '/Data/raw/munic_microregion_rm.csv', encoding='latin1')
@@ -168,8 +183,12 @@ raw['sector_IBGE'].loc[(90<=raw['ind2']) & (raw['ind2'] <=97)] = 15
 # Recode education variable to approximately reflect years of schooling
 raw['grau_instr'] = raw['grau_instr'].replace({1:1, 2:3, 3:5, 4:7, 5:9, 6:10, 7:12, 8:14, 9:16, 10:18, 11:21})
 
-raw.to_pickle(root + f'/Data/derived/mkt_geography_raw_{modelname}.p', protocol=4)
-raw = pd.read_pickle(root + f'/Data/derived/mkt_geography_raw_{modelname}.p')
+#raw.to_pickle(root + f'/Data/derived/mkt_geography_raw_{modelname}.p', protocol=4)
+#raw = pd.read_pickle(root + f'/Data/derived/mkt_geography_raw_{modelname}.p')
+
+raw.to_parquet(root + f'/Data/derived/mkt_geography_raw_{modelname}.parquet', compression='gzip')
+raw = pd.read_parquet(root + f'/Data/derived/mkt_geography_raw_{modelname}.parquet')
+
 
 # Dropping NaNs iotas or gammas
 # 1st, printing the % of the observations with missing iota or gamma
@@ -202,19 +221,16 @@ rcounts.append([rc,raw.shape[0]])
 ###########################################
 # GETTING LATITUDE AND LONGITUDE FOR ALL MUNICS IN THE DATA & MERGING THEM BACK TO THE MAIN DATASET called 'raw'
 
-# Pull meso codes for our states of interest. Choosing 2010 b/c this isn't available for all years and 2010 is in the middle of our sample
-muni_sp = geobr.read_municipality(code_muni="SP", year=2010)
-muni_rj = geobr.read_municipality(code_muni='RJ', year=2010)
-muni_mg = geobr.read_municipality(code_muni='MG', year=2010)
+# Pull meso codes for our states of interest. Choosing 2014 b/c this isn't available for all years and 2014 is in the middle of our sample
+year_code_munic = list(raw['year'].unique())[1]
+
+muni_sp = geobr.read_municipality(code_muni="SP", year=year_code_munic)
+muni_rj = geobr.read_municipality(code_muni='RJ', year=year_code_munic)
+muni_mg = geobr.read_municipality(code_muni='MG', year=year_code_munic)
 munis = pd.concat([muni_sp, muni_rj, muni_mg], ignore_index=True)
 munis['lon_munic'] = munis.geometry.centroid.x
 munis['lat_munic'] = munis.geometry.centroid.y
 munis['codemun'] = munis.code_muni//10
-
-# geobr not installed on Stata server so I added this to allow me to run it on linux and then load it elsewhere. Also convert from geopandas to regular pandas df
-munis = pd.DataFrame(munis)
-munis.to_pickle(root + f'/Data/derived/munis_{modelname}.p')
-munis = pd.read_pickle(root + f'/Data/derived/munis_{modelname}.p')
 
 # Converting coordinates to UTM, so the units are in meters
 # Function to convert geographic coordinates to UTM using a fixed zone 23S for Sao Paulo
@@ -238,6 +254,11 @@ for lon, lat in tqdm(zip(munis['lon_munic'].values, munis['lat_munic'].values), 
 munis['utm_lon_munic'] = utm_lon
 munis['utm_lat_munic'] = utm_lat
 
+# geobr not installed on Stata server so I added this to allow me to run it on linux and then load it elsewhere. Also convert from geopandas to regular pandas df
+munis = pd.DataFrame(munis)
+munis.to_pickle(root + f'/Data/derived/munis_{modelname}.p')
+munis = pd.read_pickle(root + f'/Data/derived/munis_{modelname}.p')
+
 raw = raw.merge(munis[['geometry', 'lon_munic', 'lat_munic', 'codemun', 'utm_lon_munic', 'utm_lat_munic']], on='codemun',how='left', indicator='_merge_munics')
 raw['_merge_munics'].value_counts()
 #raw.drop(columns=['_merge_munics'], inplace=True)
@@ -258,67 +279,8 @@ rcounts.append([rc,raw.shape[0]])
 # file of type: rais_geolocalizada_2009
 years = raw.year.unique().tolist()
 
-high_precision_cat = ['POI',
-                        'PointAddress',
-                        'StreetAddress',
-                        'StreetAddressExt',
-                        'StreetName',
-                        'street_number',
-                        'route',
-                        'airport',
-                        'amusement_park',
-                        'intersection',
-                        'premise',
-                        'town_square']
+geo_estab = pull_estab_geos([year], rais)
 
-# Initialize an empty list to hold the DataFrames
-geo_list = []
-
-for year in years:
-    print(str(year))
-    # Read the parquet file for the given year and rename columns
-    geo = pd.read_parquet(f'{rais}/geocode/rais_geolocalizada_{year}.parquet')
-    geo['year'] = year
-    geo.rename(columns={'lon': 'lon_estab', 'lat': 'lat_estab'}, inplace=True)
-    # Append the DataFrame to the list
-    geo_list.append(geo)
-
-# Concatenate all the DataFrames in the list into a single DataFrame
-geo_estab = pd.concat(geo_list, ignore_index=True)
-del geo, geo_list 
-
-############################
-
-# Initialize lists to store the UTM coordinates
-utm_lon = []
-utm_lat = []
-
-# Convert latitude and longitude to UTM with progress indicator
-for lon, lat in tqdm(zip(geo_estab['lon_estab'].values, geo_estab['lat_estab'].values), total=len(geo_estab)):
-    utm_x, utm_y = convert_to_utm(lon, lat)
-    utm_lon.append(utm_x)
-    utm_lat.append(utm_y)
-
-# Assign the UTM coordinates back to the DataFrame
-geo_estab['utm_lon_estab'] = utm_lon
-geo_estab['utm_lat_estab'] = utm_lat
-
-# Drop duplicates based on the specified columns in place
-geo_estab.drop_duplicates(subset=['year', 'id_estab', 'lat_estab', 'lon_estab', 'Addr_type', 'h3_res7'], inplace=True)
-# Optionally, reset the index in place
-geo_estab.reset_index(drop=True, inplace=True)
-
-# Group by 'year' and 'id_estab' and count the occurrences
-duplicates = geo_estab.groupby(['year','id_estab']).size().reset_index(name='count')
-print((duplicates.iloc[:,2].value_counts() /  duplicates.iloc[:,2].sum()).round(4))
-geo_estab = geo_estab.merge(duplicates, on=['year', 'id_estab'], how='left')
-
-geo_estab['is_high_precision'] = geo_estab['Addr_type'].isin(high_precision_cat).astype(int)
-
-geo_estab[(geo_estab['count'] > 1) & (geo_estab['is_high_precision'] == 0)].shape[0] / (geo_estab['count'] > 1).sum()
-
-geo_estab = geo_estab.sort_values('is_high_precision', ascending=False).drop_duplicates(subset=['year', 'id_estab'], keep='first')
-geo_estab = geo_estab.drop_duplicates(subset=['year', 'id_estab'])
 
 
 # FROM CHATGPT
@@ -360,8 +322,18 @@ for l in ['lat_', 'lon_', 'utm_lat_', 'utm_lon_']:
     print('Missings after replacement with ' + l + 'munic, after inputation')
     print(raw[l + 'estab'].isna().sum(),'/',raw.shape[0])
 
-raw.to_pickle(root + f'/Data/derived/mkt_geography_raw_{modelname}.p')
+
+# XXBM: I don't know if we need geometry, so I'll save the object here with pickle then delete geometry
+
+#raw.to_pickle(root + f'/Data/derived/mkt_geography_raw_{modelname}.p')
 #raw = pd.read_pickle(root + f'/Data/derived/mkt_geography_raw_{modelname}.p')
+
+geometry = raw['geometry']
+raw = raw.drop(columns=['geometry'])
+
+raw.to_parquet(root + f'/Data/derived/mkt_geography_raw_{modelname}.parquet', compression='gzip')
+#raw = pd.read_parquet(root + f'/Data/derived/mkt_geography_raw_{modelname}.parquet')
+
 
 
 ###########################################
@@ -612,11 +584,12 @@ def save_dataframe_in_chunks(df, file_path, chunk_size=100000):
     for i in range(num_chunks):
         chunk = df[i*chunk_size:(i+1)*chunk_size]
         chunk_file_path = f"{file_path}_chunk_{i}.p"
-        chunk.to_pickle(chunk_file_path)
+        chunk.to_pickle(chunk_file_path, protocol=4)
         print(f"Saved chunk {i+1}/{num_chunks} to {chunk_file_path}")
 
 # Save the raw DataFrame in chunks
-save_dataframe_in_chunks(raw, root + f'/Data/derived/mkt_geography_raw_{modelname}_', chunk_size=int(2e7))
+#save_dataframe_in_chunks(raw, root + f'/Data/derived/mkt_geography_raw_{modelname}', chunk_size=int(2e7))
+raw.to_parquet(root + f'/Data/derived/mkt_geography_raw_{modelname}.parquet', compression='gzip')
 
 # Get a list of all chunk files
 def load_dataframe_in_chunks(file_path_pattern):
@@ -626,6 +599,7 @@ def load_dataframe_in_chunks(file_path_pattern):
     return pd.concat(raw_chunks, ignore_index=True)
 
 #raw = load_dataframe_in_chunks(root + f'/Data/derived/mkt_geography_raw_{modelname}_chunk_*.p')
+raw = pd.read_parquet(root + f'/Data/derived/mkt_geography_raw_{modelname}.parquet')
 
 
 ##########################################
@@ -661,6 +635,9 @@ raw['ed_gradschool'] = np.where(raw['grau_instr'].isin([10, 11]), 1, 0)
 raw['ms_degree'] = np.where(raw['grau_instr'] >= 5, 1, 0)
 raw['hs_degree'] = np.where(raw['grau_instr'] >= 7, 1, 0)
 raw['college_degree'] = np.where(raw['grau_instr'] >= 9, 1, 0)
+
+
+
 
 # Custom function to get the mode
 def mode_function(series):
@@ -819,7 +796,7 @@ for iota in raw['iota'].unique():
     plt.grid(True, which='both', color='lightgray', linestyle='--', linewidth=0.5)
     
     # Save the plot
-    plt.savefig(os.path.join(root + '/Results/iota_summary_stats/geo_' + geocode_unit + '/decay_plots', f'decay_function_iota_{iota}.png'))
+    plt.savefig(os.path.join(root + '/Results/iota_summary_stats/geo_' + geocode_unit + '/decay_plots/', f'{modelname}/decay_function_iota_{iota}.png'))
     plt.close()
 
 # Merge the final results with spatial_metrics_df on the 'iota' column
@@ -862,7 +839,7 @@ lower_triangle_corr_matrix = correlation_matrix.mask(mask)
 
 #print(lower_triangle_corr_matrix)
 
-lower_triangle_corr_matrix.to_csv(root + '/Results/iota_summary_stats/geo_' + geocode_unit + '/correlation_matrix_lower.csv')
+lower_triangle_corr_matrix.to_csv(root + '/Results/iota_summary_stats/geo_' + geocode_unit + '/correlation_matrix_lower_{modelname}.csv')
 
 
 ##########################################
@@ -900,7 +877,7 @@ for y_var in y_variables:
         # Display the plot
         #plot = est.bins_plot + ggtitle(f'Binned Scatter Plot of {y_var} vs. {x_var}') + theme_bw() + theme(legend_position='none')
         # Save the plot
-        plot_filename = f'{y_var}_vs_{x_var}.png'
+        plot_filename = f'{y_var}_vs_{x_var}_{modelname}.png'
         plt.savefig(root + 'Results/iota_summary_stats/geo_' + geocode_unit + '/binned_plots/' + plot_filename)
         plt.close()
 
@@ -958,9 +935,9 @@ x_variables2 = factor_names
 results2 = run_regressions(y_variables, x_variables2, iotas_w_attributes)
 
 # Save results to Excel
-results1.to_excel(os.path.join(output_dir, 'regression_results_set1.xlsx'), index=False)
+results1.to_excel(os.path.join(output_dir, 'regression_results_set1_{modelname}.xlsx'), index=False)
 
-results2.to_excel(os.path.join(output_dir, 'regression_results_set2.xlsx'), index=False)
+results2.to_excel(os.path.join(output_dir, 'regression_results_set2_{modelname}.xlsx'), index=False)
 
 
 ##########################################
@@ -1005,7 +982,10 @@ get_extreme_iotas(var_sort= 'std_distance', other_var = ['modal_occ4','mean_mont
 
 get_extreme_iotas(var_sort= 'educ_years', other_var = ['modal_occ4','mean_monthly_earnings','std_distance'], ascending=True, iota_var = 'iota_rescaled', qty =5, print_occ_count=True)
 
-iotas_w_attributes.to_pickle(root + f'/Data/derived/iotas_w_attributes_temp_{modelname}.p')
+#iotas_w_attributes.to_pickle(root + f'/Data/derived/iotas_w_attributes_temp_{modelname}.p', protocol=4)
+#iotas_w_attributes = pd.read_pickle(root + f'/Data/derived/iotas_w_attributes_temp_{modelname}.p')
+iotas_w_attributes.to_parquet(root + f'/Data/derived/iotas_w_attributes_temp_{modelname}.parquet', compression='gzip')
+iotas_w_attributes = pd.read_parquet(root + f'/Data/derived/iotas_w_attributes_temp_{modelname}.parquet')
 
 
 ##########################################
@@ -1019,17 +999,9 @@ print(wtf)
 
 ##########################################
 
-import geopandas as gpd
-import matplotlib.pyplot as plt
-from shapely.geometry import Point
-from sklearn.metrics import pairwise_distances
-from geobr import read_state, read_municipality
-import matplotlib.gridspec as gridspec
-import matplotlib.image as mpimg
-from scipy.stats import gaussian_kde
 
 # Load state shapes
-year_maps = 2010
+year_maps = years[0]
 rj = read_state(code_state='RJ', year=year_maps)
 mg = read_state(code_state='MG', year=year_maps)
 sp = read_state(code_state='SP', year=year_maps)
@@ -1042,12 +1014,26 @@ bh_city = read_municipality(code_muni=3106200, year=year_maps)  # Belo Horizonte
 
 capitals_gdf = gpd.GeoDataFrame(pd.concat([sp_city, rj_city, bh_city], ignore_index=True))
 
+#states_gdf.to_pickle(  root + '/Data/derived/states_gdf_{modelname}.p')
+#capitals_gdf.to_pickle(root + '/Data/derived/capitals_gdf_{modelname}.p')
+#states_gdf      = pd.read_pickle(root + '/Data/derived/states_gdf_{modelname}.p')
+#capitals_gdf    = pd.read_pickle(root + '/Data/derived/capitals_gdf_{modelname}.p')
+
+#states_gdf.to_parquet(  root + '/Data/derived/states_gdf_{modelname}.parquet', compression='gzip')
+#capitals_gdf.to_parquet(root + '/Data/derived/capitals_gdf_{modelname}.parquet', compression='gzip')
+#states_gdf      = pd.read_parquet(root + '/Data/derived/states_gdf_{modelname}.parquet')
+#capitals_gdf    = pd.read_parquet(root + '/Data/derived/capitals_gdf_{modelname}.parquet')
+
+
+
+
 # Step 1: Count observations per iota in raw
 iota_counts = raw['iota'].value_counts().reset_index()
 iota_counts.columns = ['iota', 'num_wid_jids_total']
 iotas_w_attributes = pd.merge(iotas_w_attributes, iota_counts, on='iota', how='left')
 
-iotas_w_attributes.to_pickle(root + '/Data/derived/iotas_w_attributes_geo_' + geocode_unit + f'_{modelname}.p')
+#iotas_w_attributes.to_pickle(root + '/Data/derived/iotas_w_attributes_geo_' + geocode_unit + f'_{modelname}.p')
+iotas_w_attributes.to_parquet(root + '/Data/derived/iotas_w_attributes_geo_' + geocode_unit + f'_{modelname}.parquet', compression='gzip')
 #iotas_w_attributes = pd.read_pickle(root + '/Data/derived/iotas_w_attributes.p')
 
 
@@ -1090,7 +1076,7 @@ def create_kde_heatmap(gdf, lat_column, lon_column, states_gdf, capitals_gdf, ax
     xx, yy = np.mgrid[xmin:xmax:100j, ymin:ymax:100j]
     zz = np.reshape(kde(np.vstack([xx.ravel(), yy.ravel()])), xx.shape)
     #colormaps = ['plasma', 'viridis', 'inferno', 'magma', 'cividis', 'coolwarm', 'Spectral']
-    im = ax.imshow(np.rot90(zz), cmap='turbo', extent=[xmin, xmax, ymin, ymax], aspect='auto')
+    im = ax.imshow(np.rot90(zz), cmap='Blues', extent=[xmin, xmax, ymin, ymax], aspect='auto')
     states_gdf.boundary.plot(ax=ax, linewidth=1, edgecolor='black')
     capitals_gdf.boundary.plot(ax=ax, linewidth=1, edgecolor='red')  # Add capitals boundaries
     cbar = plt.colorbar(im, ax=ax, orientation='vertical', fraction=0.036, pad=0.04)
@@ -1129,7 +1115,7 @@ def plot_png_image(ax, img_path):
 def generate_iota_plots(raw, iotas_w_attributes, group_column, value_column, lat_column, lon_column, output_dir, img_path, capitals_gdf):
     iota_min = iotas_w_attributes['iota'].min()
     gdf = gpd.GeoDataFrame(raw, geometry=gpd.points_from_xy(raw[lon_column], raw[lat_column]), crs='EPSG:4326')
-    gini_results = compute_spatial_gini_for_groups(raw, group_column, value_column, lat_column, lon_column)
+    #gini_results = compute_spatial_gini_for_groups(raw, group_column, value_column, lat_column, lon_column)
     for iota in raw[group_column].unique():
         print(iota)
         subgroup_gdf = gdf[gdf[group_column] == iota]
@@ -1137,8 +1123,8 @@ def generate_iota_plots(raw, iotas_w_attributes, group_column, value_column, lat
         gs = gridspec.GridSpec(3, 2, height_ratios=[1.5, 0.6, 1.2], width_ratios=[3, 0.5])  # Adjusted width ratio for summary stats
         ax_map = fig.add_subplot(gs[0, 0])
         create_kde_heatmap(subgroup_gdf, lat_column, lon_column, states_gdf, capitals_gdf, ax_map)
-        gini = gini_results[iota]
-        ax_map.text(0.95, 0.05, f'Gini Coefficient: {gini:.2f}', fontsize=12, verticalalignment='bottom', horizontalalignment='right', transform=ax_map.transAxes, bbox=dict(facecolor='white', alpha=0.6))
+        #gini = gini_results[iota]
+        #ax_map.text(0.95, 0.05, f'Gini Coefficient: {gini:.2f}', fontsize=12, verticalalignment='bottom', horizontalalignment='right', transform=ax_map.transAxes, bbox=dict(facecolor='white', alpha=0.6))
         ax_occ_table = fig.add_subplot(gs[1, 0])
         plot_occ_table(iota, ax_occ_table, iota_min)
         ax_img = fig.add_subplot(gs[2, 0])
@@ -1150,8 +1136,8 @@ def generate_iota_plots(raw, iotas_w_attributes, group_column, value_column, lat
         plt.close()
 
 # output directory
-output_dir = root + 'Results/iota_summary_stats/geo_' + geocode_unit + f'/maps/{modelname}'
-img_path = root + 'Results/iota_summary_stats/geo_' + geocode_unit + f'/decay_plot/{modelname}/'
+output_dir = root + 'Results/iota_summary_stats/geo_' + geocode_unit + f'/maps/' + modelname
+img_path = root + 'Results/iota_summary_stats/geo_' + geocode_unit + f'/decay_plots/' + modelname + '/'
 
 # Create the directories if they don't exist
 os.makedirs(output_dir, exist_ok=True)

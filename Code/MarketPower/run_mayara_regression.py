@@ -26,8 +26,8 @@ from linearmodels.panel import compare
 from scipy import stats
 
 
-run_firm_cnae_pull = True
-run_worker_pull = True
+run_firm_cnae_pull = False
+run_worker_pull = False
 
 fyear = 1991
 lyear = 1997
