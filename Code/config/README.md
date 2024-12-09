@@ -1,5 +1,7 @@
 # Config Package
 
+Note: this README created by ChatGPT to summarize this conversation: https://chatgpt.com/c/67576368-f20c-800d-a6a3-4e2be0891d57
+
 This document explains how to set up and install the `config` package for managing platform-specific configurations on both Windows and Linux. This package allows seamless handling of file paths and system-dependent settings.
 
 ---
@@ -103,23 +105,6 @@ To uninstall the package from your environment, run:
 pip uninstall config
 ```
 
----
-
-## Troubleshooting
-
-### **UNC Path Issues on Windows**
-If the target path uses a UNC network path (e.g., `\\storage6\...`) and causes errors like "UNC paths are not supported," you can map the path to a drive letter:
-1. Open a terminal and map the drive:
-   ```powershell
-   net use Z: \\storage6\usuarios\labormkt_rafaelpereira
-   ```
-2. Use the mapped drive (`Z:\Code`) instead of the UNC path.
-
-### **Reinstalling the Package**
-If you need to reinstall the package, use:
-```bash
-pip install . --force-reinstall
-```
 
 ---
 
