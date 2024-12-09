@@ -28,7 +28,8 @@ from market_power_utils import (
     introduce_misclassification_by_jid,
     compute_market_hhi,
     compute_theoretical_eta, 
-    compute_theoretical_theta
+    compute_theoretical_theta,
+    compute_s_j_mkt
 )
 
 
@@ -81,8 +82,13 @@ def load_and_prepare_data(root, eta_bhm, theta_bhm):
 
     return reg_df
 
+def mode_or_first(series):
+    mode_values = series.mode()
+    return mode_values.iloc[0] if not mode_values.empty else np.nan
+
 # Estimate job and iota-gamma FEs
 def estimate_fixed_effects(reg_df, stata_or_python):
+    
     if stata_or_python == "Stata":
         # Your Stata code as a Python string
         stata_code = """
@@ -119,10 +125,11 @@ def estimate_fixed_effects(reg_df, stata_or_python):
         'iota_gamma_fes': 'first',          # These don't vary within the group, so we can take the first value
         'markdown_w_iota': 'first',         # These don't vary within the group, so we can take the first value
         'occ2': 'first',                    # These don't vary within the group, so we can take the first value
-        'code_micro': pd.Series.mode,       # These rarely vary within the group, so we can take the mode
+        'code_micro': mode_or_first,        # Use custom function to handle ties
         'ln_real_hrly_wage_dec': 'mean',    # Average of log earnings within the group
         'wid_masked': 'count'               # Count of rows in this group
     }).reset_index()
+
     
     # Rename the count column to something more descriptive
     reg_df_w_FEs = reg_df_w_FEs.rename(columns={'wid_masked': 'iota_gamma_jid_count'})
@@ -310,6 +317,8 @@ def main():
     
     # Estimate fixed effects and collapse to jid-iota-gamma-level (really that's just jid-iota level b/c gamma nested w/in jid)
     reg_df_w_FEs = estimate_fixed_effects(reg_df, stata_or_python)
+    reg_df_w_FEs.to_pickle(root + 'Data/derived/reg_df_w_FEs.p')
+    reg_df_w_FEs = pd.read_pickle(root + 'Data/derived/reg_df_w_FEs.p')
 
     # Generate shocks and find equilibrium
     delta = 0.5
@@ -330,6 +339,7 @@ def main():
         (['iota'], ['gamma'], 'panel_iv', None),                    # delta = None
         (['iota'], ['occ2', 'code_micro'], 'panel_iv', None),       # delta = None
         (['occ2'], ['code_micro'], 'panel_iv', None),               # delta = None
+        (['occ2'], ['gamma'], 'panel_iv', None),               # delta = None
     ]
     
     
@@ -341,11 +351,127 @@ def main():
     )
     print(estimates_df)
 
-    
-    
     ##################
     # Experiment with misclassification
     misclassification_ests = misclassification_experiment(reg_df_w_FEs_w_shock, stata_or_python)
+
+
+    #####################################
+    # Histograms of implied markdowns
+    
+    
+    reg_df_w_FEs_w_shock['occ2_micro_id'] = reg_df_w_FEs_w_shock.groupby(['occ2', 'code_micro']).ngroup()
+
+    # XX This is wrong because its giving values > 1
+    # I think the reason is that jid_masked is not nested within occ2_micro_id. This could happen, for example, if an establishment changes location. I don't think this can be due to occupation codes because 2-digit codes have to be nested within the 4-digit we used to define jids
+   
+    # Step 1: Aggregate to find the number of unique occ2_micro_id values for each jid_masked
+    unique_counts = reg_df_w_FEs_w_shock.groupby('jid_masked')['occ2_micro_id'].nunique().reset_index().rename(columns={'occ2_micro_id': 'unique_count'})    
+    # Step 2: Filter to retain only jid_masked with a single unique occ2_micro_id
+    single_value_jid = unique_counts[unique_counts['unique_count'] == 1]['jid_masked']
+    
+    # Step 3: Filter the original DataFrame
+    reg_df_filtered = reg_df_w_FEs_w_shock[reg_df_w_FEs_w_shock['jid_masked'].isin(single_value_jid)]
+    
+    
+    
+    
+    # for now, I'll just restrict to obs where we have a unique occ2_micro_id for each jid
+    reg_df_filtered['s_j_mkt'] = compute_s_j_mkt(reg_df_filtered, wagevar='wage_guess', emp_counts='ell_iota_j_pre_shock',jobvar='jid_masked', marketvar='occ2_micro_id')
+
+    reg_df_filtered['s_j_gamma'] = compute_s_j_mkt(reg_df_filtered, wagevar='wage_guess', emp_counts='ell_iota_j_pre_shock',jobvar='jid_masked', marketvar='gamma')
+
+    # Correct params, gamma
+    eta = estimates_df.loc[(estimates_df.WORKERTYPE=='iota') & (estimates_df.MKT=='gamma') & (estimates_df.EST_TYPE=='panel_iv')& (estimates_df.DELTA.isna()), 'ETA_HAT'].values[0]
+    theta = estimates_df.loc[(estimates_df.WORKERTYPE=='iota') & (estimates_df.MKT=='gamma') & (estimates_df.EST_TYPE=='panel_iv')& (estimates_df.DELTA.isna()), 'THETA_HAT'].values[0]
+    reg_df_filtered['mu_right_params_gamma'] = 1 + 1/eta + (1/theta - 1/eta) * reg_df_filtered['s_j_gamma']
+    
+    # Correct params, occ2-micro
+    eta = estimates_df.loc[(estimates_df.WORKERTYPE=='iota') & (estimates_df.MKT=='gamma') & (estimates_df.EST_TYPE=='panel_iv')& (estimates_df.DELTA.isna()), 'ETA_HAT'].values[0]
+    theta = estimates_df.loc[(estimates_df.WORKERTYPE=='iota') & (estimates_df.MKT=='gamma') & (estimates_df.EST_TYPE=='panel_iv')& (estimates_df.DELTA.isna()), 'THETA_HAT'].values[0]
+    reg_df_filtered['mu_right_params_mkt'] = 1 + 1/eta + (1/theta - 1/eta) * reg_df_filtered['s_j_mkt']
+    
+
+    # Wrong params, gamma
+    eta = estimates_df.loc[(estimates_df.WORKERTYPE=='iota') & (estimates_df.MKT=='occ2,code_micro') & (estimates_df.EST_TYPE=='panel_iv')& (estimates_df.DELTA.isna()), 'ETA_HAT'].values[0]
+    theta = estimates_df.loc[(estimates_df.WORKERTYPE=='iota') & (estimates_df.MKT=='occ2,code_micro') & (estimates_df.EST_TYPE=='panel_iv')& (estimates_df.DELTA.isna()), 'THETA_HAT'].values[0]
+    reg_df_filtered['mu_wrong_params_gamma'] = 1 + 1/eta + (1/theta - 1/eta) * reg_df_filtered['s_j_gamma']
+
+    # Wrong params, occ2-micro
+    eta = estimates_df.loc[(estimates_df.WORKERTYPE=='iota') & (estimates_df.MKT=='occ2,code_micro') & (estimates_df.EST_TYPE=='panel_iv')& (estimates_df.DELTA.isna()), 'ETA_HAT'].values[0]
+    theta = estimates_df.loc[(estimates_df.WORKERTYPE=='iota') & (estimates_df.MKT=='occ2,code_micro') & (estimates_df.EST_TYPE=='panel_iv')& (estimates_df.DELTA.isna()), 'THETA_HAT'].values[0]
+    reg_df_filtered['mu_wrong_params_mkt'] = 1 + 1/eta + (1/theta - 1/eta) * reg_df_filtered['s_j_mkt']
+    
+    
+    
+    values_right_params_gamma   = reg_df_filtered['mu_right_params_gamma']
+    values_wrong_params_gamma   = reg_df_filtered['mu_wrong_params_gamma']
+    values_right_params_mkt     = reg_df_filtered['mu_right_params_mkt']
+    values_wrong_params_mkt     = reg_df_filtered['mu_wrong_params_mkt']
+    weights = reg_df_filtered['ell_iota_j_pre_shock']
+
+
+    # Define the bin edges to ensure consistency
+    bin_edges = np.histogram_bin_edges(np.concatenate([values_right_params_gamma, values_wrong_params_gamma, values_right_params_mkt, values_wrong_params_mkt]), bins=30)
+    
+    # Adjust bin edges slightly for better separation
+    offset = (bin_edges[1] - bin_edges[0]) * 0.1
+    
+    plt.figure(figsize=(10, 6))
+    plt.hist(values_right_params_gamma, bins=bin_edges - offset, weights=weights, alpha=0.5, label='Right Params, Gamma', color='blue', edgecolor='black')
+    plt.hist(values_wrong_params_gamma, bins=bin_edges + offset, weights=weights, alpha=0.5, label='Wrong Params, Gamma', color='red', edgecolor='black')
+    plt.hist(values_right_params_mkt, bins=bin_edges, weights=weights, alpha=0.5, label='Right Params, Market', color='green', edgecolor='black')
+    plt.hist(values_wrong_params_mkt, bins=bin_edges - offset*2, weights=weights, alpha=0.5, label='Wrong Params, Market', color='orange', edgecolor='black')
+    
+    # Add labels, title, and legend
+    plt.title('Weighted Histograms with Transparency', fontsize=14)
+    plt.xlabel('Values', fontsize=12)
+    plt.ylabel('Weighted Frequency', fontsize=12)
+    plt.legend(fontsize=12)
+    plt.grid(axis='y', alpha=0.75)
+    plt.show()
+    
+    
+    
+    
+    #################
+    # Log scale on y-axis
+    
+    # Adjust bin edges slightly for better separation
+    offset = (bin_edges[1] - bin_edges[0]) * 0.1
+    
+    plt.figure(figsize=(10, 6))
+    plt.hist(values_right_params_gamma, bins=bin_edges, weights=weights, alpha=0.5, label='Right Params, Gamma', color='blue', edgecolor='black')
+    plt.hist(values_wrong_params_gamma, bins=bin_edges + offset, weights=weights, alpha=0.5, label='Wrong Params, Gamma', color='red', edgecolor='black')
+    plt.hist(values_right_params_mkt, bins=bin_edges - offset, weights=weights, alpha=0.5, label='Right Params, Market', color='green', edgecolor='black')
+    plt.hist(values_wrong_params_mkt, bins=bin_edges, weights=weights, alpha=0.5, label='Wrong Params, Market', color='orange', edgecolor='black')
+    
+    # Add log scale to y-axis
+    plt.yscale('log')
+    
+    # Add labels, title, and legend
+    plt.title('Weighted Histograms with Transparency (Log Scale)', fontsize=14)
+    plt.xlabel('Values', fontsize=12)
+    plt.ylabel('Weighted Frequency (Log Scale)', fontsize=12)
+    plt.legend(fontsize=12)
+    plt.grid(axis='y', alpha=0.75)
+    plt.show()
+
+
+
+    # Looks like the results are much more sensitive to the parameter estimates than the market definitions, although obviously the parameter estimates are very sensitive to market definitions
+    print(reg_df_filtered[['mu_right_params_gamma','mu_right_params_mkt','mu_wrong_params_gamma','mu_wrong_params_mkt']].describe(percentiles=[.9,.95, .98, .99, .999]))
+
+    # We are getting some enormous markdowns using occ2-micro presumably because some occ2-micros are tiny and therefore extremely concentrated. 
+    #XXX Mayara uses firms (or establishments?) not jobs. 
+
+
+    # Try estimating eta and theta using OLS and no shock. Does not work
+    tempdf = reg_df_filtered[['iota','gamma','ell_iota_j_pre_shock', 'wage_pre_shock','worker_mkt_id', 'worker_type_id']]
+    tempdf['wage_post_shock']       = tempdf['wage_pre_shock']
+    tempdf['ell_iota_j_post_shock'] = tempdf['ell_iota_j_pre_shock']
+    eta_hat_ols, theta_hat_ols = run_two_step_estimation(tempdf, 'ols', delta=0, workertypevar=['iota'], mktvar=['gamma'], stata_or_python=stata_or_python)
+    print(eta_hat_ols, theta_hat_ols)
 
 if __name__ == "__main__":
     main()
