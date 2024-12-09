@@ -1,0 +1,1 @@
+from .config import homedir, os_name, root, rais, figuredir
