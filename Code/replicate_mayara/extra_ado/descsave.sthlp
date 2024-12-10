@@ -12,9 +12,7 @@ help for {cmd:descsave} {right:(Roger Newson)}
  {break}
  {cmdab:li:st}{cmd:(} [{varlist}] {ifin} [ , [{it:{help list:list_options}}] ] {cmd:)}
  {break}
- {cmdab:fr:ame}{cmd:(} {it:framename} [ , replace {cmdab:ch:ange} ] {cmd:)}
- {break}
- {cmdab:sa:ving}{cmd:(}{it:datafilename} [{cmd:, replace} {cmdab:o:rphans}]{cmd:)}
+ {cmdab:sa:ving}{cmd:(}{it:datafilename} [{cmd:, replace}]{cmd:)}
  {break}
  {cmdab::no}{cmdab:re:store} {cmd:fast} {cmdab:fl:ist}{cmd:(}{it:global_macro_name}{cmd:)}
  {break}
@@ -22,8 +20,6 @@ help for {cmd:descsave} {right:(Roger Newson)}
  {break}
  {cmdab:ch:arlist}{cmd:(}{it:characteristic_list}{cmd:)}
  {cmdab:idn:um}{cmd:(}{it:#}{cmd:)} {cmdab:ids:tr}{cmd:(}{it:string}{cmd:)}
- {break}
- {cmdab:vall:abkeep(}{it:vallabkeep_option}{cmd:)}
  {break}
  {cmdab:ren:ame}{cmd:(}{it:oldvarname_1 newvarname_1 ... oldvarname_n newvarname_n}{cmd:)}
  {cmdab:gs:ort}{cmd:(}{it:gsort_list}{cmd:)} {cmdab:ke:ep}{cmd:(}{varlist}{cmd:)}
@@ -33,17 +29,11 @@ help for {cmd:descsave} {right:(Roger Newson)}
 
 {pstd}
 where {it:{help list:list_options}} is a list of options accepted by the {helpb list} command,
-and {it:characteristic_list} is a list of {it:characteristic_name}s and/or asterisks ({cmd:*}) separated by spaces,
-and {it:attributes_list} is a list of items from the list
+{it:characteristic_list} is a list of {it:characteristic_name}s and/or asterisks ({cmd:*}) separated by spaces,
+{it:attributes_list} is a list of items from the list
 
 {p 8 18}
 {cmd:type} {cmd:format} {cmd:vallab} {cmd:vallabdef} {cmd:varlab}
-
-{pstd}
-and {it:vallabkeep_option} is an option from the list
-
-{p 8 18}
-{cmdab:a:ll} | {cmdab:p:resent} | {cmdab:n:one}
 
 {pstd}
 and {it:gsort_list} is a list of one or more elements of the form
@@ -67,18 +57,15 @@ The descriptive attributes are variable names, storage types, display formats, v
 and also (optionally) a list of {help char:characteristics} specified by the {cmd:charlist()} option.
 {cmd:descsave} creates an output Stata dataset (or resultsset) with one observation per variable and data on
 these descriptive attributes.
-This dataset may be listed using the {cmd:list()} option
-and/or saved to a {help frame:data frame} using the {cmd:frame()} option
-and/or saved to a file using the {cmd:saving()} option
+This dataset may be listed using the {cmd:list()} option and/or saved to a file using the {cmd:saving()} option
 and/or written to the memory using the {cmd:norestore} or {cmd:fast} option,
 overwriting any existing dataset.
 The file specified by {cmd:dofile()} is a {help do:do-file}, containing commands which can be run to reconstruct the
 descriptive attributes of the variables, assuming that variables of the same names have been created and
 are numeric or character as appropriate.
-{cmd:descsave} can be used together with {helpb export delimited} to create a definitive generic
+{cmd:descsave} can be used together with {helpb outsheet} to create a definitive generic
 spreadsheet version of the current dataset, together with a {help do:Stata do-file} to reconstruct the descriptive
-attributes of the variables after the spreadsheet has been input using {helpb import delimited}.
-
+attributes of the variables after the spreadsheet has been input using {helpb insheet}.
 
 {title:Options}
 
@@ -98,15 +85,13 @@ These options fall into the following 3 groups:
 {marker outdest_opts}{...}
 {title:Output-destination options}
 
-{p 4 8 2}
-{cmd:dofile(}{it:dofilename} [{cmd:, replace}]{cmd:)} specifies an output {help do:Stata do-file}, with commands
+{p 4 8 2}{cmd:dofile(}{it:dofilename} [{cmd:, replace}]{cmd:)} specifies an output {help do:Stata do-file}, with commands
 to reconstruct the variable descriptive attributes (storage types, display formats, value labels,
 variable labels and selected characteristics), assuming that variables with those names already exist
 and are numeric or string-valued as appropriate.
 If {cmd:replace} is specified, then any existing file of the same name is overwritten. 
 
-{p 4 8 2}
-{cmd:list(}{it:varlist} [{cmd:if} {it:exp}] [{cmd:in} {it:range}] [, {it:list_options} ] {cmd:)}
+{p 4 8 2}{cmd:list(}{it:varlist} [{cmd:if} {it:exp}] [{cmd:in} {it:range}] [, {it:list_options} ] {cmd:)}
 specifies a list of variables in the output dataset,
 which will be listed to the Stata log by {cmd:descsave}.
 The user may optionally also specify {helpb if} or {helpb in} clauses to list subsets of variables,
@@ -115,24 +100,9 @@ If the {cmd:rename()} option is specified (see below),
 then any variable names specified by the {cmd:list()} option must be the new names.
 If the {cmd:list()} option is absent, then nothing is listed.
 
-{p 4 8 2}
-{cmd:frame(} {it:name}, [ {cmd:replace} {cmd:change} ] {cmd:)} specifies an output {help frame:data frame},
-with one observation per directory entry,
-and data on the attributes of the directory entry.
-If {cmd:replace} is specified, then any existing data frame of the same name is overwritten. 
-If {cmd:change} is specified,
-then the current data frame will be changed to the output data frame
-after the execution of {cmd:descsave}.
-The {cmd:frame()} option may not specify the current data frame.
-To do this, use one of the options {cmd:norestore} or {cmd:fast}.
-
-{p 4 8 2}
-{cmd:saving}{cmd:(}{it:datafilename} [{cmd:, replace} {cmd:orphans}]{cmd:)} specifies an output file containing a Stata dataset,
-with one observation per variable, and data on the descriptive attributes of the variable.
-If {cmd:replace} is specified, then any existing file of the same name is overwritten.
-If {cmd:orphans} is specified,
-then the dataset is saved with all {help label:value labels} specified by the {cmd:vallabkeep()} option,
-which defaults to all {help label:value labels} in the input dataset.
+{p 4 8 2}{cmd:saving(}{it:datafilename} [{cmd:, replace}]{cmd:)} specifies an output file containing a Stata dataset, with one
+observation per variable, and data on the descriptive attributes of the variable. If {cmd:replace} is
+specified, then any existing file of the same name is overwritten. 
 
 {p 4 8 2}
 {cmd:norestore} specifies that the output dataset will be written to the memory,
@@ -150,8 +120,7 @@ then {cmd:descsave} will go to extra work so that
 it can restore the original data if the user presses {help break:Break}.
 
 {p 4 8 2}
-Note that the user must specify at least one of the 6 options
-{cmd:dofile()}, {cmd:list()}, {cmd:frame()}, {cmd:saving()}, {cmd:norestore} and {cmd:fast}.
+Note that the user must specify at least one of the 5 options {cmd:dofile()}, {cmd:list()}, {cmd:saving()}, {cmd:norestore} and {cmd:fast}.
 
 {p 4 8 2}
 {cmd:flist(}{it:global_macro_name}{cmd:)} specifies the name of a {help macro:global macro},
@@ -212,18 +181,6 @@ using {helpb append}, or using {helpb dsconcat} if installed.
 {cmd:idstr(}{it:#}{cmd:)} specifies an ID string for the output dataset.
 It is used to create a string variable {cmd:idstr} in the output dataset, with that value for all
 observations. (An output dataset may have {cmd:idnum}, {cmd:idstr}, both or neither.)
-
-{p 4 8 2}
-{cmd:vallabkeep(}{it:vallabkeep_option}{cmd:)} specifies the rule for keeping {help label:value labels}
-contained in the input dataset.
-It may be {cmd:all} (specifying all {help label:value labels} in the input dataset),
-{cmd:present} (specifying all {help label:value labels} whose names are present in the value-label variable
-containing the names of {help label:value labels} belonging to variables in the input {help varlist:{it:varlist}}),
-or {cmd:none} (specifying no {help label:value labels}).
-If the {cmd:vallabkeep()} option is absent, then {cmd:all} is assumed.
-Note that, if the user specifies the {cmd:saving()} option
-and wants {help label:value labels} to be present in the output disk dataset,
-then the user must specify an {cmd:orphans} suboption for the {cmd:saving()} option.
 
 {p 4 8 2}
 {cmd:rename(}{it:oldvarname_1 newvarname_1 ... oldvarname_n newvarname_n}{cmd:)} specifies a list
@@ -308,31 +265,22 @@ If the {cmd:keep()} option is used, then the output dataset will contain only th
 {cmd:descsave} can be used together with {helpb outsheet} and {helpb insheet} to construct a definitive
 generic spreadsheet version of the data. This is useful if the user needs either to convert the data to distant past
 {help version:versions of Stata} not produced by {helpb saveold}, or to return to the data decades into the future,
-when all software has evolved beyond recognition.
-The do-file specified by {cmd:dofile()} can be used
-to reconstruct variable attributes after inputting the definitive version of the data using {helpb insheet},
-assuming that the variables are still numeric or string-valued, as specified in the original Stata data.
+when all proprietary software has evolved beyond recognition. The do-file specified by {cmd:dofile()} can be used
+to reconstruct variable attributes after inputting the definitive version of the data using {helpb insheet}, assuming
+that the variables are still numeric or string-valued, as specified in the original Stata data.
 (The user may need to use {helpb destring} after using {helpb insheet}, if some of the numeric variables in the
 definitive generic spreadsheet are formatted in nonstandard ways.)
-Alternatively, the user may create a {cmd:descsave} resultsset
-for input to the {helpb ssc:SSC} package {helpb invdesc} to regenerate variable attributes.
-The output do-file, or the {cmd:descsave} resultsset,
-can also be translated manually into other software languages if the user wants to use the data
+The output do-file can also be translated manually into other software languages if the user wants to use the data
 under other software platforms.
-
-{pstd}
-{cmd:descsave} can also be used with the {helpb parmest} package,
-together with the {help ssc:SSC} packages {helpb fvregen} and/or {helpb factext} and/or {helpb polyspline}.
+However, {cmd:descsave} can also be used with the {helpb parmest} package,
+together with either the Stata 11 {helpb fvregen} package or the Stata 10 {helpb factext} package.
+(See help for {helpb parmby}, {helpb parmest}, {helpb fvregen} and {helpb factext} if installed).
 Typically, the user uses {cmd:descsave}
-to save to a {cmd:descsave} resultsset or a do-file
-describing the attributes of variables representing categorical or continuous factors,
-generates dummy variables for categorical factors using {helpb tabulate} or {helpb xi}
-or reference splines for continuous factors using {helpb polyspline},
-enters these dummy variables or reference splines into a regression analysis,
-saves the results of the regression to a dataset using {helpb parmby} or {helpb parmest},
-and then reconstructs the categorical or continuous factors
-from the variable {cmd:label} in the {helpb parmest} output dataset,
-using {helpb fvregen} or {helpb factext}.
+to save to a do-file the attributes of variables representing categorical factors, generates dummy variables for
+these categorical factors using {helpb tabulate} or {helpb xi}, enters these dummy variables into a regression analysis,
+saves the results of the regression to a dataset using {helpb parmby} or {helpb parmest}, and then reconstructs the
+categorical factors from the variable {cmd:label} in the {helpb parmest} output dataset,
+using the {helpb fvregen} package (in Stata 11) or the {helpb factext} package (in Stata 10).
 
 
 {title:Examples}
@@ -445,5 +393,5 @@ Email: {browse "mailto:r.newson@imperial.ac.uk":r.newson@imperial.ac.uk}
 {p 4 13 2}
 On-line: help for {helpb append}, {helpb char}, {helpb describe}, {helpb destring}, {helpb gsort}, {helpb insheet}, {helpb label}, {helpb outsheet},
  {helpb saveold}, {helpb tabulate}, {helpb xi}
- {break} help for {helpb dsconcat}, {helpb eclplot}, {helpb factext}, {helpb fvregen}, {helpb invdesc}, {helpb polyspline}, {helpb parmby}, {helpb parmest}, {helpb xcollapse} if installed
+ {break} help for {helpb dsconcat}, {helpb eclplot}, {helpb factext}, {helpb fvregen}, {helpb parmby}, {helpb parmest}, {helpb xcollapse} if installed
 {p_end}
