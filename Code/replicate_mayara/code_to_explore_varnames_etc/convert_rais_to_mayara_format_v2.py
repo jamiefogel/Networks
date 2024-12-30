@@ -196,14 +196,14 @@ def create_crosswalk():
             'faixaetária': 'fx_etaria', # Faixa etária do empregado em 31 de dezembro do ano base
             'situaçãovínculo': 'sit_vinculo', # Situação do vínculo empregatício
             'naturezajuridica': 'nat_vinculo', # Natureza do vínculo empregatício
+            'clascnae95'	      :'clas_cnae10',
+            'cnae95classe'       :'clas_cnae10',
             # Only exists pre-1994
             'cboocupação':'cbo1994', #This is the only CBO var we have back then so that's my best guess. Also cboocupação only exists before 1994
             # These don't exist in our data but I don't think they're needed so creating placeholdeers
             'anoadmissão'         :'anoadmissão'          ,
             'cep'		      :'cep'                  ,
             'cepestab'	      :'cepestab'             ,
-            'clascnae95'	      :'clascnae95'           ,
-            'cnae95classe'       :'clascnae95'           ,
             'indestabparticipapat':'indestabparticipapat' ,
             'indpat'	      :'indpat'               ,
             'indsimples'	      :'indsimples'               ,
@@ -267,58 +267,153 @@ def create_crosswalk():
     
     return cw_dict
     
-
-
 def process_by_year(cw_dict, year, codemun2_to_uf, rais, root, only_first_state=False):
     """
     Processes Parquet files by year, handling cases where 'uf' is missing by deriving it from 'codemun'.
-
-    Parameters:
-    - cw_dict (dict): Crosswalk dictionary mapping 'state-year' to column renames.
-    - year (int): The year of the data to process.
-    - codemun2_to_uf (dict): Mapping from 2-digit 'codemun' prefixes to 'uf'.
-    - rais (str): Base directory path for RAIS data.
-    - root (str): Base directory path for output.
-    - only_first_state (bool): If True, process only the first state and exit.
     """
+    
+    file_path = os.path.join(rais, f"parquet_novos/brasil{year}.parquet")
+    using_uf = True
+    codemun_crosswalk = {}
+    
+    cw_dict = create_crosswalk()
+
+    try:
+        # Wrap the entire function logic within try-except for file-level errors
+        try:
+            table = pq.read_table(file_path, columns=['uf'])
+            unique_states = table['uf'].unique()
+            if unique_states.null_count == len(unique_states):
+                raise ValueError("'uf' column contains only null values.")
+            else:
+                unique_states = [state.upper() for state in unique_states.drop_null().to_pylist()]
+        except (KeyError, ValueError):
+            print("Warning: 'uf' column not found or contains only null values. Attempting to generate from 'codemun'.")
+            try:
+                table = pq.read_table(file_path, columns=['codemun'])
+                df = table.to_pandas()
+                df = df[df['codemun'].notna()]
+                df['codemun2'] = df['codemun'].astype(str).str.zfill(6).str[:2]
+                codemun_crosswalk = df.groupby('codemun2')['codemun'].apply(list).to_dict()
+                unique_states = list(codemun_crosswalk.keys())
+                using_uf = False
+            except Exception as e:
+                print(f"Error generating 'uf' from 'codemun': {e}")
+                return  # Exit the function as 'uf' cannot be derived
+
+        for state in unique_states:
+            try:
+                # Original state-level processing block
+                if not using_uf:
+                    uf = codemun2_to_uf.get(state)
+                    if not uf:
+                        print(f"No 'uf' mapping found for codemun2 '{state}'. Skipping.")
+                        continue
+                    state_year_key = f"{uf}-{year}"
+                else:
+                    uf = state
+                    state_year_key = f"{state}-{year}"
+
+                print(f"Processing state-year: {state_year_key}")
+
+                if state_year_key not in cw_dict:
+                    print(f"No mapping found for state-year '{state_year_key}'. Skipping.")
+                    continue
+
+                column_rename_dict = cw_dict.get(state_year_key, {})
+                columns_to_read = set(['uf', 'codemun'] + list(column_rename_dict.keys()))
+                available_columns = set(pq.read_table(file_path, columns=None).schema.names)
+                valid_columns = [col for col in columns_to_read if col in available_columns]
+
+                if using_uf:
+                    state_data = pq.read_table(
+                        file_path,
+                        filters=[[('uf', '=', state)]],
+                        columns=valid_columns
+                    ).to_pandas()
+                else:
+                    codemuns = codemun_crosswalk.get(state, [])
+                    if not codemuns:
+                        print(f"No 'codemun' values found for codemun2 '{state}'. Skipping.")
+                        continue
+
+                    state_data = pq.read_table(
+                        file_path,
+                        filters=[[('codemun', 'in', codemuns)]],
+                        columns=valid_columns
+                    ).to_pandas()
+                    state_data['uf'] = state_data['codemun'].astype(str).str.zfill(6).str[:2].map(codemun2_to_uf)
+
+                # Rename and save
+                state_data = state_data.rename(columns=column_rename_dict)
+                state_output = os.path.join(root, "Code", "replicate_mayara", "unzipped", f"{uf.upper()}{year}ID.TXT")
+                os.makedirs(os.path.dirname(state_output), exist_ok=True)
+                state_data.to_csv(state_output, sep=';', index=False)
+                print(f"Successfully processed data for state '{uf.upper()}' for year {year}")
+
+                if only_first_state:
+                    return
+
+            except Exception as e:
+                print(f"Error processing state '{state}' for year {year}: {e}")
+                continue
+
+        print(f"Successfully processed all applicable states for year {year}")
+
+    except FileNotFoundError as e:
+        print(f"File not found for year {year}: {e}")
+        return
+    except Exception as e:
+        print(f"Unexpected error processing year {year}: {e}")
+        return
+
+
+
+# XX I don't think this is gonig to work because the naming is all just too messed up   
+def process_by_year_03_07(cw_dict, year, codemun2_to_uf, rais, root, only_first_state=False):
+    """
+    Processes Parquet files by year, handling cases where 'uf' is missing by deriving it from 'codemun'.
+    """
+    uf_to_region = {
+        'RO': 'north', 'AC': 'north', 'AM': 'north', 'RR': 'north', 'PA': 'north', 'AP': 'north', 'TO': 'north',
+        'MA': 'northeast', 'PI': 'northeast', 'CE': 'northeast', 'RN': 'northeast', 'PB': 'northeast',
+        'PE': 'northeast', 'AL': 'northeast', 'SE': 'northeast', 'BA': 'northeast',
+        'MG': 'southeast', 'ES': 'southeast', 'RJ': 'southeast', 'SP': 'southeast',
+        'PR': 'south', 'SC': 'south', 'RS': 'south',
+        'MS': 'centerwest', 'MT': 'centerwest', 'GO': 'centerwest', 'DF': 'centerwest'
+    }
+
+    # Step 2: Define year-specific region names
+    region_names_by_year = {
+        2003: {'north': 'Norte2003', 'northeast': 'Nordeste2003', 'centerwest': 'Centro_Oeste2003',
+               'south': 'Sul2003', 'southeast': 'ES_RJ_MG2003'},
+        2004: {'north': 'Norte', 'northeast': 'nordeste', 'centerwest': 'centro_oeste',
+               'south': 'sul', 'southeast': 'sudeste'},
+        2005: {'north': 'norte05', 'northeast': 'nordeste05', 'centerwest': 'centro05',
+               'south': 'sul05', 'southeast': 'sudeste05'},
+        2006: {'north': 'norte06', 'northeast': 'nordeste06', 'centerwest': 'centro06',
+               'south': 'sul06', 'southeast': 'sudeste06'},
+        2007: {'north': 'norte07', 'northeast': 'nordeste07', 'centerwest': 'centro_oeste07',
+               'south': 'sul07', 'southeast': 'sudeste07'}
+    }
+
+    
+    
     file_path = os.path.join(rais, f"parquet_novos/brasil{year}.parquet")
     using_uf = True
     codemun_crosswalk = {}
 
-    try:
-        # Attempt to load the 'uf' column
-        table = pq.read_table(file_path, columns=['uf'])
-        unique_states = table['uf'].unique()
 
-        # Check if the 'uf' column contains only null values
-        if unique_states.null_count == len(unique_states):
-            raise ValueError("'uf' column contains only null values.")
-        else:
-            # Convert to Python list and ensure strings are uppercase
-            unique_states = [state.upper() for state in unique_states.drop_null().to_pylist()]
-    except (KeyError, ValueError):
-        print("Warning: 'uf' column not found or contains only null values. Attempting to generate from 'codemun'.")
-
-        try:
-            # Load only the 'codemun' column to identify unique states
-            table = pq.read_table(file_path, columns=['codemun'])
-            df = table.to_pandas()
-            df = df[df['codemun'].notna()]
-
-            # Extract the first two digits and create the crosswalk
-            df['codemun2'] = df['codemun'].astype(str).str.zfill(6).str[:2]  # Ensure leading zeros
-            df = df.drop_duplicates()
-            codemun_crosswalk = df.groupby('codemun2')['codemun'].apply(list).to_dict()
-            unique_states = list(codemun_crosswalk.keys())  # List of unique 2-digit codemuns
-            using_uf = False
-        except Exception as e:
-            print(f"Error generating 'uf' from 'codemun': {e}")
-            return  # Exit the function as 'uf' cannot be derived
-
-    # Iterate through unique states or 2-digit codemuns
+    table = pq.read_table(file_path, columns=['uf']).to_pandas()
+    table['base_region'] = table['uf'].map(uf_to_region)
+    # Map the base region to the year-specific region names
+    table['region'] = table['base_region'].map(region_names_by_year[year])
+    
+    unique_states = table['region'].unique()
+    
     for state in unique_states:
         try:
-            # Map 'state' to 'uf' if using 'codemun2'
+            # Original state-level processing block
             if not using_uf:
                 uf = codemun2_to_uf.get(state)
                 if not uf:
@@ -335,30 +430,18 @@ def process_by_year(cw_dict, year, codemun2_to_uf, rais, root, only_first_state=
                 print(f"No mapping found for state-year '{state_year_key}'. Skipping.")
                 continue
 
-            # Prepare list of columns to read
-            # Ensure 'cw_dict[state_year_key]' is a dict mapping old to new column names
             column_rename_dict = cw_dict.get(state_year_key, {})
             columns_to_read = set(['uf', 'codemun'] + list(column_rename_dict.keys()))
-
-            # Check if columns exist in the table metadata
-            try:
-                available_columns = set(pq.read_table(file_path, columns=None).schema.names)
-            except Exception as e:
-                print(f"Error reading columns from {file_path}: {e}")
-                continue
-
+            available_columns = set(pq.read_table(file_path, columns=None).schema.names)
             valid_columns = [col for col in columns_to_read if col in available_columns]
 
-            # Apply filters based on whether 'uf' or 'codemun2' is being used
             if using_uf:
-                # Use 'uf' for filtering
                 state_data = pq.read_table(
                     file_path,
                     filters=[[('uf', '=', state)]],
                     columns=valid_columns
                 ).to_pandas()
             else:
-                # Use 'codemun' for filtering
                 codemuns = codemun_crosswalk.get(state, [])
                 if not codemuns:
                     print(f"No 'codemun' values found for codemun2 '{state}'. Skipping.")
@@ -369,52 +452,30 @@ def process_by_year(cw_dict, year, codemun2_to_uf, rais, root, only_first_state=
                     filters=[[('codemun', 'in', codemuns)]],
                     columns=valid_columns
                 ).to_pandas()
-
-                # Define 'uf' using the crosswalk
                 state_data['uf'] = state_data['codemun'].astype(str).str.zfill(6).str[:2].map(codemun2_to_uf)
 
-            # Generate categorical age 'fx_etaria' if applicable
-            if year >= 1994 and 'idade' in state_data.columns:
-                bins = [0, 14, 17, 24, 29, 39, 49, 64, np.inf]
-                labels = ['0-14', '15-17', '18-24', '25-29', '30-39', '40-49', '50-64', '65+']
-                state_data['fx_etaria'] = pd.cut(state_data['idade'], bins=bins, labels=labels, right=True)
-
-            # Log and impute missing columns
-            missing_columns = set(columns_to_read) - set(valid_columns)
-            for col in missing_columns:
-                print(f"Column '{col}' does not exist in the table for year {year}... Imputing as missing")
-                state_data[col] = ''
-
-            # Rename columns based on the crosswalk dictionary for the year
+            # Rename and save
             state_data = state_data.rename(columns=column_rename_dict)
-
-            # Determine the STATE code for output filename
-            if using_uf:
-                STATE = uf.upper()  # Ensure 'uf' is uppercase
-            else:
-                STATE = uf.upper()  # 'uf' derived from 'codemun2'
-
-            # Define the output file path
-            state_output = os.path.join(root, "Code", "replicate_mayara", "unzipped", f"{STATE}{year}ID.TXT")
-
-            # Ensure the output directory exists
+            state_output = os.path.join(root, "Code", "replicate_mayara", "unzipped", f"{uf.upper()}{year}ID.TXT")
             os.makedirs(os.path.dirname(state_output), exist_ok=True)
-
-            # Save the processed state data
             state_data.to_csv(state_output, sep=';', index=False)
-
-            print(f"Successfully processed data for state '{STATE}' for year {year}")
+            print(f"Successfully processed data for state '{uf.upper()}' for year {year}")
 
             if only_first_state:
-                print("Only first state processed as per 'only_first_state' flag.")
                 return
 
         except Exception as e:
             print(f"Error processing state '{state}' for year {year}: {e}")
-            continue  # Continue processing the next state
+            continue
 
     print(f"Successfully processed all applicable states for year {year}")
-      
+
+
+
+
+
+
+
 
 
 def main():
@@ -425,7 +486,7 @@ def main():
     cw_dict = create_crosswalk()
     
     # Process all years
-    for year in range(1986, 2001):
+    for year in range(1985, 2017):
         print(f"\nProcessing year {year}...")
         process_by_year(cw_dict, year, codemun2_to_uf, rais, root)
     
