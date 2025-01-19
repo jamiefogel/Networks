@@ -1,0 +1,32 @@
+﻿ibgesubsector,ibgesubsector_pt,ibgesubsector_trans,indmatch,indname
+1,Extrativa mineral,Mineral extraction,2,Mineral Mining
+2,Indústria de produtos minerais nao metálicos,Non-metallic mineral products industry,4,Nonmetallic Mineral Manuf
+2,Indústria de produtos minerais nao metálicos,Non-metallic mineral products industry,3,"Petroleum, Gas, Coal"
+2,Indústria de produtos minerais nao metálicos,Non-metallic mineral products industry,17,Petroleum Refining
+3,Indústria metalúrgica,Metallurgical industry,5,Metals
+4,Indústria mecânica,Mechanical engineering,8,"Machinery, Equipment"
+5,Indústria do material elétrico e de comunicaçoes,Electrical and communications equipment industry,10,"Electric, Electronic Equip."
+6,Indústria do material de transporte,Transport equipment industry,12,"Auto, Transport, Vehicles"
+7,Indústria da madeira e do mobiliário,Wood and furniture industry,14,"Wood, Furniture, Peat"
+8,"Indústria do papel, papelao, editorial e gráfica","Paper, paperboard, publishing and graphic industry",15,"Paper, Publishing, Printing"
+9,"Ind. da borracha, fumo, couros, peles, similares, ind. diversas","Ind. Of rubber, smoke, hides, skins, similar, ind. various",16,Rubber
+9,"Ind. da borracha, fumo, couros, peles, similares, ind. diversas","Ind. Of rubber, smoke, hides, skins, similar, ind. various",32,Other Manuf.
+9,"Ind. da borracha, fumo, couros, peles, similares, ind. diversas","Ind. Of rubber, smoke, hides, skins, similar, ind. various",21,Plastics
+10,"Ind. química de produtos farmacêuticos, veterinários, perfumaria","Chemicals for pharmaceuticals, veterinary, perfumery",20,"Pharma., Perfumes, Detergents"
+10,"Ind. química de produtos farmacêuticos, veterinários, perfumaria","Chemicals for pharmaceuticals, veterinary, perfumery",17,Chemicals
+11,Indústria têxtil do vestuário e artefatos de tecidos,Textile garments and fabrics industry,22,Textiles
+11,Indústria têxtil do vestuário e artefatos de tecidos,Textile garments and fabrics industry,23,Apparel
+12,Indústria de calçados,Footwear industry,24,"Footwear, Leather"
+13,"Indústria de produtos alimentícios, bebidas e álcool etílico","Food, beverage and ethyl alcohol industry",25,Food processing
+14,Serviços industriais de utilidade pública,Industrial utility services,99,Nontraded
+15,Construçao civil,Construction,99,Nontraded
+16,Comércio varejista,Retail business,99,Nontraded
+17,Comércio atacadista,Wholesale,99,Nontraded
+18,"Instituiçoes de crédito, seguros e capitalizaçao","Credit institutions, insurance and capitalization",99,Nontraded
+19,"Com. e administraçao de imóveis, valores mobiliários, serv. Técnico","Com. And administration of real estate, securities, serv. Technician",99,Nontraded
+20,Transportes e comunicaçoes,Transport and communication,99,Nontraded
+21,"Serv. de alojamento, alimentaçao, reparaçao, manutençao, redaçao","Serv. of accommodation, food, repair, maintenance, repair",99,Nontraded
+22,"Serviços médicos, odontológicos e veterinários","Medical, dental and veterinary services",99,Nontraded
+23,Ensino,Teaching,99,Nontraded
+24,Administraçao pública direta e autárquica,Direct and autarchic public administration,99,Nontraded
+25,"Agricultura, silvicultura, criaçao de animais, extrativismo vegetal","Agriculture, forestry, animal husbandry, plant extractivism",1,Agriculture
