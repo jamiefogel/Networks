@@ -86,7 +86,7 @@ local files_dta: dir "${importedrais}" files "*.dta"
 
 * XX Added this to filter on year to improve parallelizability
 if 1==1{
-	local first_year = 2011
+	local first_year = 2009
 	local last_year  = 2011
 	// Loop over each file in the combined list
 	foreach file in `files_dta' {
@@ -155,17 +155,14 @@ if `makefake_workers'==1{
 	tab allpis
 	
 	* CPF - PIS links: assign mainPIS
-	*preserve
-	save "${importedrais}/temp.dta", replace
+	preserve
 		keep if !missing(workerid_cpf) & !missing(workerid_pis) & allpis>1
 		sample 1, count by(workerid_cpf)
 		ren workerid_pis mainpis
 		keep workerid_cpf mainpis
 		tempfile multipis
 		sa `multipis'
-	*restore
-	use "${importedrais}/temp.dta", clear
-	rm "${importedrais}/temp.dta"
+	restore
 	
 	gen double mainpis = workerid_pis
 	merge m:1 workerid_cpf using `multipis', update replace	nogen // Replace with unique mainpis
@@ -175,14 +172,11 @@ if `makefake_workers'==1{
 	* PIS - mainPIS links : Make sure PIS in obs with no CPF has same mainPIS as in obs with CPF
 	keep if !missing(mainpis) & !missing(workerid_pis)
 
-	*preserve
-	save "${importedrais}/temp.dta", replace
+	preserve
 		sample 1, count by(workerid_pis)
 		tempfile mainpis
 		sa `mainpis'
-	*restore
-	use "${importedrais}/temp.dta", clear
-	rm "${importedrais}/temp.dta"
+	restore
 	merge m:1 workerid_pis using `mainpis', update replace nogen // Replace with unique mainpis
 	
 	keep mainpis workerid_pis

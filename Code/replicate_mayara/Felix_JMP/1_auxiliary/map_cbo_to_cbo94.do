@@ -35,8 +35,24 @@ else if c(username)=="Mayara"{
 	global public			"M:/publicdata"
 }
 
+else if c(username)=="p13861161" & c(os)=="Windows" {
+	global encrypted 		"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara"
+	global dictionaries		"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\raisdictionaries\harmonized"
+	global deIDrais			"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\raisdeidentified"
+	global monopsonies		"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\monopsonies"
+	global public			"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\publicdata"
+}
+
+else if c(username)=="p13861161" & c(os)=="Unix" {
+	global encrypted 		"/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/Code/replicate_mayara"
+	global dictionaries		"/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/Code/replicate_mayara/raisdictionaries/harmonized"
+	global deIDrais			"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\raisdeidentified"
+	global monopsonies		"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\monopsonies"
+	global public			"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\publicdata"
+}
+
 * 1993 - Last year with CBO codes
-import sas fakeid_worker fakeid_firm cbo agegroup municipality emp1231 earningsdecmw ibgesubsector  using "/proj/patkin/projects/monopsonies/sas/rais1993.sas7bdat", case(lower) clear
+import sas fakeid_worker fakeid_firm cbo agegroup municipality emp1231 earningsdecmw ibgesubsector  using "${monopsonies}/sas/rais1993.sas7bdat", case(lower) clear
 keep if emp1231==1
 keep if earningsdecmw>0 & !missing(earningsdecmw)
 keep if ibgesubsector!=24 & ibgesubsector!=.
@@ -49,7 +65,7 @@ tempfile w1993
 sa `w1993'
 
 * 1994 - Introduction of CBO94 codes
-import sas fakeid_worker fakeid_firm cbo94 agegroup municipality emp1231 earningsdecmw ibgesubsector  using "/proj/patkin/projects/monopsonies/sas/rais1994.sas7bdat", case(lower) clear
+import sas fakeid_worker fakeid_firm cbo94 agegroup municipality emp1231 earningsdecmw ibgesubsector  using "${monopsonies}/sas/rais1994.sas7bdat", case(lower) clear
 keep if emp1231==1
 keep if earningsdecmw>0 & !missing(earningsdecmw)
 keep if ibgesubsector!=24 & ibgesubsector!=.

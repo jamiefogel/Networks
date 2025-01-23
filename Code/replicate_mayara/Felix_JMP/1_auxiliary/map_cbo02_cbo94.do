@@ -40,6 +40,22 @@ else if c(username)=="Mayara"{
 	global public			"M:/publicdata"
 }
 
+else if c(username)=="p13861161" & c(os)=="Windows" {
+	global encrypted 		"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara"
+	global dictionaries		"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\raisdictionaries\harmonized"
+	global deIDrais			"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\raisdeidentified"
+	global monopsonies		"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\monopsonies"
+	global public			"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\publicdata"
+}
+
+else if c(username)=="p13861161" & c(os)=="Unix" {
+	global encrypted 		"/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/Code/replicate_mayara"
+	global dictionaries		"/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/Code/replicate_mayara/raisdictionaries/harmonized"
+	global deIDrais			"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\raisdeidentified"
+	global monopsonies		"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\monopsonies"
+	global public			"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\publicdata"
+}
+
 * Test boolean
 local ctest = 0
 if `ctest'==1{
@@ -49,10 +65,10 @@ else{
 	local cond ""
 }
 
-local get2002files 		= 0
+local get2002files 		= 1
 local rais_cbo_mapping	= 1
 
-log using "${monopsonies}/code/setup/z_log/map_cbo02_cbo94", replace
+*log using "${monopsonies}/code/setup/z_log/map_cbo02_cbo94", replace
 
 ******************************************************************
 ******** Collect CBO02-CBO94 pairs for files reporting both ******
@@ -67,7 +83,7 @@ if `get2002files'==1{
 						RR	RS	SC	SE	SP	TO{
 						
 			forvalues y=2003/2009{
-				local files_`state'`y': dir "${deIDrais}/dta" files "deID_`state'`y'*.dta"
+				local files_`state'`y': dir "${deIDrais}/20191213/dta" files "deID_`state'`y'*.dta"
 			}
 	}
 
@@ -170,4 +186,4 @@ if `rais_cbo_mapping'==1{
 	clear
 }
 
-log close
+* log close

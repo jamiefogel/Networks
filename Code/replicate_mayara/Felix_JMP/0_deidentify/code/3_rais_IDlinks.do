@@ -36,6 +36,16 @@ else if c(username)=="Mayara"{
 	global dictionaries		"M:/dictionaries/harmonized"
 }
 
+else if c(username)=="p13861161" & c(os)=="Windows" {
+	global encrypted 		"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara"
+	global dictionaries		"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\raisdictionaries\harmonized"
+}
+
+else if c(username)=="p13861161" & c(os)=="Unix" {
+	global encrypted 		"/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/Code/replicate_mayara"
+	global dictionaries		"/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/Code/replicate_mayara/raisdictionaries/harmonized"
+}
+
 * Change directory to encrypted output folder just in case something is saved
 * to current directory
 cd "${encrypted}/output"
@@ -45,7 +55,8 @@ global importedrais			"${encrypted}/output/dta/importedrais"
 global IDlinksrais			"${encrypted}/output/dta/IDlinksrais"
 
 * All files
-local files_dta: dir "${importedrais}" files "*.dta"
+local files_dta: dir "${importedrais}" files "*.dta", respect 
+
 *local files_dta "Estb1985ID.dta"
 
 local getids 		= 1
@@ -59,6 +70,7 @@ if `getids'==1{
 
 	* File listing all variables in each dataset
 	import excel using "${dictionaries}/descsave_rais_files_20180829_clean.xlsx", firstrow sheet(clean)
+	replace file = upper(file)
 	keep if (keep=="yes"	& is_id=="yes") | cleanname=="estabid_type"	// Keep only variables imported to Stata & vars that are IDs
 	keep file cleanname cleanlevel
 	
@@ -117,6 +129,7 @@ if `getids'==1{
 		}
 	} /* Close file loop */
 } /* Close import boolean */
+
 
 if `idsappend'==1{
 	

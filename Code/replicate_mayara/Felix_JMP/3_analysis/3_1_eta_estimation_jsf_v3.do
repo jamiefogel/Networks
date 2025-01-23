@@ -47,6 +47,22 @@ else if c(username)=="p13861161" & c(os)=="Unix" {
 	global public			"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\publicdata"
 }
 
+else if c(username)=="p13861161" & c(os)=="Windows" {
+	global encrypted 		"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara"
+	global dictionaries		"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\raisdictionaries\harmonized"
+	global deIDrais			"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\raisdeidentified"
+	global monopsonies		"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\monopsonies"
+	global public			"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\publicdata"
+}
+
+else if c(username)=="p13861161" & c(os)=="Unix" {
+	global encrypted 		"/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/Code/replicate_mayara"
+	global dictionaries		"/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/Code/replicate_mayara/raisdictionaries/harmonized"
+	global deIDrais			"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\raisdeidentified"
+	global monopsonies		"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\monopsonies"
+	global public			"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\publicdata"
+}
+
 cap log close
 log using "${encrypted}/logs/3_1_eta_estimation.log", replace
 
@@ -61,7 +77,7 @@ local baseyear_o2	= `baseyear'+6
 local baseyear_p1	= `baseyear'-3
 local baseyear_p2	= `baseyear'-5
 
-local setup 			= 0
+local setup 			= 1
 local eta_regs 			= 1
 local usesample 		= 0			/* Use 10% random sample of firms*/
 
@@ -81,14 +97,14 @@ local allsamp 		"all up`baseyear_n'mkt"
 */
 
 local allspecs 		"l"
-local alltars 		"lnT lnE"
-local allwages 		"lndp lndw"
+local alltars 		"lnT"  //lnE
+local allwages 		"lndp" //lndw
 local allmodels 	"l"			/* b: back to 1985; l: long distance to 1991; s: 3-year short distnaces */
-local allclust 		"firm cnae95 fe_ro"
-local allsamp 		"all T up`baseyear_n'mkt up`baseyear_n' explib Tnexplib"
+local allclust 		"firm " //  cnae95 fe_ro
+local allsamp 		"all" //T up`baseyear_n'mkt up`baseyear_n' explib Tnexplib"
 
 local mainwage 	"lndp"
-local mainclust "cnae95"
+local mainclust "firm" // XX cnae95
 local maintar	"lnT"
 
 * Specification FEs
@@ -118,15 +134,20 @@ if `setup'==1{
 
 		tempfile t_change
 		sa `t_change'
+		sa t_change, replace
 
+		* XX This is created by rais_050_market_collapsed_20210802.sas, which I haven't been able to run because of missing input data sets.
 		u "${monopsonies}/sas/regsfile_mmc_cbo942d.dta", clear
 		keep if year==`baseyear'
 		ren mkt_emp bemp
+		* XX ice_dwerp ice_dwtrains    these variables don't exist in the inputdata set. I think it should be the ones renamed below, but that's a guess
+		ren (ice_dwErpTRAINS ice_dwTRAINS)(ice_dwerp ice_dwtrains)
 		keep mmc cbo942d ice_dwerp ice_dwtrains bemp
 		gduplicates drop
 		tempfile market
 		sa `market'
 
+		/* XX
 		u "${monopsonies}/dta/fakeid_importers_exporters_allyears_20191213.dta", clear
 		keep if inrange(year,`baseyear',`baseyear_o1')
 		gegen explib = max(exporter), by(fakeid_firm)
@@ -139,8 +160,11 @@ if `setup'==1{
 		gduplicates drop
 		tempfile exporters
 		sa `exporters'
+		*/
 
 		u "${monopsonies}/sas/rais_collapsed_firm_mmc_cbo942d.dta", clear
+
+
 		keep if inlist(year,`baseyear_p2',`baseyear_p1',`baseyear',`baseyear_o1',`baseyear_o2')
 		
 		* Bring in earnings premia
@@ -190,13 +214,18 @@ if `setup'==1{
 		drop if mmc_drop==1
 		
 		* Merge in tariffs so can also restrict to tradables
-		merge m:1 cnae95  using `t_change', keep(1 3) nogen		/* Long change in tariffs */
-
+		merge m:1 cnae95  using `t_change', keep(1 3) /* XX nogen*/		/* Long change in tariffs */
+		* XX My hypothesis is that most non-tradable sectors are excluded from the data and thus we need to impute these zeroes. 
+		*replace tradable=0 if _merge==1
+		*replace chng_lnTRAINS = 0 if _merge==1
+		drop _merge
 		* Tradable sector dummies (ibgesub only included in TRAINS data at this point)
 		gegen ibge = max(ibgesubsector), by(fakeid_firm)
 		gen T = (ibge<14 | ibge==25)
 		
+		
 		* Merge in exporter dummies
+		/* XX
 		merge m:1 fakeid_firm using `exporters', keep(1 3) nogen
 		foreach var of varlist explib bexp{
 			replace `var' = 0 if missing(`var')
@@ -204,9 +233,9 @@ if `setup'==1{
 		
 		gen Tnexplib = T==1 & explib==0 
 		drop ibgesubsector
-		
+		*/
 		replace chng_lnTRAINS 		= 0 if T==0
-		replace chng_lnErpTRAINS 	= 0 if T==0
+		//replace chng_lnErpTRAINS 	= 0 if T==0
 		
 		* Compute firm baseline share
 		preserve
@@ -266,6 +295,7 @@ if `setup'==1{
 		
 		* Merge in market shocks
 		merge m:1 mmc cbo942d using `market', keep(3) nogen
+
 		
 		* Log employment
 		gen double lnemp = ln(emp)
@@ -302,10 +332,10 @@ if `setup'==1{
 		merge m:1 year fe_zro using `long', keep(1 3) nogen
 		
 		keep 	fakeid_firm mmc cbo942d year cnae95 ///
-				fe_zro bTwshare bTeshare bexp bwshare bemp beshare explib ice_dwerp ice_dwtrains ///
-				chng* up`baseyear_n' up`baseyear_n'mkt T Tnexplib
+				fe_zro bTwshare bTeshare  bwshare  beshare   ///
+				chng* up`baseyear_n' up`baseyear_n'mkt T bemp // ice_dwerp ice_dwtrains Tnexplib bexp
 		
-		order	year fe_zro fakeid_firm mmc cbo942d cnae95 up`baseyear_n' up`baseyear_n'mkt T Tnexplib explib
+		order	year fe_zro fakeid_firm mmc cbo942d cnae95 up`baseyear_n' up`baseyear_n'mkt T bemp //Tnexplib explib  explib
 				
 		compress
 		saveold "${monopsonies}/sas/eta_changes_regsfile`sampfile'.dta", replace
@@ -327,19 +357,19 @@ if `eta_regs'==1{
 	gegen fe_ro = group(mmc cbo942d)
 		
 	ren chng_lnTRAINS chng_lnT
-	ren chng_lnErpTRAINS chng_lnE
+	//ren chng_lnErpTRAINS chng_lnE
 	
 	/* Flip sign for easier interpretation */
 	replace chng_lnT = - chng_lnT
-	replace chng_lnE = - chng_lnE
-	replace ice_dwtrains = - ice_dwtrains
+	//replace chng_lnE = - chng_lnE
+	//replace ice_dwtrains = - ice_dwtrains
 	
 	gen double firm = fakeid_firm
 	gen all = 1
 	ren bemp w0
 	
-	ren ice_dwtrains 	ice
-	ren bexp 		bex
+	//ren ice_dwtrains 	ice
+	//ren bexp 		bex
 	ren bwshare     bws
 	ren beshare		bes
 	
@@ -354,7 +384,7 @@ if `eta_regs'==1{
 			local wagevars "`mainwage'"
 			local tarvars  "`maintar'"
 		}
-	foreach weight in all w0{
+	foreach weight in all /*w0*/{
 	foreach wvar in `wagevars'{
 	foreach tariff in `tarvars'{
 		local inst "chng_`tariff'"
@@ -380,7 +410,7 @@ if `eta_regs'==1{
 			if `year'==`baseyear_o2' & ("`tsamp'"=="all" | "`tsamp'"=="up`baseyear_n'mkt"){
 				
 				di "Running ivreghdfe `lhs' (`rhs' = `inst') if `tsamp'==1 & year==`year' [w=`weight'], cluster(`clust') absorb(delta_ro =``spec'absorb') "
-				qui ivreghdfe `lhs' (`rhs' = `inst') if `tsamp'==1 & year==`year' [w=`weight'], savefirst saverf cluster(`clust') absorb(delta_ro =``spec'absorb') 
+				/*qui*/ ivreghdfe `lhs' (`rhs' = `inst') if `tsamp'==1 & year==`year' [w=`weight'], savefirst saverf cluster(`clust') absorb(delta_ro =``spec'absorb') 
 			
 				preserve
 					keep if `tsamp'==1 & year==`year'
@@ -406,7 +436,23 @@ if `eta_regs'==1{
 			}
 			else{
 				di "Running ivreghdfe `lhs' (`rhs' = `inst') if `tsamp'==1 & year==`year' [w=`weight'], cluster(`clust') absorb(``spec'absorb') "
-				qui ivreghdfe `lhs' (`rhs' = `inst') if `tsamp'==1 & year==`year' [w=`weight'], savefirst saverf cluster(`clust') absorb(``spec'absorb') 
+				/*qui*/ ivreghdfe `lhs' (`rhs' = `inst') if `tsamp'==1 & year==`year' [w=`weight'], savefirst saverf cluster(`clust') absorb(``spec'absorb') 
+				* I think this is the preferred spec with all of the above macros evaluated
+				*ivreghdfe  chng91_lndp (chng91_lnemp = chng_lnT) if all==1 & year==1997 [w=all], cluster(firm) absorb(fe_ro)
+				/* . count if all==1 & year==1997
+				1,704,525
+				keep if all==1 & year==1997
+				. count if !mi(chng91_lndp)
+				  923,047
+				-> . count if !mi(chng91_lnemp)
+				  923,047
+				-> . count if !mi(chng_lnT)
+				  397,120
+				-> . count if !mi(chng91_lndp, chng91_lnemp, chng_lnT)
+				  217,523
+				* Mayara's sample size in Table 2 is 854,068. So I think the missing tariff obs is a big problem here. 
+				*/
+				
 			}
 			
 			local obs = e(N)
@@ -427,9 +473,11 @@ if `eta_regs'==1{
 			local m_fs_b = _b[`inst']
 			local m_fs_se = _se[`inst']
 			local FS_F = first[4,1]
-			
+			macro list 
+			pause off
+			pause
 			di "Running OLS: reghdfe `lhs' `rhs' if `tsamp'==1 & year==`year' [w=`weight'], vce(cluster `clust') absorb(``spec'absorb') "
-			qui reghdfe `lhs' `rhs' if `tsamp'==1 & year==`year' [w=`weight'], vce(cluster `clust') absorb(``spec'absorb') 
+			/*qui*/ reghdfe `lhs' `rhs' if `tsamp'==1 & year==`year' [w=`weight'], vce(cluster `clust') absorb(``spec'absorb') 
 			local m_ols_b = _b[`rhs']
 			local m_ols_se = _se[`rhs']
 			
@@ -484,7 +532,7 @@ if `eta_regs'==1{
 	
 	** Append all main regression coefficients and export to csv ***
 	u `kl`mainclust'allllnT`baseyear_o2'lndpall', clear
-	foreach weight in all w0{
+	foreach weight in all /*w0*/{
 	foreach wvar in `allwages'{
 	foreach year in `baseyear_p2' `baseyear_p1' `baseyear' `baseyear_o1' `baseyear_o2'{
 	foreach tariff in `alltars'{
@@ -509,7 +557,7 @@ if `eta_regs'==1{
 	******************************************************************************
 
 	u `rl`mainclust'allllnT`baseyear_o2'lndpall', clear
-	foreach weight in all w0{
+	foreach weight in all /*w0*/{
 	foreach wvar in `allwages'{
 	foreach year in `baseyear_o2'{
 	foreach tariff in `alltars'{

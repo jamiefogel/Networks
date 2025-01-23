@@ -24,6 +24,17 @@ else if c(username)=="Mayara"{
 	global dictionaries		"M:/raisdictionaries/harmonized"
 }
 
+
+else if c(username)=="p13861161" & c(os)=="Windows" {
+	global encrypted 		"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara"
+	global dictionaries		"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\raisdictionaries\harmonized"
+}
+
+else if c(username)=="p13861161" & c(os)=="Unix" {
+	global encrypted 		"/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/Code/replicate_mayara"
+	global dictionaries		"/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/Code/replicate_mayara/raisdictionaries/harmonized"
+}
+
 * Output folder for rais .dta files
 global importedrais			"${encrypted}/output/dta/importedrais"
 

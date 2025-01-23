@@ -41,6 +41,26 @@ else if c(username)=="Mayara"{
 }
 
 
+else if c(username)=="p13861161" & c(os)=="Windows" {
+	global encrypted 		"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara"
+	global dictionaries		"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\raisdictionaries\harmonized"
+	global deIDrais			"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\raisdeidentified"
+	global monopsonies		"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\monopsonies"
+	global public			"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\publicdata"
+}
+
+else if c(username)=="p13861161" & c(os)=="Unix" {
+	global encrypted 		"/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/Code/replicate_mayara"
+	global dictionaries		"/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/Code/replicate_mayara/raisdictionaries/harmonized"
+	global deIDrais			"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\raisdeidentified"
+	global monopsonies		"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\monopsonies"
+	global public			"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\publicdata"
+}
+
+cap log close
+log using "${encrypted}/logs/1_1_earnings_premia_mmc_none.log", replace
+
+
 * Make folders with output date if they don't yet exist
 cap mkdir "${monopsonies}/csv/`outdate'"
 cap mkdir "${monopsonies}/eps/`outdate'"
@@ -52,7 +72,8 @@ local erasefiles 		= 0
 
 local outdate = 20210802
 
-local yearfirst = 1985
+*XX local yearfirst = 1985
+local yearfirst = 1986
 local yearlast  = 2000
 
 cap mkdir "${monopsonies}/eps/`outdate'/"
@@ -77,7 +98,7 @@ if `balanced_sample'==1{
 		sa `mmc`y''
 	}
 
-	u `mmc1985', clear
+	u `mmc`yearfirst'', clear
 	forvalues y=`yearfirst'(1)`yearlast'{
 		merge 1:1 mmc using `mmc`y'', keep(3) nogen
 	}
@@ -90,6 +111,7 @@ if `balanced_sample'==1{
 if `premia'==1{
 	
 	forvalues y=`yearfirst'(1)`yearlast'{
+		di "`y'"
 		u "${monopsonies}/sas/rais_for_earnings_premia`y'.dta", clear
 		drop if mmc==13007 | mmc==23014
 		
@@ -139,8 +161,8 @@ if `premia'==1{
 	*********** Append across years *******
 	local ynext = `yearfirst'+1
 	
-	u `mmc1985', clear
-	gen year = 1985
+	u `mmc`yearfirst'', clear
+	gen year = `yearfirst'
 	forvalues y=`ynext'(1)`yearlast'{
 		append using `mmc`y''
 		replace year = `y' if missing(year)
@@ -156,3 +178,5 @@ if `erasefiles'==1{
 	cd "${monopsonies}/sas/"
 	shell rm rais_for_earnings_premia*
 }
+
+log close

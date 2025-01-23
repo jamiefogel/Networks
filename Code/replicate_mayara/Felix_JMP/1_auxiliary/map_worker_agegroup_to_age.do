@@ -43,6 +43,23 @@ else if c(username)=="Mayara"{
 	global public			"M:/publicdata"
 }
 
+
+
+else if c(username)=="p13861161" & c(os)=="Windows" {
+	global encrypted 		"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara"
+	global dictionaries		"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\raisdictionaries\harmonized"
+	global deIDrais			"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\raisdeidentified"
+	global monopsonies		"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\monopsonies"
+	global public			"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\publicdata"
+}
+
+else if c(username)=="p13861161" & c(os)=="Unix" {
+	global encrypted 		"/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/Code/replicate_mayara"
+	global dictionaries		"/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/Code/replicate_mayara/raisdictionaries/harmonized"
+	global deIDrais			"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\raisdeidentified"
+	global monopsonies		"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\monopsonies"
+	global public			"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\publicdata"
+}
 		
 /*	Birthdate and age availability
 	agegroup only: 		1985-1993
@@ -58,7 +75,7 @@ foreach state in    AC    	AL 		AM   	AP      BA   CE   DF ///
 					PB      PE      PI      PR      RJ   RN   RO ///
 					RR      RS      SC      SE   	SP  TO {
 		
-			u "${deIDrais}/dta/deID_`state'1994ID.dta", clear
+			u "${deIDrais}/dta/20191213/deID_`state'1994ID.dta", clear //XX Fixed file path to include 20191213
 			keep fakeid_worker agegroup age
 			keep if !missing(agegroup) & !missing(age)
 			keep if inrange(age,18,85)

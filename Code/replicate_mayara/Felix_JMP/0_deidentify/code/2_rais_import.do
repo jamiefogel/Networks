@@ -36,12 +36,47 @@ else if c(username)=="Mayara"{
 	global dictionaries		"M:/raisdictionaries/harmonized"
 }
 
+else if c(username)=="p13861161" & c(os)=="Windows" {
+	global encrypted 		"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara"
+	global dictionaries		"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\raisdictionaries\harmonized"
+}
+
+else if c(username)=="p13861161" & c(os)=="Unix" {
+	global encrypted 		"/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/Code/replicate_mayara"
+	global dictionaries		"/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/Code/replicate_mayara/raisdictionaries/harmonized"
+}
+
 * Output folder for rais .dta files
 global importedrais			"${encrypted}/output/dta/importedrais"
 
 * All files
-local files_txt: dir "${encrypted}/unzipped" files "*.txt"
-local files_TXT: dir "${encrypted}/unzipped" files "*.TXT"
+* XX Added , respect to respect case
+local files_txt: dir "${encrypted}/unzipped" files "*.txt", respect 
+local files_TXT: dir "${encrypted}/unzipped" files "*.TXT", respect
+
+* XX Added this to filter on year to improve parallelizability
+if 1==1{
+	local first_year = 2009
+	local last_year  = 2009
+	// Loop over each file in the combined list
+	foreach file in `files_TXT' {
+		di `"`file'"'
+		// Extract the year portion (YYYY) from the filename using regex
+		local year = substr("`file'", 3, 4)
+		di `year'
+		// Check if the year falls within the desired range (1994–1998)
+		if inrange(`year', `first_year', `last_year') {
+			// Add the file to the filtered list
+			local filtered_files "`filtered_files' `file'"
+		}
+	}
+}
+
+local files_TXT `"`filtered_files'"'
+
+di `"`files_txt'"'
+di `"`files_TXT'"'
+
 
 * These files have no actual delimiter. Exclude them from files we'll loop through
 local files_problem "MG2016ID.txt MS2016ID.txt PE2016ID.txt	PI2016ID.txt SC2016ID.txt SE2016ID.txt"
@@ -55,8 +90,16 @@ di "Starting import code on $S_DATE at $S_TIME"
 if `import'==1{
 	
 	import excel using "${dictionaries}/descsave_rais_files_20180829_clean.xlsx", firstrow sheet(clean)
+	replace file = upper(file)
 	keep if keep=="yes"		// Keep only list of variables to be kept in the import
 	keep name file cleanname cleanlabel cleanorder cleanlevel
+	
+	* XX Dealing with some weird issue
+	replace file = "GO2009ID.TXT" if file=="GO2009ID2.TXT"
+	drop if inlist(file, "SP2002ID1.TXT", "SP2009ID1.TXT", "SP2010ID1.TXT")
+	replace file = "SP2002ID.TXT" if file=="SP2002ID2.TXT"
+	replace file = "SP2009ID.TXT" if file=="SP2009ID2.TXT"
+	replace file = "SP2010ID.TXT" if file=="SP2010ID2.TXT"
 	
 	* Check that each cleanname is unique within file
 	isid file cleanname
@@ -65,18 +108,20 @@ if `import'==1{
 	sa `harmonized'
 	
 	* Import, keep relevant, rename, simple clean
-	foreach f in `files_txt' `files_TXT'{
+	foreach f in /*`files_txt'*/ `files_TXT' {
 		
 		di "Importing `f'"
 		
 		* Import with most common delimiter
-		import delimited "${encrypted}/unzipped/`f'", delimiter(";") /*rowrange(1:10)*/ clear 
+		* XX import delimited "${encrypted}/unzipped/`f'", delimiter(";") /*rowrange(1:10)*/ clear 
+		import delimited "${encrypted}/unzipped/`f'", delimiter(";")  clear encoding(utf8)
 		
 		* Other delimiter is pipe
 		cap confirm variable v1, exact
 		if !_rc{
 			di "File `f' delimited with tab or pipe"
-			import delimited "${encrypted}/unzipped/`f'", delimiter("|") /*rowrange(1:10)*/ clear 
+			*XX import delimited "${encrypted}/unzipped/`f'", delimiter("|") /*rowrange(1:10)*/ clear 
+			import delimited "${encrypted}/unzipped/`f'", delimiter("|")  clear encoding(utf8)
 		}
 		
 		* Get clean names and labels from harmonized file. Sort to desired final order of vars.
@@ -85,7 +130,7 @@ if `import'==1{
 			keep if file=="`f'"
 			sort cleanorder
 			
-			qui valuesof name
+			valuesof name
 				local rawnames = r(values)
 			qui valuesof cleanname		
 				local cleannames = r(values)
@@ -93,6 +138,7 @@ if `import'==1{
 				local cleanlabels = r(values)
 		restore
 		
+	
 		* Keep and rename
 		keep `rawnames'
 		ren (`rawnames') (`cleannames')
