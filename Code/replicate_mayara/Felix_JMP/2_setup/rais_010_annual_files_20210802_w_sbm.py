@@ -92,6 +92,15 @@ def process_year(year):
     # We'll assume unique after this filtering:
     year_df = year_df.drop_duplicates(subset=["fakeid_worker"])
 
+    print(year)
+    # Merge on iotas and gammas
+    year_df['occ4'] = pd.to_numeric(year_df['cbo'].astype(str).str[:4], errors='coerce')
+    year_df = year_df.merge(jblocks, on=['fakeid_estab','occ4'], how='left', validate='m:1', indicator='_merge_j' )
+    print(year_df._merge_j.value_counts())
+    year_df = year_df.merge(wblocks, on=['fakeid_worker'], how='left', validate='m:1', indicator='_merge_w' )
+    print(year_df._merge_w.value_counts())
+    year_df.drop(columns=['_merge_j','_merge_w'], inplace=True)
+
     return year_df
 
 
@@ -113,59 +122,19 @@ def import_years():
 # %import_years;
 # In Python, we just call the function:
 if __name__ == "__main__":
+    
+    # Load SBM that we ran on Mayara data
+    modelname = 'sbm_mayara'
+    jblocks = pd.read_csv(root + 'Data/derived/sbm_output/model_'+modelname+'_jblocks.csv')
+    jblocks[['fakeid_estab', 'occ4']] = jblocks['jid'].str.split('_', expand=True)
+    jblocks['fakeid_estab'] = jblocks['fakeid_estab'].astype(int)
+    jblocks['occ4'] = jblocks['occ4'].astype(int)
+    jblocks = jblocks[['fakeid_estab', 'occ4', 'job_blocks_level_0', 'job_blocks_level_1']]
+    wblocks = pd.read_csv(root + 'Data/derived/sbm_output/model_'+modelname+'_wblocks.csv')
+    wblocks = wblocks.rename(columns={'wid':'fakeid_worker'})
+    wblocks = wblocks[['fakeid_worker', 'worker_blocks_level_0', 'worker_blocks_level_1']]
+
     import_years()
 
 
 
-modelname = 'sbm_mayara'
-jblocks = pd.read_csv(root + 'Data/derived/sbm_output/model_'+modelname+'_jblocks.csv')
-jblocks[['fakeid_estab', 'occ4']] = jblocks['jid'].str.split('_', expand=True)
-jblocks['fakeid_estab'] = jblocks['fakeid_estab'].astype(int)
-jblocks['occ4'] = jblocks['occ4'].astype(int)
-
-
-wblocks = pd.read_csv(root + 'Data/derived/sbm_output/model_'+modelname+'_wblocks.csv')
-wblocks = wblocks.rename(columns={'wid':'fakeid_worker'})
-
-years = range(1987, 1991)
-#df = pd.concat([pd.read_parquet(root + f'/Code/replicate_mayara/monopsonies/sas/rais{year}.parquet') for year in years], ignore_index=True)
-df = pd.concat([
-    pd.read_parquet(root + f'/Code/replicate_mayara/monopsonies/sas/rais{year}.parquet', columns=['fakeid_worker', 'fakeid_firm', 'fakeid_estab', 'agegroup', 'municipality', 'cbo'], engine="pyarrow")
-    for year in years
-], ignore_index=True)
-
-
-df['occ4'] = pd.to_numeric(df['cbo'].astype(str).str[:4], errors='coerce')
-
-df = df.merge(jblocks, on=['fakeid_estab','occ4'], how='outer', validate='m:1', indicator='_merge_j' )
-print(df._merge_j.value_counts())
-
-df = df.loc[df._merge_j!='right_only']
-
-df = df.merge(wblocks, on=['fakeid_worker'], how='outer', validate='m:1', indicator='_merge_w' )
-print(df._merge_w.value_counts())
-
-
-
-#######################
-# Load the list of wids and jids from do_all_trade_shock.py before we drop jobs with <5 workers
-
-cw_wid__fakeid_worker__iota = pd.read_pickle(root + '/Data/derived/cw_wid__fakeid_worker__iota.p')
-
-cw_jid__fakeid_estab__gamma = pd.read_pickle(root + '/Data/derived/cw_jid__fakeid_estab__gamma.p')
-
-
-
-## XX Next step: merge on iotas and gammas using these crosswalks
-
-for year in range(1985,2011):
-    try:
-        df = pd.read_parquet(f'/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit//Code/replicate_mayara/monopsonies/sas/rais{year}.parquet')
-# Convert to Int64 dtype to allow missing values
-        df['occ4'] = df['cbo'].astype('str').str[0:4].where(df['cbo'].notna(), None).astype('Int64')
-        df = df.merge(cw_jid__fakeid_estab__gamma[['fakeid_estab','occ4','job_blocks_level_0']], on = ['fakeid_estab','occ4'], validate='m:1', how='outer', indicator='_merge_estabid' )
-        df = df.merge(cw_wid__fakeid_worker__iota[['fakeid_worker','worker_blocks_level_0']], on = ['fakeid_worker'], validate='m:1', how='outer', indicator='_merge_worker' )
-        print(year, df.shape)
-    except:
-        print(year, " not found")
-        
