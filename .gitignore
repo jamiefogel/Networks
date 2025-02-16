@@ -76,3 +76,25 @@ xstata-se
 *.parquet
 *.dta
 *.xlsx
+
+
+Code/MarketPower/.gitignore~
+Code/MarketPower/.ipynb_checkpoints/
+Code/MarketPower/nayara_data/
+Code/MarketPower/reg_df2
+Code/MarketPower/simulations_for_parameter_estimation.ipynb
+Code/replicate_mayara - Copy/
+Code/replicate_mayara/Felix JMP (2021) more/Thumbs.db
+Code/replicate_mayara/Felix_JMP/0_deidentify/code/#0_packages.do#
+Code/replicate_mayara/code_to_explore_varnames_etc/Code - Shortcut.lnk
+Code/replicate_mayara/code_to_explore_varnames_etc/estab_variables.csv
+Code/replicate_mayara/code_to_explore_varnames_etc/worker_variables.csv
+Code/replicate_mayara/monopsonies/
+Code/replicate_mayara/publicdata/
+Code/replicate_mayara/radisticascitanas/
+Code/replicate_mayara/unzipped/
+Code/replicate_mayara/clean/
+Code/Results/iota_summary_stats/
+Code/MarketPower/mayara_data/
+Code/replicate_mayara/raisdictionaries/
+Code/replicate_mayara_clean/
