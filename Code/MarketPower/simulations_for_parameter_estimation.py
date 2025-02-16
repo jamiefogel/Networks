@@ -14,10 +14,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 from config import homedir, os_name, root, rais, figuredir
 
-if os_name=='Windows':
-    stata_or_python = "Stata"
-elif os_name=='Linux':
-    stata_or_python = "Python"
+#if os_name=='Windows':
+#    stata_or_python = "Stata"
+#elif os_name=='Linux':
+#    stata_or_python = "Python"
+stata_or_python = "Stata"
 
 from market_power_utils import (
     run_stata_code,
@@ -117,10 +118,11 @@ def estimate_fixed_effects(reg_df, stata_or_python):
             fe_df[fe_varname] = fe_df[fe_varname].astype(reg_df[fe_varname].dtype)
             # Merge the fixed effect estimates back to the original DataFrame
             reg_df = reg_df.merge(fe_df, on=fe_varname, how='left', validate='m:1', indicator=f'_merge_{fe_varname}')
+        reg_df_w_FEs = reg_df.copy()
     else:
         raise ValueError("Invalid value for 'stata_or_python'. Should be 'Stata' or 'Python'.")
         
-    reg_df_w_FEs = reg_df.groupby(['iota', 'gamma', 'iota_gamma', 'jid_masked']).agg({
+    reg_df_w_FEs = reg_df_w_FEs.groupby(['iota', 'gamma', 'iota_gamma', 'jid_masked']).agg({
         'jid_masked_fes': 'first',          # These don't vary within the group, so we can take the first value
         'iota_gamma_fes': 'first',          # These don't vary within the group, so we can take the first value
         'markdown_w_iota': 'first',         # These don't vary within the group, so we can take the first value
@@ -314,6 +316,9 @@ def run_estimations_for_combinations(data, combinations, stata_or_python='Python
 def main():
 
     reg_df = load_and_prepare_data(root, eta_bhm, theta_bhm)
+    reg_df.to_pickle(root + 'Data/derived/reg_df.p')
+    reg_df = pd.read_pickle(root + 'Data/derived/reg_df.p')
+
     
     # Estimate fixed effects and collapse to jid-iota-gamma-level (really that's just jid-iota level b/c gamma nested w/in jid)
     reg_df_w_FEs = estimate_fixed_effects(reg_df, stata_or_python)
@@ -323,8 +328,8 @@ def main():
     # Generate shocks and find equilibrium
     delta = 0.5
     reg_df_w_FEs_w_shock = generate_shocks_and_find_equilibrium(reg_df_w_FEs, delta, eta_bhm, theta_bhm)
-    reg_df_w_FEs_w_shock.to_pickle(root + 'Data/derived/tmp_reg_df_w_FEs_w_shock.p')
-    reg_df_w_FEs_w_shock = pd.read_pickle(root + 'Data/derived/tmp_reg_df_w_FEs_w_shock.p')
+    reg_df_w_FEs_w_shock.to_pickle(root + 'Data/derived/reg_df_w_FEs_w_shock.p')
+    reg_df_w_FEs_w_shock = pd.read_pickle(root + 'Data/derived/reg_df_w_FEs_w_shock.p')
     
     ##############################################################################################
     

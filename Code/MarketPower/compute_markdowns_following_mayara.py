@@ -287,6 +287,9 @@ def run_stata_code(reg_df, stata_code, dta_path=None, results_path=None, do_file
 
 
 
+###############################################################################
+# Process data
+###############################################################################
 
 
 # Pull region codes
@@ -308,9 +311,7 @@ data_full = data_full.merge(muni_micro_cw, on='codemun', how='left', validate='m
 #Felix, p. 27: Appendix C.2.4 shows that the country-level average markdown—that is, the country- level ratio of (employment-weighted) average MRPL to (employment-weighted) average wage—is a weighted average of the market-level markdowns in Proposition 1, where the weights are each market’s payroll share of the country’s total payroll.
 
 
-
-
-''' Ingredients for computing labor supply elasiticities according to our model:
+''' Ingredients for computing labor supply elasticities according to our model:
  - $\Phi_{ig}$
  - 1/theta (our theta corresponds to Mayara's eta, her 1/eta=0.985)
  - 1/nu (our nu corresponds to Mayara's theta, her 1/theta=1.257)
@@ -321,9 +322,6 @@ data_full = data_full.merge(muni_micro_cw, on='codemun', how='left', validate='m
 
 # Create variable for Mayara's market definitions
 data_full['mkt_mayara'] = data_full.groupby(['occ2', 'code_micro']).ngroup()
-
-
-
 
 s_ij = compute_payroll_weighted_share(data_full, 'iota', 'jid_masked', 'real_hrly_wage_dec')
 s_jg = compute_payroll_weighted_share(data_full, 'jid_masked', 'gamma', 'real_hrly_wage_dec')

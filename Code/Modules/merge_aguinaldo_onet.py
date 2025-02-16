@@ -8,7 +8,7 @@ Created on Thu Jun 27 11:56:19 2024
 import pandas as pd
 
 
-def merge_aguinaldo_onet(df, aguinaldo_dir):
+def merge_aguinaldo_onet(df, aguinaldo_dir=root+'/Data/raw/db_24_1/'):
     # Factor names and descriptions from Aguinaldo. See https://mail.google.com/mail/u/0/#inbox/FMfcgzGxTPDrccpzvkjfSwhqQhQxvlKl
     factor_info = {
         "Factor1": {

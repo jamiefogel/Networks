@@ -29,7 +29,7 @@ if getpass.getuser()=='p13861161':
     elif os_name == 'Linux':
         print("Running on Linux") 
         root = "/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/"
-        rais = "/home/DLIPEA/p13861161/rais/RAIS/"
+        rais = "~/rais/RAIS/"
         sys.path.append(root + 'Code/Modules')
         import torch
         import bisbm
@@ -74,19 +74,19 @@ run_pull=False
 run_append = False
 run_create_earnings_panel = False
 maxrows=None
-modelname = '3states_2009to2011'
+modelname = '3states_2013to2016_new'
 #modelname = 'synthetic_data_3states_2009to2012'
 filename_stub = "panel_"+modelname
 rais_filename_stub =  '~/rais/RAIS/csv/brasil' 
 #rais_filename_stub = root + './Data/raw/synthetic_data_'
 
 
-firstyear_sbm = 2009
-lastyear_sbm  = 2011
-firstyear_panel = 2009
-lastyear_panel  = 2014
+firstyear_sbm = 2013
+lastyear_sbm  = 2016
+firstyear_panel = 2013
+lastyear_panel  = 2018
 state_codes = [31, 33, 35]
-gamma_summary_stats_year = 2010   # Define a year to compute summary stats
+gamma_summary_stats_year = 2014   # Define a year to compute summary stats
 
 #####################################
 # Options from do_all.py
@@ -98,8 +98,8 @@ plt.rcParams['figure.dpi'] = 100
 level = 0
 #level = int(sys.argv[1])
 
-pre = 2009
-post = 2014
+pre = 2013
+post = 2018
 eta = 2
 year = pre
 S = 45
@@ -224,7 +224,7 @@ if run_sbm_mcmc==True:
 
 if run_create_earnings_panel==True:
     print('Starting create_earnings_panel() section at ', datetime.now())
-    create_earnings_panel(modelname, appended, 2009, 2014)
+    create_earnings_panel(modelname, appended, 2013, 2018)
     print('create_earnings_panel() section finished  at ', datetime.now())
 
 
@@ -374,8 +374,8 @@ if run_gamma_summary_stats==True:
 #  Add prediction exercise code
 #--------------------------
 
-ins_years = [2009, 2010, 2011]
-oos_years = [2012, 2013]
+ins_years = [2013, 2014, 2015, 2016]
+oos_years = [2017, 2018]
 
 if run_predictions==True:
     print('Starting predictions')

@@ -14,6 +14,7 @@ import subprocess
 import tempfile
 import ast
 import statsmodels.api as sm
+import shutil
 
 
 
@@ -33,10 +34,10 @@ def compute_pi(df):
     return df['ell_iota_j'] / df['denominator']
 
 # Equation 48 - Job j's payrolls share of market gamma (summing across all iotas)
-def compute_s_j_gamma(df):
-    df['wl'] = df['wage_guess'] * df['ell_iota_j']
-    df['numerator']   = df.groupby('jid_masked')['wl'].transform('sum')
-    df['denominator'] = df.groupby('gamma')['wl'].transform('sum')
+def compute_s_j_mkt(df, wagevar='wage_guess', emp_counts='ell_iota_j',jobvar='jid_masked', marketvar='gamma'):
+    df['wl'] = df[wagevar] * df[emp_counts]
+    df['numerator']   = df.groupby(jobvar)['wl'].transform('sum')
+    df['denominator'] = df.groupby(marketvar)['wl'].transform('sum')
     return df['numerator'] / df['denominator']
     
 # Equation 49: compute markdown
@@ -99,14 +100,25 @@ def compute_s_MarketWorkertype(df, jobvar, workertypevar, marketvar, eta, theta)
     merged['s_MarketWorkertype'] = merged['market_sum_powered_gi'] / merged['market_sum_powered_i']
     return merged[[workertypevar, marketvar, 's_MarketWorkertype']]
 
-def run_stata_code(reg_df, stata_code, dta_path=None, results_path=None, do_file_path=None, log_file_path=None, scalar_results_path=None, stata_path=None, PRINT_STATA_LOG = False):
-    # Create temporary directory if needed
-    temp_dir = tempfile.mkdtemp() if any(path is None for path in [dta_path, results_path, do_file_path, log_file_path, scalar_results_path]) else None
+def run_stata_code(reg_df, 
+                   stata_code,
+                   dta_path=None,
+                   results_path=None, 
+                   do_file_path=None, 
+                   log_file_path=None, 
+                   scalar_results_path=None, 
+                   stata_path=None, 
+                   PRINT_STATA_LOG=False,
+                   temp_dir="/home/DLIPEA/p13861161/tmp"  # fixed directory for temp files
+):
+   
 
-    # Track which files are temporary
+    # Ensure we have a clean temp directory
+    shutil.rmtree(temp_dir, ignore_errors=True)
+    os.makedirs(temp_dir, exist_ok=True)
+
     temp_files = []
 
-    # Use provided paths or create temporary ones
     if dta_path is None:
         dta_path = os.path.join(temp_dir, 'input_data.dta')
         temp_files.append(dta_path)
@@ -123,15 +135,12 @@ def run_stata_code(reg_df, stata_code, dta_path=None, results_path=None, do_file
         scalar_results_path = os.path.join(temp_dir, 'scalar_results.txt')
         temp_files.append(scalar_results_path)
 
-    # Create a path for the success indicator file
     success_indicator_path = os.path.join(temp_dir, 'stata_success.tmp')
     temp_files.append(success_indicator_path)
 
     try:
-        # Save dataframe as .dta file
         reg_df.to_stata(dta_path, write_index=False)
 
-        # Modify Stata code to include scalar results and success indicator
         stata_code += f"""
         file open scalarfile using "{scalar_results_path}", write replace
         file write scalarfile "scalar_results = {{"
@@ -146,13 +155,11 @@ def run_stata_code(reg_df, stata_code, dta_path=None, results_path=None, do_file
         file write scalarfile "}}"
         file close scalarfile
 
-        // Create success indicator file
         file open success using "{success_indicator_path}", write replace
         file write success "success"
         file close success
         """
 
-        # Replace placeholders in stata_code
         stata_code = stata_code.replace("dta_path", dta_path)
         stata_code = stata_code.replace("results_path", results_path)
         stata_code = stata_code.replace("log_file_path", log_file_path)
@@ -160,44 +167,30 @@ def run_stata_code(reg_df, stata_code, dta_path=None, results_path=None, do_file
         if PRINT_STATA_LOG:
             print(stata_code)
 
-        # Write Stata code to .do file
         with open(do_file_path, 'w') as f:
             f.write(stata_code)
 
-        # Run Stata
-        stata_path = stata_path or r"C:\Program Files (x86)\Stata14\StataMP-64.exe"  # Adjust this path if needed
-        process = subprocess.Popen([stata_path, "/e", "do", do_file_path], 
-                                   stdout=subprocess.PIPE, 
+        stata_path = stata_path or r"/usr/local/stata18/stata-mp"
+        process = subprocess.Popen([stata_path, "-e", "do", do_file_path],
+                                   stdout=subprocess.PIPE,
                                    stderr=subprocess.STDOUT,
                                    universal_newlines=True)
 
-        # Initialize last_position
         last_position = 0
 
         while True:
-            # Check if process has finished
             if process.poll() is not None:
                 break
 
-            # Check if log file exists and PRINT_STATA_LOG is True
             if os.path.exists(log_file_path) and PRINT_STATA_LOG:
                 with open(log_file_path, 'r') as log_file:
-                    # Move to last read position
                     log_file.seek(last_position)
-                    
-                    # Read new content
                     new_content = log_file.read()
-                    
                     if new_content:
                         print(new_content, end='')
-                        
-                    # Update last_position
                     last_position = log_file.tell()
-
-            # Wait a bit before checking again
             time.sleep(0.1)
 
-        # Read any remaining content after process finishes if PRINT_STATA_LOG is True
         if os.path.exists(log_file_path) and PRINT_STATA_LOG:
             with open(log_file_path, 'r') as log_file:
                 log_file.seek(last_position)
@@ -205,7 +198,6 @@ def run_stata_code(reg_df, stata_code, dta_path=None, results_path=None, do_file
                 if remaining_content:
                     print(remaining_content, end='')
 
-        # Check for success indicator file
         if not os.path.exists(success_indicator_path):
             with open(log_file_path, 'r') as log_file:
                 log_content = log_file.read()
@@ -213,25 +205,18 @@ def run_stata_code(reg_df, stata_code, dta_path=None, results_path=None, do_file
 
         results_df = pd.read_stata(results_path)
 
-        # Read scalar results
         with open(scalar_results_path, 'r') as f:
             scalar_results_str = f.read().strip()
-        
-        # Extract the dictionary part from the string
+
         scalar_dict_str = scalar_results_str.split('=', 1)[1].strip()
-        
-        # Use ast.literal_eval to safely evaluate the string
         scalar_results = ast.literal_eval(scalar_dict_str)
 
-        # Read do file
         with open(do_file_path, 'r') as f:
             do_file_content = f.read()
 
-        # Read log file
         with open(log_file_path, 'r') as f:
             log_file_content = f.read()
 
-        # Return dictionary of results
         return {
             'results_df': results_df,
             'scalar_results': scalar_results,
@@ -240,11 +225,10 @@ def run_stata_code(reg_df, stata_code, dta_path=None, results_path=None, do_file
         }
 
     finally:
-        # Clean up only temporary files
-        for file in temp_files:
-            if os.path.exists(file):
-                os.remove(file)
         if temp_dir:
+            for file in temp_files:
+                if os.path.exists(file):
+                    os.remove(file)
             os.rmdir(temp_dir)
 
 def compute_markdowns_w_iota(df, wagevar, jobvar, marketvar, workertypevar, eta, theta):
@@ -462,6 +446,7 @@ def estimate_theta_hat(reg_df3, estimation_strategy, stata_or_python):
             scalar_name='theta_hat'
         )
     if stata_or_python=='Python':
+        import pyfixest as pf
         if regression_type=='ols':
             fit = pf.feols(f"{dependent_var} ~ {independent_var} | {absorb_var}", data=reg_df3)
         elif regression_type=='iv':
@@ -507,7 +492,7 @@ def find_equilibrium(df, eta, theta, tol=1e-4, max_iter=100):
     while diff > tol and iter_count < max_iter:
         df[['s_gamma_iota','ell_iota_j']] = compute_ell(df, eta, theta)
         df['pi_iota_j'] = compute_pi(df)
-        df['s_j_gamma'] = compute_s_j_gamma(df)
+        df['s_j_gamma'] = compute_s_j_mkt(df)
         df['epsilon_j'] = compute_epsilon_j(df, eta, theta)
         
         # Update wage_guess

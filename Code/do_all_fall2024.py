@@ -4,58 +4,47 @@
 import os
 import sys
 import pandas as pd
+import torch
 import numpy as np
 import pickle
 from datetime import datetime
 import getpass
 import subprocess
-import platform
-import matplotlib.pyplot as plt
-
 
 now = datetime.now()
 dt_string = now.strftime("%Y_%m_%d__%H_%M_%S")
 print("date and time =", dt_string)	
 
-
 homedir = os.path.expanduser('~')
-os_name = platform.system()
 if getpass.getuser()=='p13861161':
-    if os_name == 'Windows':
-        print("Running on Windows") 
-        root = "//storage6/usuarios/labormkt_rafaelpereira/NetworksGit/"
-        rais = "//storage6/bases/DADOS/RESTRITO/RAIS/"
-        sys.path.append(root + 'Code/Modules')
-    elif os_name == 'Linux':
-        print("Running on Linux") 
-        root = "/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/"
-        rais = "/home/DLIPEA/p13861161/rais/RAIS/"
-        sys.path.append(root + 'Code/Modules')
-        import torch
-        import bisbm
-        from create_earnings_panel import create_earnings_panel
-        from torch_mle import torch_mle
-        from mle_load_fulldata import mle_load_fulldata
-        from normalization_k import normalization_k
-        from alphas_func import load_alphas
-        import solve_model_functions as smf
-        from correlogram import correlogram
-        torch.set_printoptions(precision=4, linewidth=200, sci_mode=False, edgeitems=150)
-
-
-
-if getpass.getuser()=='jfogel':
+    print("Running on Linux")
+    root = homedir + '/labormkt/labormkt_rafaelpereira/NetworksGit/'
+elif getpass.getuser()=='jfogel':
     print("Running on Jamie's home laptop")
     root = homedir + '/NetworksGit/'
-    sys.path.append(root + 'Code/Modules')
 
+sys.path.append(root + 'Code/Modules')
 figuredir = root + 'Results/'
+
 os.chdir(root)
 
-from pull_one_year import pull_one_year
-from concentration_figures import concentration_figures
-from occ_counts_by_type import occ_counts_by_type
 
+
+
+import bisbm
+from create_earnings_panel import create_earnings_panel
+from pull_one_year import pull_one_year
+
+
+import matplotlib.pyplot as plt
+from torch_mle import torch_mle
+from mle_load_fulldata import mle_load_fulldata
+from normalization_k import normalization_k
+from alphas_func import load_alphas
+import solve_model_functions as smf
+from occ_counts_by_type import occ_counts_by_type
+from correlogram import correlogram
+from concentration_figures import concentration_figures
 
 
 # Change all the filepaths to the new data
@@ -74,17 +63,17 @@ run_pull=False
 run_append = False
 run_create_earnings_panel = False
 maxrows=None
-modelname = '3states_2009to2011'
+modelname = 'model_3states_2013to2016_new'
 #modelname = 'synthetic_data_3states_2009to2012'
 filename_stub = "panel_"+modelname
 rais_filename_stub =  '~/rais/RAIS/csv/brasil' 
 #rais_filename_stub = root + './Data/raw/synthetic_data_'
 
 
-firstyear_sbm = 2009
-lastyear_sbm  = 2011
-firstyear_panel = 2009
-lastyear_panel  = 2014
+firstyear_sbm = 2013
+lastyear_sbm  = 2016
+firstyear_panel = 2013
+lastyear_panel  = 2016
 state_codes = [31, 33, 35]
 gamma_summary_stats_year = 2010   # Define a year to compute summary stats
 
@@ -109,6 +98,7 @@ num_states = 3 # This is relevant for knowing how many repetitions of the alphag
 xi_outopt_scalar = 0
 phi_outopt_scalar = 0
 
+torch.set_printoptions(precision=4, linewidth=200, sci_mode=False, edgeitems=150)
 pd.options.display.max_columns=20
 pd.options.display.width=200
 np.set_printoptions(linewidth=200)
@@ -374,8 +364,8 @@ if run_gamma_summary_stats==True:
 #  Add prediction exercise code
 #--------------------------
 
-ins_years = [2009, 2010, 2011]
-oos_years = [2012, 2013]
+ins_years = [2013, 2014, 2015, 2016]
+oos_years = [2017, 2018]
 
 if run_predictions==True:
     print('Starting predictions')

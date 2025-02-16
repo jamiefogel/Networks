@@ -216,7 +216,7 @@ worker_panel = merge_aguinaldo_onet(worker_panel, root + 'Data/raw/')
     
     
 # Keep only relevant columns
-worker_panel = worker_panel[['pis', 'id_estab', 'cnpj_raiz', 'cbo2002', 'clas_cnae20', 'codemun', 'tipo_vinculo', 'year', 'wid', 'occ4', 'jid', 'gamma', 'iota', 'occ2Xmeso', 'ind2', 'code_micro', 'Addr_type', 'lat_estab', 'lon_estab', 'utm_lat_estab', 'utm_lon_estab', 'Cognitive skills', 'Operational skills', 'Social and emotional skills', 'Management skills', 'Physical skills', 'Transportation skills', 'Social sciences skills', 'Accuracy skills', 'Design & engineering skills', 'Artistic skills', 'Life sciences skills', 'Information technology skills', 'Sales skills', 'Self-reliance skills', 'Information processing skills', 'Teamwork skills']]
+worker_panel = worker_panel[['pis', 'id_estab', 'cnpj_raiz', 'cbo2002', 'clas_cnae20', 'codemun', 'tipo_vinculo', 'year', 'wid', 'occ4', 'jid', 'gamma', 'iota', 'occ2Xmeso', 'ind2', 'code_micro', 'code_meso', 'Addr_type', 'lat_estab', 'lon_estab', 'utm_lat_estab', 'utm_lon_estab', 'Cognitive skills', 'Operational skills', 'Social and emotional skills', 'Management skills', 'Physical skills', 'Transportation skills', 'Social sciences skills', 'Accuracy skills', 'Design & engineering skills', 'Artistic skills', 'Life sciences skills', 'Information technology skills', 'Sales skills', 'Self-reliance skills', 'Information processing skills', 'Teamwork skills']]
    
 # Identify layoffs and merge on a flag to the main data
 worker_panel_balanced = pd.read_pickle(root + "Data/derived/mass_layoffs_worker_panel_balanced.p")
@@ -231,7 +231,6 @@ worker_panel.drop(columns='mass_layoff_flag_temp', inplace=True)
 
 worker_panel.to_parquet(        root + "Data/derived/worker_panel_w_layoff_flags_for_rafa.parquet")  
 
-root =  '//storage6/usuarios/labormkt_rafaelpereira/NetworksGit/'
 worker_panel = pd.read_parquet( root + "Data/derived/worker_panel_w_layoff_flags_for_rafa.parquet")   
 gamma_to_gamma_probs         = pd.read_parquet( root + "Data/derived/gamma_to_gamma_probs_for_rafa.parquet")   
 occ2Xmeso_to_occ2Xmeso_probs = pd.read_parquet( root + "Data/derived/occ2Xmeso_to_occ2Xmeso_probs_for_rafa.parquet")  
