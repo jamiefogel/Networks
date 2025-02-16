@@ -93,6 +93,8 @@ def process_year(year):
     year_df = year_df.drop_duplicates(subset=["fakeid_worker"])
 
     print(year)
+    if year >=1994: 
+        year_df = year_df.rename(columns={'cbo94':'cbo'})
     # Merge on iotas and gammas
     year_df['occ4'] = pd.to_numeric(year_df['cbo'].astype(str).str[:4], errors='coerce')
     year_df = year_df.merge(jblocks, on=['fakeid_estab','occ4'], how='left', validate='m:1', indicator='_merge_j' )
@@ -129,12 +131,11 @@ if __name__ == "__main__":
     jblocks[['fakeid_estab', 'occ4']] = jblocks['jid'].str.split('_', expand=True)
     jblocks['fakeid_estab'] = jblocks['fakeid_estab'].astype(int)
     jblocks['occ4'] = jblocks['occ4'].astype(int)
-    jblocks = jblocks[['fakeid_estab', 'occ4', 'job_blocks_level_0', 'job_blocks_level_1']]
+    jblocks = jblocks[['fakeid_estab', 'occ4', 'jid', 'job_blocks_level_0', 'job_blocks_level_1']]
+    jblocks = jblocks.rename({'job_blocks_level_0':'gamma'})
     wblocks = pd.read_csv(root + 'Data/derived/sbm_output/model_'+modelname+'_wblocks.csv')
     wblocks = wblocks.rename(columns={'wid':'fakeid_worker'})
     wblocks = wblocks[['fakeid_worker', 'worker_blocks_level_0', 'worker_blocks_level_1']]
 
     import_years()
-
-
 

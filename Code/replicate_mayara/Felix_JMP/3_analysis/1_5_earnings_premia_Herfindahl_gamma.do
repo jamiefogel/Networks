@@ -54,7 +54,7 @@ else if c(username)=="p13861161" & c(os)=="Unix" {
 }
 
 cap log close
-log using "${encrypted}/logs/1_5_earnings_premia_Herfindahl.log", replace
+log using "${encrypted}/logs/1_5_earnings_premia_Herfindahl_gamma.log", replace
 
 
 local regressions	= 1
@@ -76,7 +76,7 @@ if `regressions'==1{
 	duplicates drop
 	tempfile tariffs
 	sa `tariffs'
-	
+	/*
 	u "${monopsonies}/dta/fakeid_importers_exporters_allyears_20191213.dta", clear
 	keep if inrange(year,1990,1994)
 	bys fakeid_firm: gegen explib = max(exporter)
@@ -90,14 +90,16 @@ if `regressions'==1{
 	gduplicates drop
 	tempfile exporters
 	sa `exporters'
-	
+	*/
 	* Herfindahl with wage premium
 	u "${monopsonies}/sas/rais_collapsed_firm_gamma.dta", clear
 	keep fakeid_firm gamma cnae95 year emp
 	
+	/*
 	merge m:1 fakeid_firm using `exporters', keep(1 3) nogen
 	replace explib=0 if missing(explib)
 	replace bexp = 0 if missing(bexp)
+	*/
 	
 	merge m:1 cnae95 using `tariffs', keep(1 3) nogen
 	gegen ibge = max(ibgesubsector), by(fakeid_firm)
@@ -123,11 +125,11 @@ if `regressions'==1{
 		
 		bys gamma year: gegen double hf_t_pdbill = sum(cond(T==1,pshare2,.))
 		bys gamma year: gegen double hf_nt_pdbill = sum(cond(T==0,pshare2,.))
-		bys gamma year: gegen double hf_explib_pdbill = sum(cond(explib==1,pshare2,.))
-		bys gamma year: gegen double hf_Tnexplib_pdbill = sum(cond(explib==0 & T==1,pshare2,.))
+		//bys gamma year: gegen double hf_explib_pdbill = sum(cond(explib==1,pshare2,.))
+		//bys gamma year: gegen double hf_Tnexplib_pdbill = sum(cond(explib==0 & T==1,pshare2,.))
 		
-		bys gamma year: gegen double hf_bexp_pdbill = sum(cond(bexp==1,pshare2,.))
-		bys gamma year: gegen double hf_Tnbexp_pdbill = sum(cond(bexp==0 & T==1,pshare2,.))
+		//bys gamma year: gegen double hf_bexp_pdbill = sum(cond(bexp==1,pshare2,.))
+		//bys gamma year: gegen double hf_Tnbexp_pdbill = sum(cond(bexp==0 & T==1,pshare2,.))
 		
 		
 		* Herfindahl for Tradables only
@@ -146,7 +148,7 @@ if `regressions'==1{
 		`tool'duplicates drop
 		
 		saveold "${monopsonies}/sas/earnings_premia_Herfindhal_gamma.dta", replace
-	}
+	//}
 }
 
 log close

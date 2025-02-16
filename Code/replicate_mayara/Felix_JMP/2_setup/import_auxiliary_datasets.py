@@ -37,9 +37,15 @@ crosswalk_ibgesubsector_indmatch.to_parquet(f"{monopsonies_path}/sas/crosswalk_i
 
 # Read crosswalk CNAE95 to IBGE subsector
 # XX I'm commenting out he origina lcode b/c we don't have the raw data. Instead, computing the crosswalk myself
-#crosswalk_cnae95_ibgesubsector, meta = pyreadstat.read_dta(
-#    f"{harmonized_path}/rais_cnae10_to_ibgesubsector.dta"
-#)
+crosswalk_cnae95_ibgesubsector, meta = pyreadstat.read_dta(
+    f"{harmonized_path}/rais_cnae10_to_ibgesubsector.dta"
+)
+crosswalk_cnae95_ibgesubsector.rename(columns={'cnae10':'cnae95'}, inplace=True)
+crosswalk_cnae95_ibgesubsector.to_pickle(f"{monopsonies_path}/sas/crosswalk_cnae95_ibgesubsector.pkl")
+crosswalk_cnae95_ibgesubsector.to_parquet(f"{monopsonies_path}/sas/crosswalk_cnae95_ibgesubsector.parquet")
+
+'''
+# This is an old version I made before Mayara shared the actual file
 table = pq.read_table(rais + "parquet_novos/brasil1995.parquet", columns=['subs_ibge','clas_cnae'])
 temp = table.to_pandas()
 # Assuming your DataFrame is named df
@@ -50,9 +56,13 @@ temp = temp.sort_values(
 )
 
 crosswalk_cnae95_ibgesubsector = temp.drop_duplicates(subset='clas_cnae', keep='first').drop(columns='count')
-crosswalk_cnae95_ibgesubsector.rename(columns={"clascnae": "cnae95",'subs_ibge':'ibgesubsector'}, inplace=True)
+crosswalk_cnae95_ibgesubsector.rename(columns={"clas_cnae": "cnae95",'subs_ibge':'ibgesubsector'}, inplace=True)
 crosswalk_cnae95_ibgesubsector.to_pickle(f"{monopsonies_path}/sas/crosswalk_cnae95_ibgesubsector.pkl")
+crosswalk_cnae95_ibgesubsector.to_parquet(f"{monopsonies_path}/sas/crosswalk_cnae95_ibgesubsector.parquet")
+
 del temp
+'''
+
 
 # Read Tariff shocks
 cnae95_tariff_changes, meta = pyreadstat.read_dta(

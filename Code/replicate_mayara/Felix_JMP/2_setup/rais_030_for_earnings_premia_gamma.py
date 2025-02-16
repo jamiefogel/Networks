@@ -34,7 +34,7 @@ def get_demos(year):
     #XX I edited rais_010_annual_files_20210802_w_sbm.py to rename cbo94 to cbo in 1994 and later
     cboraw = "cbo"
     cboclean = "cbo94"
-        
+
     # --------------------------------------------------
     # 1) Read monopsas.rais{year} and filter to create temp{year}
     #    which includes (fakeid_firm, ibgesubsector, count(fakeid_worker) as emp)
@@ -54,6 +54,7 @@ def get_demos(year):
     df_rais = pd.read_parquet(
         rais_file,
         columns=["fakeid_worker", "fakeid_firm", "ibgesubsector",
+                 "worker_blocks_level_0", "gamma", "jid",
                  "educ", "municipality", "earningsdecmw", "agegroup"]
     ).drop_duplicates()
 
@@ -94,7 +95,7 @@ def get_demos(year):
     # or we can just re-use df_rais if it has them. Let's assume we need to read them:
     needed_cols = [
         "fakeid_worker", "fakeid_firm", "municipality",
-        "earningsdecmw", "ibgesubsector",
+        "earningsdecmw", "ibgesubsector", "worker_blocks_level_0", "gamma", "jid",
         "admmonth", "educ", "agegroup", "empmonths", "earningsavgmw",
         "gender", cboraw  # either "cbo" or "cbo94"
     ]
@@ -222,7 +223,9 @@ def get_demos(year):
         "gender",          # we'll convert to female = (gender == 2)
         "educ",
         "mmc",             # from crosswalk
-        "cbo942d"
+        "cbo942d",
+        "jid", 
+        "gamma"
     ]
 
     # If any columns don't exist in df_merged, fill with placeholders
@@ -240,14 +243,14 @@ def get_demos(year):
     final_cols_order = [
         "fakeid_worker", "fakeid_firm", "cnae95", "ibgesubsector",
         "empmonths", "earningsavgmw", "earningsdecmw", "agegroup",
-        "female", "educ", "mmc", "cbo942d"
+        "female", "educ", "mmc", "cbo942d", "jid", "gamma"
     ]
     workers_df = workers_df[final_cols_order]
 
     # Save to an output file (like "rais_for_earnings_premia{year}.dta" in SAS)
-    workers_df.to_parquet(monopsas_path + f"/rais_for_earnings_premia{year}.parquet", index=False)
-    workers_df.to_stata(monopsas_path + f"/rais_for_earnings_premia{year}.dta")
-    print(f"  -> Output saved to {monopsas_path}/rais_for_earnings_premia{year}.parquet")
+    workers_df.to_parquet(monopsas_path + f"/rais_for_earnings_premia{year}_gamma.parquet", index=False)
+    workers_df.to_stata(monopsas_path + f"/rais_for_earnings_premia{year}_gamma.dta")
+    print(f"  -> Output saved to {monopsas_path}/rais_for_earnings_premia{year}_gamma.parquet")
 
     # Equivalent to SAS: proc datasets library=work kill nolist; quit;
     # In Python, we just discard local variables so that no large DataFrames remain in memory.

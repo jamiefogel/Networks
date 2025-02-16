@@ -30,8 +30,8 @@ def valid(year):
         cboraw = "cbo"
         cboclean = "cbo94"
         validdata = "valid_cbo94"   
-    elif year < 2010:
-        cboraw = "cbo94"
+    elif year < 2010: 
+        cboraw = "cbo" # XX I renamed cbo94 to cbo in rais_010_annual_files
         cboclean = "cbo94"
         validdata = "valid_cbo94"
     else:
@@ -55,7 +55,7 @@ def valid(year):
             "fakeid_firm", "fakeid_worker",
             "ibgesubsector", "educ", "municipality",
             "earningsdecmw", "agegroup", 
-            "jid", "job_blocks_level_0",
+            "jid", "gamma",
             # We will need these to build the final table:
             "earningsavgmw",  # total monthly earnings
             cboraw
@@ -139,7 +139,7 @@ def valid(year):
         columns=[
             "fakeid_worker", "fakeid_firm", "ibgesubsector", "educ",
             "municipality", "earningsdecmw", "earningsavgmw",
-            "agegroup", cboraw
+            "agegroup", cboraw, "jid", "gamma"
         ]
     ).drop_duplicates()
 
@@ -193,14 +193,14 @@ def valid(year):
     #   c.mmc, 1 as none, case(...) as cbo942d, 
     #   a.earningsavgmw, a.earningsdecmw
     merged4 = merged4.drop_duplicates(
-        subset=["fakeid_worker", "fakeid_firm", "cnae95", "ibgesubsector", "mmc", "cbo942d"]
+        subset=["fakeid_worker", "fakeid_firm", "cnae95", "ibgesubsector", "gamma"]
     )
 
     merged4["none"] = 1  # as in SAS
 
     final_cols = [
         "fakeid_worker", "fakeid_firm", "cnae95", "ibgesubsector",
-        "mmc", "none", "cbo942d", "earningsavgmw", "earningsdecmw"
+        "gamma", "earningsavgmw", "earningsdecmw"
     ]
     # If any are missing, fill with NaN
     for col in final_cols:
@@ -243,7 +243,8 @@ def collapse(valid_df, year, level2):
     #   avgmearn = mean(earningsavgmw)
     #   avgdecearn = mean(earningsdecmw)
 
-    group_cols = ["fakeid_firm", "cnae95", "ibgesubsector", "mmc", level2]
+    #group_cols = ["fakeid_firm", "cnae95", "ibgesubsector", "mmc", level2]
+    group_cols = ["fakeid_firm", "cnae95", "ibgesubsector", "gamma"]
     agg_df = valid_df.groupby(group_cols, as_index=False).agg(
         emp=("fakeid_worker", "count"),
         totmearnmw=("earningsavgmw", "sum"),
@@ -278,9 +279,9 @@ def master(all_valid, level2):
     allyears = pd.concat(collapsed_list, ignore_index=True)
 
     # Save as parquet (SAS code exports .dta, you can adjust to .dta if needed)
-    allyears.to_parquet(f"{monopsas_path}/rais_collapsed_firm_mmc_{level2}.parquet", index=False)
-    allyears.to_stata(  f"{monopsas_path}/rais_collapsed_firm_mmc_{level2}.dta")
-    print(f"Saved collapsed data for level2={level2} to {monopsas_path}/rais_collapsed_firm_mmc_{level2}.dta")
+    allyears.to_parquet(f"{monopsas_path}/rais_collapsed_firm_gamma.parquet", index=False)
+    allyears.to_stata(  f"{monopsas_path}/rais_collapsed_firm_gamma.dta")
+    print(f"Saved collapsed data for level2={level2} to {monopsas_path}/rais_collapsed_firm_gamma.dta")
 
 
 # -------------------------------------------------------------------
@@ -292,11 +293,12 @@ def main():
     # 1) Run %inyears -> builds valid1985..valid2000
     all_valid = inyears(start=1985, end=2000)
 
+    # XX Mayara does this in two ways: mmc only and mmc X cbo942d. The former corresponds to level2="none" and the latter to level2="cbo942d". Then it saves separate output files for each. What I should really by trying to do is create a 3rd option that does jid insteaf firmid_fake and gamma instead of her markets. Then I can process all 3 versions at once
     # 2) %master(occup=none)
     master(all_valid, level2="none")
 
     # 3) %master(occup=cbo942d)
-    master(all_valid, level2="cbo942d")
+    #master(all_valid, level2="cbo942d")
 
     print("\nAll done!")
 

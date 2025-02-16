@@ -85,8 +85,8 @@ rais_firm_cnae95_master = rais_firm_cnae95_master.drop_duplicates(subset=["fakei
 rais_firm_cnae95_master = rais_firm_cnae95_master.drop(columns=["year"])
 
 # Save intermediate results
-rais_firm_cnae95_master.to_parquet(f"{monopsonies_path}/rais_firm_cnae95_master.parquet", index=False)
-missing_firms.to_parquet(f"{monopsonies_path}/miss_cnae95_firms.parquet", index=False)
+rais_firm_cnae95_master.to_parquet(f"{monopsas_path}/rais_firm_cnae95_master.parquet", index=False)
+missing_firms.to_parquet(f"{monopsas_path}/miss_cnae95_firms.parquet", index=False)
 print("Step 1 complete: Created rais_firm_cnae95_master and identified missing_cnae95_firms.")
 
 

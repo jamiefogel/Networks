@@ -123,7 +123,7 @@ if `getresiduals'==1{
 	
 	* Grab firm-market pairs in the eta_change regressions
 	preserve
-		u "${monopsonies}/sas/eta_changes_regsfile0.dta", clear			
+		u "${monopsonies}/sas/eta_changes_regsfile0_3states.dta", clear			
 		keep fakeid_firm mmc cbo942d up`baseyear_n' up`baseyear_n'mkt T //bemp
 		cap drop if inlist(cbo942d,31,22,37)
 		gduplicates drop 
@@ -178,7 +178,7 @@ if `getresiduals'==1{
 			* Get eta inverse
 			
 			preserve
-				insheet using "${monopsonies}/csv/`etachangedate'/eta_change_regressions.csv", clear
+				insheet using "${monopsonies}/csv/`etachangedate'/eta_change_regressions_3states.csv", clear
 				keep if samp=="``esamp''" & spec=="l"  & model=="l" & wagevar=="`wvar'" & tariff=="lnT" & year==`baseyear_o2' & clust=="`etaclustmain'" & weight=="`weight'"
 		
 				levelsof iv_b, local(eta_inverse)
@@ -229,7 +229,7 @@ if `getresiduals'==1{
 
 	duplicates drop
 	compress
-	saveold "${monopsonies}/dta/coeffs/`outdate'/lnxi_zrot.dta", replace
+	saveold "${monopsonies}/dta/coeffs/`outdate'/lnxi_zrot_3states.dta", replace
 } /* Close eta regressions */
 
 
@@ -239,8 +239,8 @@ if `getresiduals'==1{
 
 if `theta_regs'==1{
 
-	local lhs 		"delta_ro delta_ro_d"
-	local rhs 		"chng_Lro chng_Lro_d"
+	local lhs 		"delta_ro " // delta_ro_d
+	local rhs 		"chng_Lro" // chng_Lro_d
 	local tariff 	"dwtrains_hf"
 	local inst 		"ice_`tariff'"
 	local u91m 		"up91mkt"
@@ -259,7 +259,7 @@ if `theta_regs'==1{
 	foreach eweight in `etaweights'{
 		
 		*** Get eta estimate: always use estimate for unique producers, weighted ***
-		insheet using "${monopsonies}/csv/`etachangedate'/eta_change_regressions.csv", clear
+		insheet using "${monopsonies}/csv/`etachangedate'/eta_change_regressions_3states.csv", clear
 		keep if samp=="``esamp''" & spec=="l"  & model=="l" & wagevar=="`wage'" & tariff=="lnT" & year==`baseyear_o2' & clust=="`etaclustmain'" & weight=="`eweight'"
 		
 		levelsof iv_b, local(eta_inverse)
@@ -267,7 +267,7 @@ if `theta_regs'==1{
 		local eta = 1/`eta_inverse'
 
 		* Get estimates of xis 
-		u "${monopsonies}/dta/coeffs/`etalevelsdate'/lnxi_zrot.dta", clear
+		u "${monopsonies}/dta/coeffs/`etalevelsdate'/lnxi_zrot_3states.dta", clear
 		keep if samp=="`tsamp'" & wagevartype=="`wage'" & (year==1997 | year== 1991)  & weight=="`eweight'"
 	
 		keep fakeid_firm mmc cbo942d lnemp lnxi_zrot year
@@ -354,7 +354,7 @@ if `theta_regs'==1{
 		
 		*** Merge in delta_ro from changes regression ****
 		preserve
-			u "${monopsonies}/dta/coeffs/`etachangedate'/eta_change_delta_ro.dta", clear
+			u "${monopsonies}/dta/coeffs/`etachangedate'/eta_change_delta_ro_3states.dta", clear
 			keep if sample=="``esamp''" & model=="l" & spec=="l" & wagevartype=="`wage'" & tariff=="lnT" & outyear==1997 & clust=="`etaclustmain'" & weight=="`eweight'"
 				
 			keep mmc cbo942d delta_ro
@@ -527,26 +527,20 @@ delta: delta_ro_d
 */
 	
 			
-			noi ivreg2 `delta' (`chng_Lro' = `inst') [w=`weight'], savefirst saverf cluster(``pclust'') 
-			local diff_se = _se[`chng_Lro']
+			noi ivreg2 delta_ro (chng_Lro = ice_dwtrains_hf) [w=all], savefirst saverf cluster(fe_ro) 
+			local diff_se = _se[chng_Lro]
 	pause off
 	pause
 		* XX why are these not the same? What is being dropped?
 		count if e(sample)
 		count
-		preserve
-		keep if e(sample)
-		keep cbo942d mmc 
-		duplicates drop
-		save "${monopsonies}/sample_`i'_cbo942d_mmc.dta", replace
-		restore
-	
+		
 			local obs = e(N)
 			unique cbo942d mmc if e(sample)
 			local mkts = `r(unique)'
 			
-			local m_iv_b = _b[`chng_Lro']
-			local m_iv_se = _se[`chng_Lro']
+			local m_iv_b = _b[chng_Lro]
+			local m_iv_se = _se[chng_Lro]
 			mat FSstats = e(first)
 			local FS_F = FSstats[4,1]
 			
@@ -561,19 +555,19 @@ delta: delta_ro_d
 			di "`theta_inverse_b'"
 			local theta_inverse_se = sqrt(`diff_se'^2 - (`eta_inverse_se')^2)
 			
-			estimates restore _ivreg2_`delta'
-			local m_rf_b = _b[`inst']
-			local m_rf_se = _se[`inst']
-			estimates restore _ivreg2_`chng_Lro'
-			local m_fs_b = _b[`inst']
-			local m_fs_se = _se[`inst']
+			estimates restore _ivreg2_delta_ro
+			local m_rf_b = _b[ice_dwtrains_hf]
+			local m_rf_se = _se[ice_dwtrains_hf]
+			estimates restore _ivreg2_chng_Lro
+			local m_fs_b = _b[ice_dwtrains_hf]
+			local m_fs_se = _se[ice_dwtrains_hf]
 			
 			
 			*OLS 
-			reghdfe `delta' `chng_Lro' [w=`weight'], absorb(all) cluster(``pclust'') 
+			reghdfe  delta_ro chng_Lro [w=all], absorb(all) cluster(fe_ro) 
 			
-			local m_ols_b = _b[`chng_Lro']
-			local m_ols_se = _se[`chng_Lro']
+			local m_ols_b = _b[chng_Lro]
+			local m_ols_se = _se[chng_Lro]
 			
 			***** Compute elasticity (Note this so far ignores the SE in eta_inverse estimation) *****
 			
@@ -584,18 +578,7 @@ delta: delta_ro_d
 			**** Export residuals and coefficients *****
 			clear
 			svmat coeffs
-			gen year 		= 1997
-			gen tariff  	= "`tariff'"
-			gen etaclust 	= "`etaclustmain'"
-			gen etaweight	= "`eweight'"
-			gen thetaclust 	= "`pclust'"
-			gen esamp		= "`esamp'"
-			gen tsamp  		= "`tsamp'"
-			gen wagevar 	= "`wage'"
-			gen deltatype	= "`delta'"
-			gen chng_Lrotype = "`chng_Lro'"
-			gen weight		= "`weight'"
-			
+		
 			ren coeffs1 ols_b
 			ren coeffs2 ols_se
 			ren coeffs3 iv_b
@@ -611,10 +594,7 @@ delta: delta_ro_d
 			ren coeffs13 markets
 			keep if !missing(ols_b)
 			
-			di "Now saving c`d'`pclust'`wage'`esamp'`tsamp'`c'`eweight'`weight'"
-			tempfile  c`d'`pclust'`wage'`esamp'`tsamp'`c'`eweight'`weight'
-			sa `c`d'`pclust'`wage'`esamp'`tsamp'`c'`eweight'`weight''
-
+			outsheet using "${monopsonies}/csv/`outdate'/theta_change_regressions_simpler_3states_clean.csv", comma replace
 			
 			} /* Close delta option */
 			} /* Close chng_Lro */
@@ -626,39 +606,22 @@ delta: delta_ro_d
 		} /* Close esamp */
 		
 		***************** Append all *****************
-	macro list
-		clear
-		cap u `cd2waylndpallallcallall', clear
+
 		
-		foreach weight in `thetaweights'{
-		foreach chng_Lro in c cd{
-		foreach esamp in `etasamp'{
-		foreach tsamp in `thetasamp'{
-		foreach wage in `wagevars'{
-		foreach eweight in `etaweights'{
-		foreach pclust in `thetaclust'{
-		foreach delta in d dd{
-			cap append using `c`delta'`pclust'`wage'`esamp'`tsamp'`chng_Lro'`eweight'`weight''
-		}
-		}
-		}
-		}
-		}
-		}
-		}
-		}
 		
-		outsheet using "${monopsonies}/csv/`outdate'/theta_change_regressions_simpler.csv", comma replace
 		
 }
+
 /*
-Number of unique values of cbo942d mmc is  15418
-Number of records is  15418
+Number of unique values of cbo942d mmc is  7539
+Number of records is  7539
 eta_inverse
-1.313091039657593
+1.257887959480286
 eta_inverse + m_iv_b
-1.313091039657593 + .8495755580474618
+1.257887959480286 + .4020652120690409
 theta_inverse_b
-2.162666597705055
+1.659953171549327
+
+
 */
 
