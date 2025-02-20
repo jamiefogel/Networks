@@ -40,6 +40,7 @@ else if c(username)=="Mayara"{
 	global public			"M:/publicdata"
 }
 
+
 else if c(username)=="p13861161" & c(os)=="Windows" {
 	global encrypted 		"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara"
 	global dictionaries		"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\raisdictionaries\harmonized"
@@ -56,25 +57,20 @@ else if c(username)=="p13861161" & c(os)=="Unix" {
 	global public			"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\publicdata"
 }
 
+
 capture log close 
-log using "${encrypted}/logs/1_2_earnings_premia_gamma.log", replace
+log using "${encrypted}/logs/1_3_earnings_premia_gamma.log", replace
 
 * Make folders with output date if they don't yet exist
 cap mkdir "${monopsonies}/csv/`outdate'"
 cap mkdir "${monopsonies}/eps/`outdate'"
 
-local premia 			= 1
-local balanced_sample 	= 1
-local erasefiles 		= 0
+local premia 		= 1
+local erasefiles 	= 0
 
-local outdate = 20210802
-
-*XX local yearfirst = 1985
+local outdate 	= 20210802
 local yearfirst = 1986
 local yearlast  = 2000
-
-cap mkdir "${monopsonies}/eps/`outdate'/"
-
 
 foreach version in original gamma {
 
@@ -86,31 +82,10 @@ foreach version in original gamma {
 		local mkt "gamma"
 		local path "gamma"
 	}
-
-	/* Get balanced sample of gammas */
-	if `balanced_sample'==1{
-
-		forvalues y=`yearfirst'(1)`yearlast'{
-			* Note that the _gamma fileworks for both market definitions cuz havent done any collapses at this stage
-			u `mkt' using "${monopsonies}/sas/rais_for_earnings_premia`y'_gamma.dta", clear
-			gduplicates drop
-			
-			tempfile temp`y'
-			sa `temp`y''
-		}
-
-		u `temp`yearfirst'', clear
-		forvalues y=`yearfirst'(1)`yearlast'{
-			merge 1:1 `mkt' using `temp`y'', keep(3) nogen
-		}
-		
-		compress
-		saveold "${monopsonies}/sas/balanced_`mkt's.dta", replace
-	}
-
+	
 	if `premia'==1{
-		forvalues y=`yearfirst'(1)`yearlast'{
-			di "`y'"
+		
+		forvalues y=`yearfirst'(1)`yearlast'{		
 			u "${monopsonies}/sas/rais_for_earnings_premia`y'_gamma.dta", clear
 			drop if mmc==13007 | mmc==23014
 			
@@ -119,7 +94,7 @@ foreach version in original gamma {
 			
 			* Keep only onbs with non-zero dec earnings
 			keep if earningsdecmw>0
-		
+			
 			/* Use same control and ranges as DK */
 			gen age1 = (agegroup==3)
 			gen age2 = (agegroup==4)
@@ -135,40 +110,35 @@ foreach version in original gamma {
 			}
 			gen educ9 = (educ >=9)
 			
-			gegen double fe_ro = group(`mkt')
-			
-			****************** MMC premia (incl. industry) ****************
-			reghdfe lndecearn female age2-age5 educ2-educ9, absorb(dprems_ro=fe_ro ibgesubsector) noconstant
+			gegen double fe_zro = group(fakeid_firm `mkt')
 			
 			****************** MMC average wage ****************
-			reghdfe lndecearn, absorb(davgw_ro=fe_ro) noconstant
+			reghdfe lndecearn, absorb(davgw_zro=fe_zro) noconstant keepsingletons
 			
 			****************** MMC premia (excl. industry) ****************
-			reghdfe lndecearn female age2-age5 educ2-educ9, absorb(dprem_ro=fe_ro) noconstant
+			reghdfe lndecearn female age2-age5 educ2-educ9 , absorb(dprem_zro=fe_zro) noconstant keepsingletons
 				
-			keep if  !missing(dprems_ro) 
-			keep `mkt' dprems_ro dprem_ro davgw_ro 
+			keep if !missing(dprem_zro) 
+			keep fakeid_firm `mkt' dprem_zro davgw_zro
 			gduplicates drop
 
 			compress
-			tempfile market`y'
-			sa `market`y''
-			
+			tempfile firm`y'
+			sa `firm`y''
 		} /* Close year */
 		
 		*********** Append across years *******
 		local ynext = `yearfirst'+1
 		
-		u `market`yearfirst'', clear
-		gen year = `yearfirst'
+		u `firm1986', clear
+		gen year = 1986
 		forvalues y=`ynext'(1)`yearlast'{
-			append using `market`y''
+			append using `firm`y''
 			replace year = `y' if missing(year)
 		}
 		gduplicates drop
 		compress
 		saveold "${monopsonies}/sas/rais_lnearn_premia_`path'_`outdate'.dta", replace
-		
 	}
 }
 
@@ -176,5 +146,3 @@ if `erasefiles'==1{
 	cd "${monopsonies}/sas/"
 	shell rm rais_for_earnings_premia*
 }
-
-log close

@@ -1,9 +1,27 @@
 # -*- coding: utf-8 -*-
 """
-Created on Fri Jan  3 10:19:25 2025
+This script, rais_030_for_earnings_premia.py, processes the raw RAIS data for a given year to create
+a cleaned, worker-level dataset that contains earnings premia information. In detail, the script:
+  - Reads in the RAIS data file for the specified year and selects only the necessary columns,
+    including worker and firm identifiers, sector codes, education, municipality, earnings, age group,
+    and the new market variables (job_blocks_level_0) and job ID (jid) if available.
+  - Applies filters to retain observations that meet key criteria (e.g., education between 1 and 11,
+    non-missing municipality, earnings greater than zero, a valid ibgesubsector, and an age group between 3 and 7).
+  - Groups the data by firm (originally using fakeid_firm, but conceptually it identifies the primary
+    sector by selecting the group with the maximum worker count) to determine each firm's dominant ibgesubsector.
+      - XX IS THIS SOMETHING THAT WE WOULD EDIT WHEN USING GAMMAS? I DON'T THINK SO BUT WANT TO FLAG
+  - Merges the filtered data with additional crosswalk and firm-level datasets (such as municipality-to-mmc
+    and firm CNAE information) as well as a validated occupation crosswalk to construct the final set of
+    variables (e.g., fakeid_worker, fakeid_firm, cnae95, ibgesubsector, mmc, cbo942d, and various earnings measures).
+  - Saves the final output as both a Parquet file and a Stata (.dta) file, which are then used by later scripts
+    (for example, in rais_040_firm_collapsed.py) to aggregate the data to the firm level and to compute market-level
+    measures like the payroll Herfindahl index that are crucial for estimating the model parameters (eta and theta)
+    in the replication of "Trade, Labor Market Concentration, and Wages".
 
-@author: p13861161
+In the overall analysis pipeline, this script is a key intermediate step that transforms raw RAIS data into
+a format suitable for subsequent aggregation, market-level computation, and eventual econometric estimation.
 """
+
 import pandas as pd
 import numpy as np
 import os
@@ -35,16 +53,6 @@ def get_demos(year):
     cboraw = "cbo"
     cboclean = "cbo94"
 
-    # --------------------------------------------------
-    # 1) Read monopsas.rais{year} and filter to create temp{year}
-    #    which includes (fakeid_firm, ibgesubsector, count(fakeid_worker) as emp)
-    #    with the conditions:
-    #      educ in [1..11],
-    #      municipality not null,
-    #      earningsdecmw > 0,
-    #      ibgesubsector != 24, not null,
-    #      agegroup in [3..7]
-    # --------------------------------------------------
 
     rais_file = os.path.join(monopsas_path, f"rais{year}.parquet")
     if not os.path.exists(rais_file):

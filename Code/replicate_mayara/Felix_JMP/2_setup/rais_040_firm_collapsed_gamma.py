@@ -1,7 +1,41 @@
+"""
+This script aggregates the worker‐level earnings premia data (produced in earlier steps)
+to create a firm‐level (or, in the original version, a market defined by the intersection of mmc and cbo942d)
+dataset with market-level variables. The output from this script is used in subsequent estimation steps.
+ 
+There are two versions available:
+  1. Original version ("original"): Uses Mayara’s market definitions. Markets are defined as the intersection 
+     of mmc and cbo942d (i.e. level2 = "cbo942d") and grouping is done by fakeid_firm.
+     The output file is named: rais_collapsed_firm_mmc_cbo942d.dta.
+  2. Alternative version ("gamma"): Uses your alternative market definition. In this version the market variable 
+     is "gamma" (instead of mmc) and grouping is done by fakeid_firm (i.e. firms remain the unit).
+     The output file is named: rais_collapsed_firm_gamma.dta.
+ 
+To choose which version to run, set USE_GAMMA = True for the gamma version or False for the original version.
+"""
+
 import pandas as pd
 import numpy as np
 import os
 from config import root
+
+# -------------------------------------------------------------------
+# USER OPTION: Choose version:
+#   Set USE_GAMMA = False for original (mmc + cbo942d) or True for gamma version.
+# -------------------------------------------------------------------
+USE_GAMMA = False    # Change to True to use the alternative (gamma) version
+
+# Set variables and output prefix based on the option
+if not USE_GAMMA:
+    # Original: market defined by mmc; level2 must be "cbo942d"
+    market_var = "mmc"
+    level2_default = "cbo942d"
+    collapsed_prefix = "rais_collapsed_firm_mmc_cbo942d"
+else:
+    # Gamma version: market defined by gamma; we use level2="none" by default.
+    market_var = "gamma"
+    level2_default = "none"
+    collapsed_prefix = "rais_collapsed_firm_gamma"
 
 # -------------------------------------------------------------------
 # Paths from your preamble
@@ -9,29 +43,30 @@ from config import root
 base_path = root + "/Code/replicate_mayara"
 monopsas_path = f"{base_path}/monopsonies/sas"
 
-
 # -------------------------------------------------------------------
 # 1. Emulate the %valid(i=) macro
 # -------------------------------------------------------------------
 def valid(year):
     """
-    Python equivalent of the %valid(i=...) macro.
-    1) For the given year, find each firm's largest establishment
-       by worker count (within valid filters).
-    2) Join with crosswalks to produce a 'valid{year}' dataset.
+    For the given year, this function:
+      1) Reads in the RAIS data and selects relevant columns.
+      2) Filters observations based on education, municipality, earnings, ibgesubsector, and age.
+      3) Groups observations by unit and ibgesubsector to determine each unit’s largest establishment.
+         In the original version the unit is fakeid_firm; in both versions we continue to use fakeid_firm.
+      4) Merges with crosswalks and master files to build the final valid dataset.
+ 
+    The final dataset contains key variables such as fakeid_worker, fakeid_firm, cnae95, ibgesubsector, and 
+    the market variable. For the original version, the market variable is mmc; for the gamma version, it is gamma.
     """
-
     print(f"\n--- Running valid() for year={year} ---")
-
-    # -----------------------------------------------------------
-    # (A) Decide occupation variable depending on year
-    # -----------------------------------------------------------
+    
+    # (A) Decide occupation variable based on year
     if (year < 1994) or (year == 2002):
         cboraw = "cbo"
         cboclean = "cbo94"
         validdata = "valid_cbo94"   
-    elif year < 2010: 
-        cboraw = "cbo" # XX I renamed cbo94 to cbo in rais_010_annual_files
+    elif year < 2010:
+        cboraw = "cbo"  # renamed version
         cboclean = "cbo94"
         validdata = "valid_cbo94"
     else:
@@ -39,16 +74,11 @@ def valid(year):
         cboclean = "cbo02"
         validdata = "crosswalk_cbo02_cbo94"
 
-    # -----------------------------------------------------------
-    # (B) Read monopsas.rais{year} for relevant columns
-    # -----------------------------------------------------------
-    # We need: fakeid_firm, fakeid_worker, ibgesubsector, educ, municipality,
-    #          earningsdecmw, agegroup
+    # (B) Read RAIS file
     rais_file = os.path.join(monopsas_path, f"rais{year}.parquet")
     if not os.path.exists(rais_file):
         print(f"  -> rais{year}.parquet not found; skipping.")
-        return None  # Return None to indicate no data
-
+        return None
     df_rais = pd.read_parquet(
         rais_file,
         columns=[
@@ -56,18 +86,12 @@ def valid(year):
             "ibgesubsector", "educ", "municipality",
             "earningsdecmw", "agegroup", 
             "jid", "gamma",
-            # We will need these to build the final table:
-            "earningsavgmw",  # total monthly earnings
+            "earningsavgmw",
             cboraw
         ]
     ).drop_duplicates()
-
-    # -----------------------------------------------------------
-    # (C) Filter (like SAS WHERE)
-    #    educ in [1..11], municipality not null,
-    #    earningsdecmw>0, ibgesubsector !=24 & not null,
-    #    agegroup in [3..7]
-    # -----------------------------------------------------------
+    
+    # (C) Filter observations
     mask = (
         df_rais["educ"].notna() & df_rais["educ"].between(1, 11, inclusive="both") &
         df_rais["municipality"].notna() &
@@ -76,64 +100,38 @@ def valid(year):
         df_rais["agegroup"].between(3, 7, inclusive="both")
     )
     temp = df_rais[mask].copy()
-
-    # -----------------------------------------------------------
-    # (D) Group by firm+ibgesubsector -> count workers
-    # -----------------------------------------------------------
     
-    #XX I could to this by jid instead of firm, but that's not obviously correct/better so I'll stick with this for now
+    # (D) Group by fakeid_firm and ibgesubsector to count workers.
     group = temp.groupby(["fakeid_firm", "ibgesubsector"], as_index=False).agg(
         emp=("fakeid_worker", "count")
     )
-    # get max(emp) per firm
     group["maxemp"] = group.groupby("fakeid_firm")["emp"].transform("max")
-
-    # keep only rows where emp == maxemp
     ibge = group[group["emp"] == group["maxemp"]].drop_duplicates("fakeid_firm")
-
-    del temp, group  # analogous to dropping SAS temp files
-
+    del temp, group
+    
     if ibge.empty:
         print("  -> No valid ibge data for this year after filtering.")
         return None
-
-    # -----------------------------------------------------------
-    # (E) Now build final "valid{year}" table, which merges:
-    #     - rais{year} (again) with crosswalk data:
-    #          crosswalk_muni_to_mmc_DK17
-    #          rais_firm_cnae95_master_plus
-    #          ibge
-    #          &validdata
-    # -----------------------------------------------------------
-    # We'll re-read RAIS if needed, or reuse df_rais
-    # We need additional merges with crosswalks:
-
-    # crosswalk: crosswalk_muni_to_mmc_DK17
+    
+    # (E) Build final valid{year} table by merging with crosswalks and master files.
     cross_muni_file = os.path.join(monopsas_path, "crosswalk_muni_to_mmc_DK17.parquet")
     if not os.path.exists(cross_muni_file):
         print("  -> crosswalk_muni_to_mmc_DK17 missing.")
         return None
     df_cross_muni = pd.read_parquet(cross_muni_file).drop_duplicates()
-    # Must contain columns ["codemun", "mmc", "cbo942d"]? 
-    # The SAS code merges 'monopsas.&validdata as c' differently, so let's see:
-
-    # cnae95 master
+    
     cnae95_master_file = os.path.join(monopsas_path, "rais_firm_cnae95_master_plus.parquet")
     if not os.path.exists(cnae95_master_file):
         print("  -> rais_firm_cnae95_master_plus missing.")
         return None
     df_cnae95 = pd.read_parquet(cnae95_master_file).drop_duplicates()
-
-    # validdata (like valid_cbo94 or crosswalk_cbo02_cbo94)
+    
     valid_data_file = os.path.join(monopsas_path, f"{validdata}.parquet")
     if not os.path.exists(valid_data_file):
         print(f"  -> {validdata}.parquet missing.")
         return None
     df_valid_cbo = pd.read_parquet(valid_data_file).drop_duplicates()
-
-    # We need an extended set of columns from RAIS for the final merge:
-    #   (same as the final SELECT in SAS)
-    #   plus cboraw so we can join
+    
     df_rais_full = pd.read_parquet(
         rais_file,
         columns=[
@@ -142,8 +140,7 @@ def valid(year):
             "agegroup", cboraw, "jid", "gamma"
         ]
     ).drop_duplicates()
-
-    # Filter again with the same conditions
+    
     mask_full = (
         df_rais_full["educ"].notna() & df_rais_full["educ"].between(1, 11, inclusive="both") &
         df_rais_full["municipality"].notna() &
@@ -152,33 +149,31 @@ def valid(year):
         df_rais_full["agegroup"].between(3, 7, inclusive="both")
     )
     df_rais_filtered = df_rais_full[mask_full].copy()
-
-    # Merges (like the SAS "inner join" statements)
-    # 1) inner join with crosswalk_muni_to_mmc_DK17 on municipality=codemun
+    
+    # Merge 1: with crosswalk_muni_to_mmc_DK17 on municipality=codemun
     merged1 = df_rais_filtered.merge(
-        df_cross_muni[["codemun", "mmc"]],  # we assume that is the relevant data
+        df_cross_muni[["codemun", "mmc"]],
         left_on="municipality",
         right_on="codemun",
         how="inner"
     )
     merged1.drop(columns=["codemun"], inplace=True)
-
-    # 2) inner join with rais_firm_cnae95_master_plus on fakeid_firm
+    
+    # Merge 2: with firm CNAE master on fakeid_firm
     merged2 = merged1.merge(
         df_cnae95[["fakeid_firm", "cnae95"]],
         on="fakeid_firm",
         how="inner"
     )
-
-    # 3) inner join with ibge{year} on (fakeid_firm, ibgesubsector)
+    
+    # Merge 3: with ibge on (fakeid_firm, ibgesubsector)
     merged3 = merged2.merge(
         ibge[["fakeid_firm", "ibgesubsector"]],
         on=["fakeid_firm", "ibgesubsector"],
         how="inner"
     )
-
-    # 4) left join with validdata on (a.&cboraw = c.&cboclean)
-    #    Then case when c.cbo942d is not null else 99
+    
+    # Merge 4: with valid occupation data on (cboraw) to obtain cbo942d
     merged4 = merged3.merge(
         df_valid_cbo[[cboclean, "cbo942d"]],
         left_on=cboraw,
@@ -186,35 +181,30 @@ def valid(year):
         how="left"
     )
     merged4["cbo942d"] = np.where(merged4["cbo942d"].notna(), merged4["cbo942d"], 99)
-
-    # Build final columns: 
-    # SELECT distinct 
-    #   a.fakeid_worker, a.fakeid_firm, e.cnae95, f.ibgesubsector,
-    #   c.mmc, 1 as none, case(...) as cbo942d, 
-    #   a.earningsavgmw, a.earningsdecmw
-    merged4 = merged4.drop_duplicates(
-        subset=["fakeid_worker", "fakeid_firm", "cnae95", "ibgesubsector", "gamma"]
-    )
-
-    merged4["none"] = 1  # as in SAS
-
-    final_cols = [
-        "fakeid_worker", "fakeid_firm", "cnae95", "ibgesubsector",
-        "gamma", "earningsavgmw", "earningsdecmw"
-    ]
-    # If any are missing, fill with NaN
+    
+    # Build final columns based on version.
+    if not USE_GAMMA:
+        # Original version: use mmc and level2 "cbo942d"
+        dup_cols = ["fakeid_worker", "fakeid_firm", "cnae95", "ibgesubsector", "mmc", "cbo942d"]
+        final_cols = ["fakeid_worker", "fakeid_firm", "cnae95", "ibgesubsector",
+                      "earningsavgmw", "earningsdecmw", "mmc", "cbo942d"]
+    else:
+        # Gamma version: use gamma (alternative market definition)
+        dup_cols = ["fakeid_worker", "fakeid_firm", "cnae95", "ibgesubsector", "gamma"]
+        final_cols = ["fakeid_worker", "fakeid_firm", "cnae95", "ibgesubsector",
+                      "earningsavgmw", "earningsdecmw", "gamma"]
+    
+    merged4 = merged4.drop_duplicates(subset=dup_cols)
+    merged4["none"] = 1
     for col in final_cols:
         if col not in merged4.columns:
             merged4[col] = np.nan
-
     valid_df = merged4[final_cols].copy()
     valid_df.reset_index(drop=True, inplace=True)
     return valid_df
 
-
 # -------------------------------------------------------------------
-# 2. Emulate %inyears macro
-#    We run valid(y) for y in [1985..2000]
+# 2. Emulate %inyears macro: run valid() for each year
 # -------------------------------------------------------------------
 def inyears(start=1985, end=2000):
     all_valid = {}
@@ -224,27 +214,28 @@ def inyears(start=1985, end=2000):
             all_valid[y] = df
     return all_valid
 
-
 # -------------------------------------------------------------------
 # 3. Emulate %collapse(i=, level2=)
-#    Collapses "valid{i}" data by firm & mmc & {level2},
-#    computing sums and means.
 # -------------------------------------------------------------------
 def collapse(valid_df, year, level2):
     """
-    valid_df is the DataFrame from valid{year}.
-    Returns a collapsed DataFrame akin to 'firm_{level2}{year}'.
+    Collapses the valid{year} DataFrame by unit, cnae95, ibgesubsector, and market.
+    For the original version, grouping is by:
+       [fakeid_firm, cnae95, ibgesubsector, mmc, level2]
+    For the gamma version, grouping is by:
+       [fakeid_firm, cnae95, ibgesubsector, gamma]
+    Computes:
+      - emp: count(fakeid_worker)
+      - totmearnmw: sum(earningsavgmw)
+      - totdecearnmw: sum(earningsdecmw)
+      - avgmearn: mean(earningsavgmw)
+      - avgdecearn: mean(earningsdecmw)
+    Adds the year.
     """
-    # We group by: (fakeid_firm, cnae95, ibgesubsector, mmc, {level2}), year=year
-    # Then:
-    #   emp = count(fakeid_worker)
-    #   totmearnmw = sum(earningsavgmw)
-    #   totdecearnmw = sum(earningsdecmw)
-    #   avgmearn = mean(earningsavgmw)
-    #   avgdecearn = mean(earningsdecmw)
-
-    #group_cols = ["fakeid_firm", "cnae95", "ibgesubsector", "mmc", level2]
-    group_cols = ["fakeid_firm", "cnae95", "ibgesubsector", "gamma"]
+    if not USE_GAMMA:
+        group_cols = ["fakeid_firm", "cnae95", "ibgesubsector", "mmc", level2]
+    else:
+        group_cols = ["fakeid_firm", "cnae95", "ibgesubsector", "gamma"]
     agg_df = valid_df.groupby(group_cols, as_index=False).agg(
         emp=("fakeid_worker", "count"),
         totmearnmw=("earningsavgmw", "sum"),
@@ -253,53 +244,42 @@ def collapse(valid_df, year, level2):
         avgdecearn=("earningsdecmw", "mean")
     )
     agg_df["year"] = year
-
     return agg_df
-
 
 # -------------------------------------------------------------------
 # 4. Emulate %append(level2=) and %master(occup=)
-#    We do it in Python by building all years, then combining them
-#    into one DataFrame, and finally saving.
 # -------------------------------------------------------------------
 def master(all_valid, level2):
     """
-    For each year in all_valid, call collapse(...).
-    Then append all results, save them to a file named:
-      'rais_collapsed_firm_mmc_{level2}.parquet'
+    For each year in all_valid, collapse the data using the specified level2 option.
+    Then append all years and save the final collapsed dataset.
+    The output filename depends on the version selected.
     """
     collapsed_list = []
     for year, df_valid in sorted(all_valid.items()):
         collapsed = collapse(df_valid, year, level2)
         collapsed_list.append(collapsed)
     if len(collapsed_list) == 0:
-        print(f"No data to append for {level2}.")
+        print(f"No data to append for level2={level2}.")
         return
-
     allyears = pd.concat(collapsed_list, ignore_index=True)
-
-    # Save as parquet (SAS code exports .dta, you can adjust to .dta if needed)
-    allyears.to_parquet(f"{monopsas_path}/rais_collapsed_firm_gamma.parquet", index=False)
-    allyears.to_stata(  f"{monopsas_path}/rais_collapsed_firm_gamma.dta")
-    print(f"Saved collapsed data for level2={level2} to {monopsas_path}/rais_collapsed_firm_gamma.dta")
-
+    out_file_parquet = f"{monopsas_path}/{collapsed_prefix}.parquet"
+    out_file_dta = f"{monopsas_path}/{collapsed_prefix}.dta"
+    allyears.to_parquet(out_file_parquet, index=False)
+    allyears.to_stata(out_file_dta)
+    print(f"Saved collapsed data to {out_file_dta}")
 
 # -------------------------------------------------------------------
 # 5. Putting it all together
 # -------------------------------------------------------------------
 def main():
-    # Emulate the final "Execute macros" block
-
-    # 1) Run %inyears -> builds valid1985..valid2000
+    # Build valid{year} datasets for all years.
     all_valid = inyears(start=1985, end=2000)
-
-    # XX Mayara does this in two ways: mmc only and mmc X cbo942d. The former corresponds to level2="none" and the latter to level2="cbo942d". Then it saves separate output files for each. What I should really by trying to do is create a 3rd option that does jid insteaf firmid_fake and gamma instead of her markets. Then I can process all 3 versions at once
-    # 2) %master(occup=none)
-    master(all_valid, level2="none")
-
-    # 3) %master(occup=cbo942d)
-    #master(all_valid, level2="cbo942d")
-
+    # For the original version, run with level2="cbo942d"; for gamma version, use level2="none".
+    if not USE_GAMMA:
+        master(all_valid, level2="cbo942d")
+    else:
+        master(all_valid, level2="none")
     print("\nAll done!")
 
 # -------------------------------------------------------------------

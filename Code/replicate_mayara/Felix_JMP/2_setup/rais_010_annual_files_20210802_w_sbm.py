@@ -132,7 +132,7 @@ if __name__ == "__main__":
     jblocks['fakeid_estab'] = jblocks['fakeid_estab'].astype(int)
     jblocks['occ4'] = jblocks['occ4'].astype(int)
     jblocks = jblocks[['fakeid_estab', 'occ4', 'jid', 'job_blocks_level_0', 'job_blocks_level_1']]
-    jblocks = jblocks.rename({'job_blocks_level_0':'gamma'})
+    jblocks = jblocks.rename(columns={'job_blocks_level_0':'gamma'})
     wblocks = pd.read_csv(root + 'Data/derived/sbm_output/model_'+modelname+'_wblocks.csv')
     wblocks = wblocks.rename(columns={'wid':'fakeid_worker'})
     wblocks = wblocks[['fakeid_worker', 'worker_blocks_level_0', 'worker_blocks_level_1']]

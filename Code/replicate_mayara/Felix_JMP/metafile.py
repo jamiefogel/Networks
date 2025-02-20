@@ -4,9 +4,16 @@ from config import root
 import subprocess
 from datetime import datetime
 
-# "rais_020_earliest_estab_location.py", "rais_020_municipality_changes.py", "rais_020_earliest_worker_characteristic_20200715.py", "rais_020_earliest_firm_cnae.py",
-#  "rais_010_annual_files_20210802_w_sbm.py",
-python_scripts = [   "rais_030_for_earnings_premia_gamma.py", "rais_040_firm_collapsed_gamma.py", "rais_050_market_collapsed_v2_gamma.py" ]
+# 
+#  ,
+python_scripts = ["rais_010_annual_files_20210802_w_sbm.py",
+                  "rais_020_earliest_estab_location.py", 
+                  "rais_020_municipality_changes.py", 
+                  "rais_020_earliest_worker_characteristic_20200715.py", 
+                  "rais_020_earliest_firm_cnae.py",
+                  "rais_030_for_earnings_premia_gamma.py",
+                  "rais_040_firm_collapsed_gamma.py", 
+                  "rais_050_market_collapsed_v2_gamma.py" ]
 
 for s in python_scripts:
     start_time = datetime.now()

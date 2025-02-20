@@ -25,6 +25,7 @@ worker_data = []
 crosswalk_agegroup_to_age = pd.read_pickle(f"{monopsas_path}/sas/crosswalk_agegroup_to_age.pkl")
 
 for year in range(first_year, last_year + 1):
+    print(year)
     try:
         # Try to read the yearly RAIS data
         rais_data = pd.read_parquet(f"{monopsas_path}/sas/rais{year}.parquet")
@@ -44,6 +45,7 @@ for year in range(first_year, last_year + 1):
         )
 
     elif year < 2002 or year > 2010:
+        rais_data['age'] = rais_data['age'].astype('Int64')
         rais_data["birthyear"] = year - rais_data["age"]
         rais_data["year"] = year
         rais_data["female"] = (rais_data["gender"] == 2).astype(int)
