@@ -38,9 +38,9 @@ class bisbm():
     #################################################################################
     # Simply load an edgelist and possibly allow for restrictions on workers per job
     #################################################################################
-    def create_graph(self, filename=None, min_workers_per_job=None): #, min_jobs_per_workers=None
+    def create_graph(self, filename=None, min_workers_per_job=None, drop_giant=False): #, min_jobs_per_workers=None
         if filename is None:
-            print("You must specify a filename containing an edge list.")
+            raise ValueError("You must specify a filename containing an edge list.")
         else:
             # Load the edgelist from a csv. I should add a check to make sure it contains worker and job ID variables
             self.edgelist = pd.read_pickle(filename)
@@ -68,35 +68,62 @@ class bisbm():
             self.edgelist['jid_py']=self.edgelist.groupby(['jid']).ngroup()
             self.edgelist['wid_py']=self.edgelist.groupby(['wid']).ngroup() + self.num_jobs
             print(self.num_workers, 'unique workers,',self.num_jobs, 'unique jobs, and', self.num_edges, 'edges in graph after restricting to at least', min_workers_per_job, 'workers per job' )
-
+            
             g = gt.Graph(directed=False)
             g.add_edge_list(self.edgelist[['jid_py','wid_py']].to_numpy().astype('float64')  )
+            print("Graph created")
+            
+            # Compute connected components
+            comp, hist = gt.label_components(g)
+            giant_label = np.argmax(hist)
+            is_giant = (comp.a == giant_label)  # Boolean array for vertices in giant component
+            # Flag giant component in edgelist
+            jid_indices = self.edgelist['jid_py'].to_numpy().astype(int)
+            self.edgelist['giant'] = is_giant[jid_indices]
+            
+            if drop_giant==True:
+                g = gt.extract_largest_component(g, prune=True)
+               
+                print("Graph restricted to giant component")
+                            
+                # Update counts using only the edges that belong to the giant component
+                giant_edges = self.edgelist[self.edgelist['giant']]
+                self.num_edges   = giant_edges.shape[0]
+                self.num_jobs    = giant_edges['jid_py'].nunique()
+                self.num_workers = giant_edges['wid_py'].nunique()
+    
+                # Update self.edgelist to contain only giant component edges
+                self.edgelist = giant_edges.copy()
+                print("Updated counts after restricting to giant component:",
+                      self.num_workers, "unique workers,", self.num_jobs, "unique jobs, and",
+                      self.num_edges, "edges.")
 
             # Create a vertex property indicating whether a vertex is a job (kind=0) or worker (kind=1)
+            self.g = g
+            # Vectorized assignment for vertex properties:
             kind = g.vp["kind"] = g.new_vp("int")
-            ids = g.vp['ids'] = g.new_vp('string')
+            kind.a[:self.num_jobs] = 0
+            kind.a[self.num_jobs:] = 1
+    
+            # Get sorted job and worker lists based on the new numeric IDs
+            joblist = self.edgelist[['jid', 'jid_py']].drop_duplicates().sort_values(by=['jid_py'])
+            workerlist = self.edgelist[['wid', 'wid_py']].drop_duplicates().sort_values(by=['wid_py'])
+    
             ids_py = g.vp['ids_py'] = g.new_vp('int')
-
-            joblist    = self.edgelist[['jid','jid_py']].drop_duplicates().sort_values(by=['jid_py'])
-            workerlist = self.edgelist[['wid','wid_py']].drop_duplicates().sort_values(by=['wid_py'])
-
-            worker_counter=0
-            job_counter=0
-            for v in g.vertices():
-                if v < self.num_jobs:
-                    #print(v,job_counter,jobstats['occ6'].iat[job_counter],jobstats['college'].iat[job_counter])
-                    kind[v] = 0
-                    ids[v]=joblist['jid'].iat[job_counter]
-                    ids_py[v]=joblist['jid_py'].iat[job_counter]
-                    job_counter = job_counter+1
-                else:
-                    kind[v] = 1
-                    ids[v]=workerlist['wid'].iat[worker_counter]
-                    ids_py[v]=workerlist['wid_py'].iat[worker_counter]
-                    worker_counter = worker_counter+1
-
-            self.g=g
-
+            ids_py.a[:self.num_jobs] = joblist['jid_py'].values
+            ids_py.a[self.num_jobs:] = workerlist['wid_py'].values
+    
+            # Assuming joblist and workerlist are already computed correctly
+            job_ids = joblist['jid'].values.astype(str)
+            worker_ids = workerlist['wid'].values.astype(str)
+            # Create an array of the correct length
+            total_vertices = self.num_jobs + self.num_workers  # should match g.num_vertices()
+            all_ids = np.empty(total_vertices, dtype=object)
+            all_ids[:self.num_jobs] = job_ids
+            all_ids[self.num_jobs:] = worker_ids
+            # Now, create the string vertex property in one step using these values.
+            ids = g.new_vertex_property("string", vals=all_ids)
+            g.vp['ids'] = ids
 
 
 
@@ -169,66 +196,95 @@ class bisbm():
     #################################################################################
     def export_blocks(self, output=None, joutput=None, woutput=None, max_level=None, export_mcmc=False):
 
-        df=pd.DataFrame()
-        df['worker_node']=self.g.vp.kind.a
-        df['id_py'] = self.g.vp.ids_py.a
-        df['id'] = self.g.vp.ids.get_2d_array([0]).flatten() #String vertex properties have to be handled differently
+        df = pd.DataFrame({
+            'worker_node': self.g.vp.kind.a.astype(np.int8),  # 0/1 flag
+            'id_py': self.g.vp.ids_py.a,
+            'id': self.g.vp.ids.get_2d_array([0]).flatten()
+        })
         num_job_blocks = []
         num_worker_blocks = []
+        mlevel = self.L if max_level is None else max_level + 1
 
-        if max_level==None:
-            mlevel = self.L
-        else:
-            mlevel = max_level+1
+      
 
+        # Loop over levels and compute new block IDs using efficient numpy operations.
         for l in range(mlevel):
-            # I don't know why copy=True is necessary but without it some of the 0s get converted to very large numbers for some reason
-            #Old version: temp = pd.DataFrame(self.state.project_level(l).get_blocks().a, columns=['blocks_level_'], copy=True)
-            if export_mcmc==False:
-                temp = pd.DataFrame(pd.DataFrame({'temp_blocks':self.state.project_level(l).get_blocks().a, 'worker_node':df.worker_node}, copy=True).groupby(['worker_node','temp_blocks']).ngroup(), columns=['blocks_level_'])
-            elif export_mcmc==True:
-                temp = pd.DataFrame(pd.DataFrame({'temp_blocks':self.state_mcmc.project_level(l).get_blocks().a, 'worker_node':df.worker_node}, copy=True).groupby(['worker_node','temp_blocks']).ngroup(), columns=['blocks_level_'])       
-            # Store the number of worker and job blocks at each level
-            jmax = temp[['blocks_level_']][df['worker_node']==0].max()[0]
-            wmax = temp[['blocks_level_']][df['worker_node']==1].max()[0]
-            njb = jmax+1
-            nwb = wmax-jmax
+            # Select the state to use
+            if not export_mcmc:
+                blocks = self.state.project_level(l).get_blocks().a
+            else:
+                blocks = self.state_mcmc.project_level(l).get_blocks().a
+            blocks = np.asarray(blocks, dtype=np.int32)
+            
+            # Use numpy arrays to avoid grouping the entire DataFrame:
+            worker_arr = df['worker_node'].to_numpy(dtype=np.int8)
+            new_ids = np.empty_like(blocks, dtype=np.int32)
+    
+            # For job nodes (worker_node==0): factorize and assign new IDs.
+            job_mask = worker_arr == 0
+            job_ids, job_uniques = pd.factorize(blocks[job_mask])
+            new_ids[job_mask] = job_ids.astype(np.int32)
+            
+            # For worker nodes (worker_node==1): factorize and offset by number of unique job groups.
+            worker_mask = ~job_mask
+            worker_ids, worker_uniques = pd.factorize(blocks[worker_mask])
+            new_ids[worker_mask] = worker_ids.astype(np.int32) + len(job_uniques)
+    
+            # Record block counts (the new numbering ensures job groups come first)
+            njb = len(job_uniques)
+            nwb = len(worker_uniques)
             num_job_blocks.append(njb)
             num_worker_blocks.append(nwb)
-            print('Level', l,': Num job blocks', njb, '; Num worker blocks', nwb )
-
-            temp = temp.rename(columns=lambda cname: cname + str(l))
-            df = pd.concat([df,temp], axis=1)
-
-            del temp
-
-
-        job_blocks    = df[df['worker_node']==0].drop(columns=['worker_node']).rename(columns={"id":"jid","id_py":"jid_py"}).rename(columns=lambda cname: "job_"+cname if (cname!="jid_py" and cname!="jid") else cname )
-        worker_blocks = df[df['worker_node']==1].drop(columns=['worker_node']).rename(columns={"id":"wid","id_py":"wid_py"}).rename(columns=lambda cname: "worker_"+cname if (cname!="wid_py" and cname!="wid") else cname )
-        edgelist_w_blocks = self.edgelist.merge(job_blocks,on='jid_py',validate='m:1')
-        edgelist_w_blocks = edgelist_w_blocks.merge(worker_blocks,on='wid_py',validate='m:1')
-        edgelist_w_blocks = edgelist_w_blocks.drop(columns=['wid_y','jid_y']).rename(columns={'wid_x':'wid','jid_x':'jid'}) #The merge creates duplicate ID columns
+            print(f'Level {l}: Num job blocks {njb}; Num worker blocks {nwb}')
+    
+            # Instead of concatenating, simply add a new column for this level
+            df[f'blocks_level_{l}'] = new_ids
+    
+            # Free temporary arrays
+            del blocks, new_ids
+            
+        # Separate vertex info into job and worker blocks
+        job_blocks = df.loc[df['worker_node'] == 0].copy().drop(columns=['worker_node'])
+        job_blocks.rename(columns={"id": "jid", "id_py": "jid_py"}, inplace=True)
+        job_blocks = job_blocks.rename(columns=lambda cname: "job_" + cname if cname not in ["jid", "jid_py"] else cname)
+    
+        worker_blocks = df.loc[df['worker_node'] == 1].copy().drop(columns=['worker_node'])
+        worker_blocks.rename(columns={"id": "wid", "id_py": "wid_py"}, inplace=True)
+        worker_blocks = worker_blocks.rename(columns=lambda cname: "worker_" + cname if cname not in ["wid", "wid_py"] else cname)
+    
+        # Merge job and worker block assignments into the original edgelist.
+        # Using copy=False when possible to reduce memory overhead.
+        edgelist_w_blocks = self.edgelist.merge(job_blocks, on='jid_py', validate='m:1', copy=False)
+        edgelist_w_blocks = edgelist_w_blocks.merge(worker_blocks, on='wid_py', validate='m:1', copy=False)
+        edgelist_w_blocks.drop(columns=['wid_y', 'jid_y'], inplace=True)
+        edgelist_w_blocks.rename(columns={'wid_x': 'wid', 'jid_x': 'jid'}, inplace=True)
         self.edgelist_w_blocks = edgelist_w_blocks
-
+    
         self.num_job_blocks = num_job_blocks
         self.num_worker_blocks = num_worker_blocks
 
         if output is not None:
             if output.endswith(".csv"):
                 edgelist_w_blocks.to_csv(output, index=False)
-            if output.endswith(".p"):
+            elif output.endswith(".parquet"):
+                edgelist_w_blocks.to_parquet(output)
+            elif output.endswith(".p"):
                 pickle.dump( edgelist_w_blocks, open(output, "wb" ) )
                 #edgelist_w_blocks.to_pickle(output)
 
         if joutput is not None:
             if joutput.endswith(".csv"):
                 job_blocks.to_csv(joutput, index=False)
-            if joutput.endswith(".p"):
+            elif joutput.endswith(".parquet"):
+                job_blocks.to_parquet(joutput)
+            elif joutput.endswith(".p"):
                 job_blocks.to_pickle(joutput)
 
         if woutput is not None:
             if woutput.endswith(".csv"):
                 worker_blocks.to_csv(woutput, index=False)
+            elif woutput.endswith(".parquet"):
+                worker_blocks.to_parquet(woutput)
             if woutput.endswith(".p"):
                 worker_blocks.to_pickle(woutput)
 
