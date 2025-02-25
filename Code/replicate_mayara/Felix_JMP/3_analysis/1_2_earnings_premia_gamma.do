@@ -52,8 +52,8 @@ else if c(username)=="p13861161" & c(os)=="Unix" {
 	global encrypted 		"/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/Code/replicate_mayara"
 	global dictionaries		"/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/Code/replicate_mayara/raisdictionaries/harmonized"
 	global deIDrais			"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\raisdeidentified"
-	global monopsonies		"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\monopsonies"
-	global public			"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\publicdata"
+	global monopsonies		"/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/Code/replicate_mayara/monopsonies"
+	global public			"/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/Code/replicate_mayara/replicate_mayara\publicdata"
 }
 
 capture log close 
@@ -80,7 +80,7 @@ foreach version in original gamma {
 
 	if "`version'"=="original"{
 		local mkt "mmc cbo942d"
-		local path "mmc_occ942d"
+		local path "mmc_cbo942d"
 	}
 	if "`version'"=="gamma"{
 		local mkt "gamma"
@@ -112,6 +112,7 @@ foreach version in original gamma {
 		forvalues y=`yearfirst'(1)`yearlast'{
 			di "`y'"
 			u "${monopsonies}/sas/rais_for_earnings_premia`y'_gamma.dta", clear
+			isid fakeid_worker
 			drop if mmc==13007 | mmc==23014
 			
 			* Keep if education category is well-defined

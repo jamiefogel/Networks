@@ -39,14 +39,6 @@ else if c(username)=="Mayara"{
 	global public			"M:/publicdata"
 }
 
-else if c(username)=="p13861161" & c(os)=="Unix" {
-	global encrypted 		"/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/Code/replicate_mayara"
-	global dictionaries		"/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/Code/replicate_mayara/raisdictionaries/harmonized"
-	global deIDrais			"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\raisdeidentified"
-	global monopsonies		"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\monopsonies"
-	global public			"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\publicdata"
-}
-
 else if c(username)=="p13861161" & c(os)=="Windows" {
 	global encrypted 		"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara"
 	global dictionaries		"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\raisdictionaries\harmonized"
@@ -58,13 +50,13 @@ else if c(username)=="p13861161" & c(os)=="Windows" {
 else if c(username)=="p13861161" & c(os)=="Unix" {
 	global encrypted 		"/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/Code/replicate_mayara"
 	global dictionaries		"/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/Code/replicate_mayara/raisdictionaries/harmonized"
-	global deIDrais			"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\raisdeidentified"
-	global monopsonies		"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\monopsonies"
-	global public			"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\publicdata"
+	global deIDrais			"/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/Code/replicate_mayara/raisdeidentified"
+	global monopsonies		"/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/Code/replicate_mayara/monopsonies"
+	global public			"/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/Code/replicate_mayara/publicdata"
 }
 
 cap log close
-log using "${encrypted}/logs/3_1_eta_estimation.log", replace
+log using "${encrypted}/logs/3_1_eta_estimation1.log", replace
 
 local outdate		= 20210802
 local premiadate	= 20210802
@@ -113,18 +105,17 @@ local labsorb "fe_ro"			/* When spec is m, absorb mmc-cbo942d */
 *************************************
 **************** Setup **************
 *************************************
-local specs "original 3states gamma_3states"
 
-foreach spec of local specs{
-	if inlist("`spec'", "original", "3states"){
-		local path "mmc_cbo942d"
+foreach version in original gamma {
+
+	if "`version'"=="original"{
 		local mkt "mmc cbo942d"
+		local path "mmc_cbo942d"
 	}
-	else {
-		local path "gamma"
+	if "`version'"=="gamma"{
 		local mkt "gamma"
+		local path "gamma"
 	}
-
 	
 if `setup'==1{
 
@@ -147,7 +138,6 @@ if `setup'==1{
 		sa `t_change'
 		sa t_change, replace
 
-		* XX This is created by rais_050_market_collapsed_20210802.sas, which I haven't been able to run because of missing input data sets.
 		u "${monopsonies}/sas/regsfile_`path'.dta", clear
 		isid `mkt' year
 		keep if year==`baseyear'
@@ -175,30 +165,27 @@ if `setup'==1{
 		*/
 
 		u "${monopsonies}/sas/rais_collapsed_firm_`path'.dta", clear
-		isid fakeid_firm gamma year
-		if inlist("spec","3states","gamma"){
-			gen state = int(mmc/1000)
-			keep if inlist(state,31,33,35)
-		}
+		isid fakeid_firm `mkt' year
+
 
 		keep if inlist(year,`baseyear_p2',`baseyear_p1',`baseyear',`baseyear_o1',`baseyear_o2')
 		
 		* Bring in earnings premia
 		merge 1:1 fakeid_firm `mkt' year using "${monopsonies}/sas/rais_lnearn_premia_firm_`path'_`premiadate'.dta", ///
 		keepusing(dprem_zro davgw_zro) keep(3) nogen
-		isid fakeid_firm gamma year
+		isid fakeid_firm `mkt' year
 		
 		ren dprem_zro lndp
 		ren davgw_zro lndw
 		
 		local obsmktslist=1
-		if inlist("`spec'", "original", "3states") {
+		if inlist("`version'", "original", "3states") {
 			preserve
 				gen obs=1
 				keep obs cbo942d
 				collapse (sum) obs, by(cbo942d)
 				
-				outsheet using "${monopsonies}/csv/`outdate'/etaregs_cbo942ds_`spec'.csv", comma replace
+				outsheet using "${monopsonies}/csv/`outdate'/etaregs_cbo942ds_`path'.csv", comma replace
 			restore
 			
 			preserve
@@ -206,7 +193,7 @@ if `setup'==1{
 				keep obs mmc
 				collapse (sum) obs, by(mmc)
 				
-				outsheet using "${monopsonies}/csv/`outdate'/etaregs_mmcs_`spec'.csv", comma replace
+				outsheet using "${monopsonies}/csv/`outdate'/etaregs_mmcs_`path'.csv", comma replace
 			restore
 		}
 		
@@ -215,9 +202,9 @@ if `setup'==1{
 		***********************************
 
 		* Drop certain mmcs
-		drop if mmc==13007 
-		merge m:1 mmc using "${public}/other/DK (2017)/ReplicationFiles/Data_other/mmc_drop.dta", keep(3) nogen
-		drop if mmc_drop==1
+		//drop if mmc==13007 
+		//merge m:1 mmc using "${public}/other/DK (2017)/ReplicationFiles/Data_other/mmc_drop.dta", keep(3) nogen
+		//drop if mmc_drop==1
 		
 		* Merge in tariffs so can also restrict to tradables
 		merge m:1 cnae95  using `t_change', keep(1 3) /* XX nogen*/		/* Long change in tariffs */
@@ -345,7 +332,7 @@ if `setup'==1{
 				
 		compress
 		isid fakeid_firm year `mkt'
-		saveold "${monopsonies}/sas/eta_changes_regsfile_`spec'.dta", replace
+		saveold "${monopsonies}/sas/eta_changes_regsfile_`path'.dta", replace
 
  /* Close use sample */
 }
@@ -356,9 +343,9 @@ if `setup'==1{
 
 if `eta_regs'==1{
 	
-	u "${monopsonies}/sas/eta_changes_regsfile_`spec'.dta", clear
+	u "${monopsonies}/sas/eta_changes_regsfile_`path'.dta", clear
 	
-	cap drop if inlist(cbo942d,31,22,37)
+	//cap drop if inlist(cbo942d,31,22,37)
 	
 	* Cross-section FEs
 	gegen fe_ro = group(`mkt')
@@ -557,7 +544,7 @@ if `eta_regs'==1{
 	}
 	}
 	duplicates drop
-	outsheet using "${monopsonies}/csv/`outdate'/eta_change_regressions_`spec'.csv", comma replace
+	outsheet using "${monopsonies}/csv/`outdate'/eta_change_regressions_3states_`path'.csv", comma replace
 	
 	******************************************************************************
 	** Append all fixed effects and save for phi estimation next ***
@@ -583,7 +570,7 @@ if `eta_regs'==1{
 	}
 	duplicates drop
 	compress
-	saveold "${monopsonies}/dta/coeffs/`outdate'/eta_change_delta_ro_`spec'.dta", replace
+	saveold "${monopsonies}/dta/coeffs/`outdate'/eta_change_delta_ro_3states_`path'.dta", replace
 
 }
 
