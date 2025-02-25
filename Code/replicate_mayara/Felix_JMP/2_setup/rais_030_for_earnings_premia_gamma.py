@@ -254,6 +254,11 @@ def get_demos(year):
         "female", "educ", "mmc", "cbo942d", "jid", "gamma"
     ]
     workers_df = workers_df[final_cols_order]
+    
+    # Drop occs and micros that are dropped in 3_1_eta_estimation.do
+    workers_df = workers_df.loc[~workers_df['cbo942d'].isin([31, 22, 37])]
+    workers_df = workers_df.loc[~workers_df['mmc'].isin([13007,15019,17001,17002,17003,17006,17007,17008,17901,23004,23014])]
+
 
     # Save to an output file (like "rais_for_earnings_premia{year}.dta" in SAS)
     workers_df.to_parquet(monopsas_path + f"/rais_for_earnings_premia{year}_gamma.parquet", index=False)

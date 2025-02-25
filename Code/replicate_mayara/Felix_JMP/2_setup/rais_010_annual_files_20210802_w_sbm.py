@@ -97,7 +97,8 @@ def process_year(year):
         year_df = year_df.rename(columns={'cbo94':'cbo'})
     # Merge on iotas and gammas
     year_df['occ4'] = pd.to_numeric(year_df['cbo'].astype(str).str[:4], errors='coerce')
-    year_df = year_df.merge(jblocks, on=['fakeid_estab','occ4'], how='left', validate='m:1', indicator='_merge_j' )
+    # XX I am doing an inner merge for gammas but not iotas since we aren't actually using iotas so no reason to drop missings 
+    year_df = year_df.merge(jblocks, on=['fakeid_estab','occ4'], how='inner', validate='m:1', indicator='_merge_j' )
     print(year_df._merge_j.value_counts())
     year_df = year_df.merge(wblocks, on=['fakeid_worker'], how='left', validate='m:1', indicator='_merge_w' )
     print(year_df._merge_w.value_counts())
@@ -126,7 +127,7 @@ def import_years():
 if __name__ == "__main__":
     
     # Load SBM that we ran on Mayara data
-    modelname = 'sbm_mayara'
+    modelname = 'sbm_mayara_1986_1990_3states'
     jblocks = pd.read_csv(root + 'Data/derived/sbm_output/model_'+modelname+'_jblocks.csv')
     jblocks[['fakeid_estab', 'occ4']] = jblocks['jid'].str.split('_', expand=True)
     jblocks['fakeid_estab'] = jblocks['fakeid_estab'].astype(int)

@@ -2,16 +2,7 @@
 This script aggregates the worker‐level earnings premia data (produced in earlier steps)
 to create a firm‐level (or, in the original version, a market defined by the intersection of mmc and cbo942d)
 dataset with market-level variables. The output from this script is used in subsequent estimation steps.
- 
-There are two versions available:
-  1. Original version ("original"): Uses Mayara’s market definitions. Markets are defined as the intersection 
-     of mmc and cbo942d (i.e. level2 = "cbo942d") and grouping is done by fakeid_firm.
-     The output file is named: rais_collapsed_firm_mmc_cbo942d.dta.
-  2. Alternative version ("gamma"): Uses your alternative market definition. In this version the market variable 
-     is "gamma" (instead of mmc) and grouping is done by fakeid_firm (i.e. firms remain the unit).
-     The output file is named: rais_collapsed_firm_gamma.dta.
- 
-To choose which version to run, set USE_GAMMA = True for the gamma version or False for the original version.
+
 """
 
 import pandas as pd
@@ -20,22 +11,12 @@ import os
 from config import root
 
 # -------------------------------------------------------------------
-# USER OPTION: Choose version:
-#   Set USE_GAMMA = False for original (mmc + cbo942d) or True for gamma version.
+# Global variables that will be updated for each run.
 # -------------------------------------------------------------------
-USE_GAMMA = False    # Change to True to use the alternative (gamma) version
-
-# Set variables and output prefix based on the option
-if not USE_GAMMA:
-    # Original: market defined by mmc; level2 must be "cbo942d"
-    market_var = "mmc"
-    level2_default = "cbo942d"
-    collapsed_prefix = "rais_collapsed_firm_mmc_cbo942d"
-else:
-    # Gamma version: market defined by gamma; we use level2="none" by default.
-    market_var = "gamma"
-    level2_default = "none"
-    collapsed_prefix = "rais_collapsed_firm_gamma"
+USE_GAMMA = None    # Will be set in main()
+market_var = None
+level2_default = None
+collapsed_prefix = None
 
 # -------------------------------------------------------------------
 # Paths from your preamble
@@ -182,6 +163,10 @@ def valid(year):
     )
     merged4["cbo942d"] = np.where(merged4["cbo942d"].notna(), merged4["cbo942d"], 99)
     
+    # Drop occs and micros that are dropped in 3_1_eta_estimation.do
+    merged4 = merged4.loc[~merged4['cbo942d'].isin([31, 22, 37])]
+    merged4 = merged4.loc[~merged4['mmc'].isin([13007,15019,17001,17002,17003,17006,17007,17008,17901,23004,23014])]
+
     # Build final columns based on version.
     if not USE_GAMMA:
         # Original version: use mmc and level2 "cbo942d"
@@ -273,13 +258,27 @@ def master(all_valid, level2):
 # 5. Putting it all together
 # -------------------------------------------------------------------
 def main():
-    # Build valid{year} datasets for all years.
-    all_valid = inyears(start=1985, end=2000)
-    # For the original version, run with level2="cbo942d"; for gamma version, use level2="none".
-    if not USE_GAMMA:
-        master(all_valid, level2="cbo942d")
-    else:
-        master(all_valid, level2="none")
+    # Run the entire pipeline twice:
+    # once for the original version (USE_GAMMA=False) and once for the gamma version (USE_GAMMA=True)
+    global USE_GAMMA, market_var, level2_default, collapsed_prefix
+    
+    for use_gamma_value in [False, True]:
+        USE_GAMMA = use_gamma_value
+        if not USE_GAMMA:
+            market_var = "mmc"
+            level2_default = "cbo942d"
+            collapsed_prefix = "rais_collapsed_firm_mmc_cbo942d"
+        else:
+            market_var = "gamma"
+            level2_default = "none"
+            collapsed_prefix = "rais_collapsed_firm_gamma"
+            
+        print(f"\n=== Processing for USE_GAMMA = {USE_GAMMA} ===\n")
+        # Build valid{year} datasets for all years.
+        all_valid = inyears(start=1985, end=2000)
+        # For the original version, run with level2="cbo942d"; for gamma version, use level2="none".
+        master(all_valid, level2=("cbo942d" if not USE_GAMMA else "none"))
+    
     print("\nAll done!")
 
 # -------------------------------------------------------------------
