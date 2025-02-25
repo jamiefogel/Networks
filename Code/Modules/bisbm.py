@@ -18,6 +18,7 @@ import numpy as np
 import pandas as pd
 import pickle
 import re
+import uuid
 
 class bisbm():
 # Need to indent everything below this
@@ -130,7 +131,7 @@ class bisbm():
     #################################################################################
     # Fit the model
     #################################################################################
-    def fit(self,overlap = False, hierarchical = True, n_init = 1):
+    def fit(self, overlap = False, hierarchical = True, n_init = 1, B_min=1, B_max=np.iinfo(np.uint64).max):
         '''
         Fit the bisbm
         - overlap, bool (default: False). Overlapping or Non-overlapping groups.
@@ -159,7 +160,7 @@ class bisbm():
             print("Starting BiSBM estimation block at ", datetime.datetime.now())
             mdl = np.inf ##
             for i_n_init in range(n_init):
-                state_tmp = gt.minimize_nested_blockmodel_dl(g, state_args=state_args)
+                state_tmp = gt.minimize_nested_blockmodel_dl(g, state_args=state_args,multilevel_mcmc_args={'B_min': B_min, 'B_max': B_max})
                 mdl_tmp = state_tmp.entropy()
                 if mdl_tmp < mdl:
                     mdl = 1.0*mdl_tmp
@@ -326,8 +327,6 @@ class bisbm():
         self.iota_mean_earnings=iota_mean_earnings
 
 
-
-
     def mcmc_sweeps(self, savefile, tempsavedir='./', numiter=1000, seed=734):
         print('Starting MCMC sweeps at ', datetime.datetime.now())
         gt.seed_rng(seed)
@@ -343,7 +342,57 @@ class bisbm():
             self.state_mcmc.multiflip_mcmc_sweep(beta=np.inf, niter=5)
             entropy.append(self.state_mcmc.entropy())
             pickle.dump(entropy, open(tempsavedir + 'entropy.p', "wb" ) )
-            print("Improvement: ", round(((entropy[0] - entropy[-1])/entropy[0])*100,4))
+            print("Cumulative Improvement (%): ", round(((entropy[0] - entropy[-1])/entropy[0]) *100, 4))
+            print("Marginal Improvement (%): ", round(((entropy[-2] - entropy[-1])/entropy[-2]) *100, 4))
             print("Time spent: ", datetime.datetime.now()-t0)
-            pickle.dump([self.state_mcmc,i,entropy], open(tempsavedir + 'tmp_state_mcmc_iters.p', "wb" ), protocol = 4)
-            os.rename(tempsavedir + 'tmp_state_mcmc_iters.p', savefile)
+
+            # Create a temporary filename with a random suffix
+            temp_filename = os.path.join(tempsavedir, 'tmp_state_mcmc_iters_' + uuid.uuid4().hex + '.p')
+            pickle.dump([self.state_mcmc, i, entropy], open(temp_filename, "wb"))
+            os.rename(temp_filename, savefile)
+            
+            
+            
+            
+'''
+#Code to plot entropy improvmenet from MCMC sweeps
+
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# Assuming entropy is your list of entropy values from each round
+e = pd.DataFrame(entropy, columns=["Entropy"])
+
+# Calculate cumulative improvement relative to the first round
+e["Cumulative Improvement (%)"] = (e["Entropy"].iloc[0] - e["Entropy"]) / e["Entropy"].iloc[0] * 100
+
+# Calculate marginal improvement relative to the previous round
+e["Marginal Improvement (%)"] = (e["Entropy"].shift(1) - e["Entropy"]) / e["Entropy"].shift(1) * 100
+
+# Optionally round for display
+e["Cumulative Improvement (%)"] = e["Cumulative Improvement (%)"].round(4)
+e["Marginal Improvement (%)"] = e["Marginal Improvement (%)"].round(4)
+
+# Plot using two axes
+fig, ax1 = plt.subplots(figsize=(10, 6))
+
+# Plot cumulative improvement on primary y-axis
+ax1.plot(e.index, e["Cumulative Improvement (%)"], color="blue", label="Cumulative Improvement")
+ax1.set_xlabel("Training Round")
+ax1.set_ylabel("Cumulative Improvement (%)", color="blue")
+ax1.tick_params(axis="y", labelcolor="blue")
+
+# Create a secondary y-axis for marginal improvement
+ax2 = ax1.twinx()
+ax2.plot(e.index, e["Marginal Improvement (%)"], color="red", marker="o", label="Marginal Improvement")
+ax2.set_ylabel("Marginal Improvement (%)", color="red")
+ax2.tick_params(axis="y", labelcolor="red")
+
+# Title and layout
+plt.title("Training Improvement per Round")
+fig.tight_layout()
+plt.show()
+
+'''
+
+            
