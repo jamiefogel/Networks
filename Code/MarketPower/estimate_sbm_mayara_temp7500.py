@@ -97,22 +97,19 @@ def run_sbm_section(modelname, edgelist_path, fit_params=None, run_mcmc=True):
         pickle.dump(model, open(model_pickle, "wb"))
 
 
-edgelist_path = root + '/Data/derived/mayara_edgelist_1986_1990_3states.p'
+
 
 # Define a list of parameter dictionaries for each SBM run
 sbm_runs = [
-    {
-        'modelname': 'sbm_mayara_1986_1990',
-        'fit_params': {},  # No additional parameters for this run
-        'run_mcmc': True
-    },
-    {
-        'modelname': 'sbm_mayara_1986_1990_3states',
-        'fit_params': {},  # No additional parameters for this run
-        'run_mcmc': True
-    },
+    #{
+    #    'modelname': 'sbm_mayara_1986_1990_3states',
+    #    'edgelist_path': root + '/Data/derived/mayara_edgelist_1986_1990_3states.p',
+    #    'fit_params': {},  # No additional parameters for this run
+    #    'run_mcmc': True
+    #},
     {
         'modelname': 'sbm_mayara_1986_1990_3states_7500blocks',
+        'edgelist_path': root + '/Data/derived/mayara_edgelist_1986_1990_3states.p',
         'fit_params': {'B_min': 7500, 'B_max': 7500},
         'run_mcmc': True
     }
@@ -122,23 +119,11 @@ run_create_edgelist = False
 if run_create_edgelist==True:
     create_edgelist(1986, 1990)
 
-run = sbm_runs[0]
-#def run_sbm_section(modelname, edgelist_path, fit_params=None, run_mcmc=True):
-
-run_sbm_section(
-        modelname=run['modelname'],
-        edgelist_path = root + '/Data/derived/mayara_edgelist_1986_1990.p',
-        fit_params=run.get('fit_params', None),
-        run_mcmc=run.get('run_mcmc', True)
-    )
-
 # Loop over each run configuration and execute the SBM section
-'''
 for run in sbm_runs :
     run_sbm_section(
         modelname=run['modelname'],
-        edgelist_path = XX This needs to be updated/automated
+        edgelist_path=run['edgelist_path'],
         fit_params=run.get('fit_params', None),
         run_mcmc=run.get('run_mcmc', True)
     )
-'''

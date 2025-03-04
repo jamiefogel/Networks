@@ -123,11 +123,8 @@ if run_create_edgelist==True:
     create_edgelist(1986, 1990)
 
 run = sbm_runs[0]
-#def run_sbm_section(modelname, edgelist_path, fit_params=None, run_mcmc=True):
-
 run_sbm_section(
         modelname=run['modelname'],
-        edgelist_path = root + '/Data/derived/mayara_edgelist_1986_1990.p',
         fit_params=run.get('fit_params', None),
         run_mcmc=run.get('run_mcmc', True)
     )
@@ -137,8 +134,7 @@ run_sbm_section(
 for run in sbm_runs :
     run_sbm_section(
         modelname=run['modelname'],
-        edgelist_path = XX This needs to be updated/automated
         fit_params=run.get('fit_params', None),
         run_mcmc=run.get('run_mcmc', True)
     )
-'''
+    '''
