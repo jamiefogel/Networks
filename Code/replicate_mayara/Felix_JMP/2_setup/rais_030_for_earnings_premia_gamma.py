@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 """
+XX When we add additional market variables we need to add them to the list addl_market_vars in the loop at the bottom
+
+
 This script, rais_030_for_earnings_premia.py, processes the raw RAIS data for a given year to create
 a cleaned, worker-level dataset that contains earnings premia information. In detail, the script:
   - Reads in the RAIS data file for the specified year and selects only the necessary columns,
@@ -32,7 +35,7 @@ base_path = root + "/Code/replicate_mayara"
 monopsas_path = f"{base_path}/monopsonies/sas"
 
 
-def get_demos(year):
+def get_demos(year, addl_market_vars = ["gamma","gamma1","gamma_mcmc","gamma1_mcmc"]):
     """
     Python equivalent of SAS macro %getdemos(i=...).
     Reads monopsas.rais{year}, merges with crosswalks, filters by certain conditions,
@@ -62,7 +65,6 @@ def get_demos(year):
     df_rais = pd.read_parquet(
         rais_file,
         columns=["fakeid_worker", "fakeid_firm", "ibgesubsector",
-                 "worker_blocks_level_0", "gamma", "jid",
                  "educ", "municipality", "earningsdecmw", "agegroup"]
     ).drop_duplicates()
 
@@ -98,15 +100,15 @@ def get_demos(year):
     #
     #    Only for those with certain filters
     # --------------------------------------------------
-
+    
     # Re-read RAIS for more columns (we need empmonths, earningsavgmw, etc.)
     # or we can just re-use df_rais if it has them. Let's assume we need to read them:
     needed_cols = [
         "fakeid_worker", "fakeid_firm", "municipality",
-        "earningsdecmw", "ibgesubsector", "worker_blocks_level_0", "gamma", "jid",
+        "earningsdecmw", "ibgesubsector", "jid",
         "admmonth", "educ", "agegroup", "empmonths", "earningsavgmw",
         "gender", cboraw  # either "cbo" or "cbo94"
-    ]
+    ] + addl_market_vars
     df_rais_full = pd.read_parquet(rais_file, columns=needed_cols).drop_duplicates()
 
     # read crosswalk for municipality -> mmc
@@ -233,8 +235,7 @@ def get_demos(year):
         "mmc",             # from crosswalk
         "cbo942d",
         "jid", 
-        "gamma"
-    ]
+    ] + addl_market_vars
 
     # If any columns don't exist in df_merged, fill with placeholders
     for col in workers_cols:
@@ -251,8 +252,8 @@ def get_demos(year):
     final_cols_order = [
         "fakeid_worker", "fakeid_firm", "cnae95", "ibgesubsector",
         "empmonths", "earningsavgmw", "earningsdecmw", "agegroup",
-        "female", "educ", "mmc", "cbo942d", "jid", "gamma"
-    ]
+        "female", "educ", "mmc", "cbo942d", "jid"
+    ] + addl_market_vars
     workers_df = workers_df[final_cols_order]
     
     # Drop occs and micros that are dropped in 3_1_eta_estimation.do
@@ -272,6 +273,7 @@ def get_demos(year):
 # Execute function for each year
 # ------------------------------------------------
 for y in range(1985, 2001):  # 1985..2000
-    get_demos(y)
+    addl_market_vars =["gamma","gamma1","gamma_mcmc","gamma1_mcmc","gamma_7500","gamma1_7500"]
+    get_demos(y, addl_market_vars)
     
     

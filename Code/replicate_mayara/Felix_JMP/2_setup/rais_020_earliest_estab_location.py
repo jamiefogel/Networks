@@ -46,7 +46,7 @@ for year in range(first_year, last_year + 1):
     merged = df_rais.merge(
         crosswalk_muni, 
         left_on="municipality", 
-        right_on="municipality_rais",
+        right_on="codemun",
         how="left"
     )
     
@@ -56,8 +56,9 @@ for year in range(first_year, last_year + 1):
     # b.mmc,
     # year
     # Also keep them distinct
-    merged = merged.drop_duplicates(subset=["fakeid_estab", "municipality_rais", "mmc"])
-    merged = merged.rename(columns={"municipality_rais": "municipality"})
+    merged = merged.drop_duplicates(subset=["fakeid_estab", "codemun", "mmc"])
+    merged.drop(columns='municipality', inplace=True)
+    merged = merged.rename(columns={"codemun": "municipality"})
     merged["year"] = year
     
     location_list.append(merged[["fakeid_estab", "municipality", "mmc", "year"]])

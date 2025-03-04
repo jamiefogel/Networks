@@ -56,7 +56,9 @@ else if c(username)=="p13861161" & c(os)=="Unix" {
 }
 
 cap log close
-log using "${encrypted}/logs/3_1_eta_estimation1.log", replace
+local date = subinstr("`c(current_date)'", " ", "_", .)
+local time = subinstr("`c(current_time)'", ":", "_", .)
+log using "${encrypted}/logs/3_1_eta_estimation_`date'_`time'.log", replace
 
 local outdate		= 20210802
 local premiadate	= 20210802
@@ -106,16 +108,28 @@ local labsorb "fe_ro"			/* When spec is m, absorb mmc-cbo942d */
 **************** Setup **************
 *************************************
 
-foreach version in original gamma {
 
-	if "`version'"=="original"{
-		local mkt "mmc cbo942d"
-		local path "mmc_cbo942d"
-	}
-	if "`version'"=="gamma"{
-		local mkt "gamma"
-		local path "gamma"
-	}
+do "${encrypted}/Felix_JMP/3_analysis/specs_config.do"
+args spec
+di "`spec'"
+if "`spec'"=="" local spec "gamma_7500"
+di "`spec'"
+
+if "`spec'" == "" {
+    display as error "Error: No spec provided. Please pass a spec (e.g., gamma, original, gamma_2)."
+    exit 1
+}
+
+// Retrieve the market variables and file suffix based on the spec
+local mkt "${spec_`spec'_market_vars}"
+local path "${spec_`spec'_file_suffix}"
+
+display "Using market variables: `mkt'"
+display "Using path suffix: `path'"
+
+
+
+
 	
 if `setup'==1{
 
@@ -545,6 +559,8 @@ if `eta_regs'==1{
 	}
 	duplicates drop
 	outsheet using "${monopsonies}/csv/`outdate'/eta_change_regressions_3states_`path'.csv", comma replace
+	outsheet using "${monopsonies}/csv/`outdate'/eta_change_regressions_3states_`path'_`date'_`time'.csv", comma replace
+
 	
 	******************************************************************************
 	** Append all fixed effects and save for phi estimation next ***
@@ -574,6 +590,6 @@ if `eta_regs'==1{
 
 }
 
-}
+
 
 log close 

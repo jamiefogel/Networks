@@ -9,14 +9,7 @@ import pandas as pd
 import numpy as np
 import os
 from config import root
-
-# -------------------------------------------------------------------
-# Global variables that will be updated for each run.
-# -------------------------------------------------------------------
-USE_GAMMA = None    # Will be set in main()
-market_var = None
-level2_default = None
-collapsed_prefix = None
+import sys
 
 # -------------------------------------------------------------------
 # Paths from your preamble
@@ -27,7 +20,7 @@ monopsas_path = f"{base_path}/monopsonies/sas"
 # -------------------------------------------------------------------
 # 1. Emulate the %valid(i=) macro
 # -------------------------------------------------------------------
-def valid(year):
+def valid(year, market_vars):
     """
     For the given year, this function:
       1) Reads in the RAIS data and selects relevant columns.
@@ -66,10 +59,10 @@ def valid(year):
             "fakeid_firm", "fakeid_worker",
             "ibgesubsector", "educ", "municipality",
             "earningsdecmw", "agegroup", 
-            "jid", "gamma",
+            "jid", 
             "earningsavgmw",
             cboraw
-        ]
+        ] 
     ).drop_duplicates()
     
     # (C) Filter observations
@@ -112,14 +105,19 @@ def valid(year):
         print(f"  -> {validdata}.parquet missing.")
         return None
     df_valid_cbo = pd.read_parquet(valid_data_file).drop_duplicates()
-    
+    # Need to use the crosswalk below to bring in mmc using municipality and similarly for cbo942d
+    market_vars_alt = market_vars.copy()
+    if 'mmc' in market_vars:
+        market_vars_alt.remove('mmc')
+    if 'cbo942d' in market_vars:
+        market_vars_alt.remove('cbo942d')
     df_rais_full = pd.read_parquet(
         rais_file,
         columns=[
             "fakeid_worker", "fakeid_firm", "ibgesubsector", "educ",
             "municipality", "earningsdecmw", "earningsavgmw",
-            "agegroup", cboraw, "jid", "gamma"
-        ]
+            "agegroup", cboraw, "jid"
+        ] + market_vars_alt
     ).drop_duplicates()
     
     mask_full = (
@@ -167,17 +165,12 @@ def valid(year):
     merged4 = merged4.loc[~merged4['cbo942d'].isin([31, 22, 37])]
     merged4 = merged4.loc[~merged4['mmc'].isin([13007,15019,17001,17002,17003,17006,17007,17008,17901,23004,23014])]
 
-    # Build final columns based on version.
-    if not USE_GAMMA:
-        # Original version: use mmc and level2 "cbo942d"
-        dup_cols = ["fakeid_worker", "fakeid_firm", "cnae95", "ibgesubsector", "mmc", "cbo942d"]
-        final_cols = ["fakeid_worker", "fakeid_firm", "cnae95", "ibgesubsector",
-                      "earningsavgmw", "earningsdecmw", "mmc", "cbo942d"]
-    else:
-        # Gamma version: use gamma (alternative market definition)
-        dup_cols = ["fakeid_worker", "fakeid_firm", "cnae95", "ibgesubsector", "gamma"]
-        final_cols = ["fakeid_worker", "fakeid_firm", "cnae95", "ibgesubsector",
-                      "earningsavgmw", "earningsdecmw", "gamma"]
+    # Build final columns
+
+    # Original version: use mmc and level2 "cbo942d"
+    dup_cols = ["fakeid_worker", "fakeid_firm", "cnae95", "ibgesubsector"] + market_vars
+    final_cols = ["fakeid_worker", "fakeid_firm", "cnae95", "ibgesubsector",
+                  "earningsavgmw", "earningsdecmw"] + market_vars
     
     merged4 = merged4.drop_duplicates(subset=dup_cols)
     merged4["none"] = 1
@@ -191,10 +184,10 @@ def valid(year):
 # -------------------------------------------------------------------
 # 2. Emulate %inyears macro: run valid() for each year
 # -------------------------------------------------------------------
-def inyears(start=1985, end=2000):
+def inyears(market_vars, start=1985, end=2000):
     all_valid = {}
     for y in range(start, end + 1):
-        df = valid(y)
+        df = valid(y, market_vars)
         if df is not None:
             all_valid[y] = df
     return all_valid
@@ -202,7 +195,7 @@ def inyears(start=1985, end=2000):
 # -------------------------------------------------------------------
 # 3. Emulate %collapse(i=, level2=)
 # -------------------------------------------------------------------
-def collapse(valid_df, year, level2):
+def collapse(valid_df, year, market_vars):
     """
     Collapses the valid{year} DataFrame by unit, cnae95, ibgesubsector, and market.
     For the original version, grouping is by:
@@ -217,10 +210,7 @@ def collapse(valid_df, year, level2):
       - avgdecearn: mean(earningsdecmw)
     Adds the year.
     """
-    if not USE_GAMMA:
-        group_cols = ["fakeid_firm", "cnae95", "ibgesubsector", "mmc", level2]
-    else:
-        group_cols = ["fakeid_firm", "cnae95", "ibgesubsector", "gamma"]
+    group_cols = ["fakeid_firm", "cnae95", "ibgesubsector"] + market_vars
     agg_df = valid_df.groupby(group_cols, as_index=False).agg(
         emp=("fakeid_worker", "count"),
         totmearnmw=("earningsavgmw", "sum"),
@@ -234,7 +224,7 @@ def collapse(valid_df, year, level2):
 # -------------------------------------------------------------------
 # 4. Emulate %append(level2=) and %master(occup=)
 # -------------------------------------------------------------------
-def master(all_valid, level2):
+def master(all_valid, market_vars, collapsed_prefix):
     """
     For each year in all_valid, collapse the data using the specified level2 option.
     Then append all years and save the final collapsed dataset.
@@ -242,10 +232,10 @@ def master(all_valid, level2):
     """
     collapsed_list = []
     for year, df_valid in sorted(all_valid.items()):
-        collapsed = collapse(df_valid, year, level2)
+        collapsed = collapse(df_valid, year, market_vars)
         collapsed_list.append(collapsed)
     if len(collapsed_list) == 0:
-        print(f"No data to append for level2={level2}.")
+        print(f"No data to append for {market_vars}.")
         return
     allyears = pd.concat(collapsed_list, ignore_index=True)
     out_file_parquet = f"{monopsas_path}/{collapsed_prefix}.parquet"
@@ -258,26 +248,37 @@ def master(all_valid, level2):
 # 5. Putting it all together
 # -------------------------------------------------------------------
 def main():
+      
+    if len(sys.argv) != 2:
+        print("Usage: python rais_040.py <spec>")
+        sys.exit(1)
+    chosen_spec = sys.argv[1]
+        
+    # Build a dictionary for faster lookup
+    sys.path.append(root + 'Code/replicate_mayara/Felix_JMP/')
+    from metafile import specs
+    spec_dict = {spec["name"]: spec for spec in specs}
+    
+    if chosen_spec not in spec_dict:
+        print(f"Spec '{chosen_spec}' not recognized. Options are: {', '.join(spec_dict.keys())}")
+        sys.exit(1)
+    
+    market_vars = spec_dict[chosen_spec]["market_vars"]
+    file_suffix = spec_dict[chosen_spec]["file_suffix"]
+    collapsed_prefix = f"rais_collapsed_firm_{file_suffix}"
+    
+    print(f"Running spec: {chosen_spec}")
+    print(f"Market variables: {market_vars}")
+    print(f"File suffix: {file_suffix}")
+    
     # Run the entire pipeline twice:
     # once for the original version (USE_GAMMA=False) and once for the gamma version (USE_GAMMA=True)
-    global USE_GAMMA, market_var, level2_default, collapsed_prefix
-    
-    for use_gamma_value in [False, True]:
-        USE_GAMMA = use_gamma_value
-        if not USE_GAMMA:
-            market_var = "mmc"
-            level2_default = "cbo942d"
-            collapsed_prefix = "rais_collapsed_firm_mmc_cbo942d"
-        else:
-            market_var = "gamma"
-            level2_default = "none"
-            collapsed_prefix = "rais_collapsed_firm_gamma"
-            
-        print(f"\n=== Processing for USE_GAMMA = {USE_GAMMA} ===\n")
-        # Build valid{year} datasets for all years.
-        all_valid = inyears(start=1985, end=2000)
-        # For the original version, run with level2="cbo942d"; for gamma version, use level2="none".
-        master(all_valid, level2=("cbo942d" if not USE_GAMMA else "none"))
+    collapsed_prefix = f"rais_collapsed_firm_{file_suffix}"    
+   
+    # Build valid{year} datasets for all years.
+    all_valid = inyears(market_vars, start=1985, end=2000)
+    # For the original version, run with level2="cbo942d"; for gamma version, use level2="none".
+    master(all_valid, market_vars, collapsed_prefix)
     
     print("\nAll done!")
 

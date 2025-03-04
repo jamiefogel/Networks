@@ -61,6 +61,27 @@ else if c(username)=="p13861161" & c(os)=="Unix" {
 capture log close 
 log using "${encrypted}/logs/1_3_earnings_premia_gamma.log", replace
 
+
+do "${encrypted}/Felix_JMP/3_analysis/specs_config.do"
+args spec
+di "`spec'"
+if "`spec'"=="" local spec "gamma_7500"
+di "`spec'"
+
+if "`spec'" == "" {
+    display as error "Error: No spec provided. Please pass a spec (e.g., gamma, original, gamma_2)."
+    exit 1
+}
+
+// Retrieve the market variables and file suffix based on the spec
+local mkt "${spec_`spec'_market_vars}"
+local path "${spec_`spec'_file_suffix}"
+
+display "Using market variables: `mkt'"
+display "Using path suffix: `path'"
+
+
+
 * Make folders with output date if they don't yet exist
 cap mkdir "${monopsonies}/csv/`outdate'"
 cap mkdir "${monopsonies}/eps/`outdate'"
@@ -72,75 +93,65 @@ local outdate 	= 20210802
 local yearfirst = 1986
 local yearlast  = 2000
 
-foreach version in original gamma {
 
-	if "`version'"=="original"{
-		local mkt "mmc cbo942d"
-		local path "mmc_cbo942d"
-	}
-	if "`version'"=="gamma"{
-		local mkt "gamma"
-		local path "gamma"
-	}
+if `premia'==1{
 	
-	if `premia'==1{
+	forvalues y=`yearfirst'(1)`yearlast'{		
+		u "${monopsonies}/sas/rais_for_earnings_premia`y'_gamma.dta", clear
+		isid fakeid_worker
+		drop if mmc==13007 | mmc==23014
 		
-		forvalues y=`yearfirst'(1)`yearlast'{		
-			u "${monopsonies}/sas/rais_for_earnings_premia`y'_gamma.dta", clear
-			isid fakeid_worker
-			drop if mmc==13007 | mmc==23014
-			
-			* Keep if education category is well-defined
-			keep if !missing(educ)
-			
-			* Keep only onbs with non-zero dec earnings
-			keep if earningsdecmw>0
-			
-			/* Use same control and ranges as DK */
-			gen age1 = (agegroup==3)
-			gen age2 = (agegroup==4)
-			gen age3 = (agegroup==5)
-			gen age4 = (agegroup==6)
-			gen age5 = (agegroup==7)
-			
-			gen double lndecearn = ln(earningsdecmw)
-			
-			* Use same categories as DK
-			forvalues i=1/8{
-				gen educ`i' = (educ == `i')
-			}
-			gen educ9 = (educ >=9)
-			
-			gegen double fe_zro = group(fakeid_firm `mkt')
-			
-			****************** MMC average wage ****************
-			reghdfe lndecearn, absorb(davgw_zro=fe_zro) noconstant keepsingletons
-			
-			****************** MMC premia (excl. industry) ****************
-			reghdfe lndecearn female age2-age5 educ2-educ9 , absorb(dprem_zro=fe_zro) noconstant keepsingletons
-				
-			keep if !missing(dprem_zro) 
-			keep fakeid_firm `mkt' dprem_zro davgw_zro
-			gduplicates drop
-
-			compress
-			tempfile firm`y'
-			sa `firm`y''
-		} /* Close year */
+		* Keep if education category is well-defined
+		keep if !missing(educ)
 		
-		*********** Append across years *******
-		local ynext = `yearfirst'+1
+		* Keep only onbs with non-zero dec earnings
+		keep if earningsdecmw>0
 		
-		u `firm1986', clear
-		gen year = 1986
-		forvalues y=`ynext'(1)`yearlast'{
-			append using `firm`y''
-			replace year = `y' if missing(year)
+		/* Use same control and ranges as DK */
+		gen age1 = (agegroup==3)
+		gen age2 = (agegroup==4)
+		gen age3 = (agegroup==5)
+		gen age4 = (agegroup==6)
+		gen age5 = (agegroup==7)
+		
+		gen double lndecearn = ln(earningsdecmw)
+		
+		* Use same categories as DK
+		forvalues i=1/8{
+			gen educ`i' = (educ == `i')
 		}
+		gen educ9 = (educ >=9)
+		
+		gegen double fe_zro = group(fakeid_firm `mkt')
+		
+		****************** MMC average wage ****************
+		reghdfe lndecearn, absorb(davgw_zro=fe_zro) noconstant keepsingletons
+		
+		****************** MMC premia (excl. industry) ****************
+		reghdfe lndecearn female age2-age5 educ2-educ9 , absorb(dprem_zro=fe_zro) noconstant keepsingletons
+			
+		keep if !missing(dprem_zro) 
+		keep fakeid_firm `mkt' dprem_zro davgw_zro
 		gduplicates drop
+
 		compress
-		saveold "${monopsonies}/sas/rais_lnearn_premia_firm_`path'_`outdate'.dta", replace
+		tempfile firm`y'
+		sa `firm`y''
+	} /* Close year */
+	
+	*********** Append across years *******
+	local ynext = `yearfirst'+1
+	
+	u `firm1986', clear
+	gen year = 1986
+	forvalues y=`ynext'(1)`yearlast'{
+		append using `firm`y''
+		replace year = `y' if missing(year)
 	}
+	gduplicates drop
+	compress
+	saveold "${monopsonies}/sas/rais_lnearn_premia_firm_`path'_`outdate'.dta", replace
+	
 }
 
 if `erasefiles'==1{

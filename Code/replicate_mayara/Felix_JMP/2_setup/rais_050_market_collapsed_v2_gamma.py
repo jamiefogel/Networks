@@ -15,6 +15,7 @@ We run two variants sequentially:
 import pandas as pd
 import numpy as np
 from config import root
+import sys
 
 # --------------------------------------------------------------------
 # 1. File paths
@@ -43,9 +44,11 @@ df_cross_cnae95   = pd.read_parquet(FILE_CROSSWALK_CNAE95)
 # --------------------------------------------------------------------
 # 3. Main function
 # --------------------------------------------------------------------
+
+
 def process_level2(
-    variant,
-    level2,
+    market_vars,
+    file_suffix,
     file_rais_collapsed,
     base_year=1991,
     export_path=EXPORT_PATH
@@ -80,10 +83,7 @@ def process_level2(
 
     # Build "all" for base_year
     df_base = df.query("year == @base_year and emp > 0").copy()
-    if variant == "original":
-        group_cols = ["mmc", level2]
-    else:
-        group_cols = ["gamma"]
+    group_cols = market_vars
     sum_cols = df_base.groupby(group_cols).agg({
         'totdecearnmw': 'sum',
         'emp': 'sum'
@@ -97,20 +97,12 @@ def process_level2(
     df_all['empshare']    = df_all['emp'] / df_all['sum_emp']
 
     # Keep relevant columns
-    if variant == "original":
-        df_all = df_all[['fakeid_firm','ibgesubsector','mmc', level2,
-                         'earndshare','earndshare2','empshare']].drop_duplicates()
-    else:
-        df_all = df_all[['fakeid_firm','ibgesubsector','gamma',
-                         'earndshare','earndshare2','empshare']].drop_duplicates()
-
+    df_all[['fakeid_firm','ibgesubsector', 'earndshare','earndshare2','empshare'] + market_vars].drop_duplicates()
+   
     # 3c: "tradables" => merges with cnae95_tariff
-    if variant == "original":
-        cols_to_keep = ['fakeid_firm', 'mmc', level2, 'totdecearnmw','cnae95']
-        group_key = ['mmc', level2]
-    else:
-        cols_to_keep = ['fakeid_firm', 'gamma', 'totdecearnmw','cnae95']
-        group_key = ['gamma']
+    cols_to_keep = ['fakeid_firm', 'totdecearnmw','cnae95'] + market_vars
+    group_key = market_vars
+
     df_trad = pd.merge(
         df_base[cols_to_keep],
         df_cnae95_tariff[['cnae95','chng19941990TRAINS','chng19941990ErpTRAINS','chng19941990Kume']],
@@ -122,13 +114,8 @@ def process_level2(
     df_trad  = pd.merge(df_trad, sum_trad, on=group_key, how='inner')
     df_trad['Tearndshare'] = df_trad['totdecearnmw'] / df_trad['sum_decearn']
 
-    if variant == "original":
-        df_trad = df_trad[['fakeid_firm','mmc', level2,
-                           'Tearndshare','chng19941990TRAINS','chng19941990ErpTRAINS','chng19941990Kume']]
-    else:
-        df_trad = df_trad[['fakeid_firm','gamma',
-                           'Tearndshare','chng19941990TRAINS','chng19941990ErpTRAINS','chng19941990Kume']]
-
+    df_trad = df_trad[['fakeid_firm', 'Tearndshare','chng19941990TRAINS','chng19941990ErpTRAINS','chng19941990Kume'] + market_vars] 
+   
     # 3d: Merge with df_theta => compute betadw_rf, beta_rf
     df_beta = pd.merge(df_all, df_theta[['ibgesubsector','theta']], on='ibgesubsector', how='inner')
     def compute_betas(g):
@@ -137,19 +124,13 @@ def process_level2(
         g['betadw_rf'] = (g['earndshare'] / g['theta']) / denom_dw
         g['beta_rf']   = (g['empshare']   / g['theta']) / denom_rf
         return g
-    if variant == "original":
-        group_beta = ["mmc", level2]
-    else:
-        group_beta = ["gamma"]
+    group_beta = market_vars
     df_beta = df_beta.groupby(group_beta, as_index=False).apply(compute_betas)
 
     # 3e: sums
-    if variant == "original":
-        merge_keys = ['fakeid_firm','mmc', level2]
-        group_sum  = ["mmc", level2]
-    else:
-        merge_keys = ['fakeid_firm','gamma']
-        group_sum  = ["gamma"]
+    merge_keys = ['fakeid_firm'] + market_vars
+    group_sum  = market_vars
+   
     df_sums_merged = pd.merge(df_all, df_trad, on=merge_keys, how='inner')
     df_sums = df_sums_merged.groupby(group_sum, as_index=False).agg({
         'empshare': 'sum',
@@ -196,10 +177,7 @@ def process_level2(
         out['iceT_dwTRAINS']   = ((tearnd / sum_t)    * c_train).sum()
         return pd.Series(out)
 
-    if variant == "original":
-        group_ice = ["mmc", level2]
-    else:
-        group_ice = ["gamma"]
+    group_ice = market_vars
     df_ice_final = df_ice.groupby(group_ice, as_index=False).apply(compute_ice)
 
     # 3g: shares table for all years
@@ -209,10 +187,7 @@ def process_level2(
         on='cnae95',
         how='left'
     )
-    if variant == "original":
-        group_shares_cols = ['mmc', level2, 'year']
-    else:
-        group_shares_cols = ['gamma', 'year']
+    group_shares_cols = market_vars + [ 'year']
     sum_for_shares = df_shares.groupby(group_shares_cols).agg({
         'emp': 'sum',
         'totdecearnmw': 'sum'
@@ -234,14 +209,9 @@ def process_level2(
     df_shares['NTearndshare'] = df_shares['totdecearnmw'].where(mask_ntrad, 0) / df_shares['sum_totdecearnmw']
 
     # 3h: percentile cutoffs
-    if variant == "original":
-        base_cols = ['fakeid_firm','mmc', level2, 'emp','ibgesubsector']
-        group_keys = ['mmc', level2]
-        out_prefix = f"regsfile_mmc_{level2}"
-    else:
-        base_cols = ['fakeid_firm','gamma','emp','ibgesubsector']
-        group_keys = ['gamma']
-        out_prefix = "regsfile_gamma"
+    base_cols = ['fakeid_firm', 'emp','ibgesubsector'] + market_vars
+    group_keys = market_vars
+    out_prefix = f"regsfile_{file_suffix}"
 
     df_basey = df_shares.loc[df_shares['year'] == base_year, base_cols].copy()
     df_q = (
@@ -320,10 +290,7 @@ def process_level2(
     df_tag[f'lt1000_T_{by}']  = ((df_tag['emp'] <= 1000) & tag_trad_mask).astype(int)
 
     # 3j: Construct final "mktout"
-    if variant == "original":
-        group_shares = df_shares.groupby(['mmc', level2, 'year'], as_index=False)
-    else:
-        group_shares = df_shares.groupby(['gamma', 'year'], as_index=False)
+    group_shares = df_shares.groupby(market_vars + ['year'], as_index=False)
     df_mktout = group_shares.agg(
         mkt_temp = ('temp','sum'),
         mkt_emp  = ('emp','sum'),
@@ -340,10 +307,7 @@ def process_level2(
     )
 
     # 3k: Merge base-year flags => aggregator_flags
-    if variant == "original":
-        merge_keys_flag = ['fakeid_firm','mmc', level2]
-    else:
-        merge_keys_flag = ['fakeid_firm','gamma']
+    merge_keys_flag = ['fakeid_firm'] + market_vars
     df_tag_for_merge = df_tag.drop(columns=[
         'emp','p5','p10','p25','p50','p75','p90','p95',
         'p5_trad','p10_trad','p25_trad','p50_trad','p75_trad','p90_trad','p95_trad'
@@ -384,50 +348,54 @@ def process_level2(
         out[f'lt1000_T_{by}_emp']  = (g['emp'] * g[f'lt1000_T_{by}']).sum()
         return pd.Series(out)
 
-    if variant == "original":
-        merge_key_final = ['mmc', level2, 'year']
-    else:
-        merge_key_final = ['gamma', 'year']
+    merge_key_final = ['year'] + market_vars
     df_sizebins = df_shares_tags.groupby(merge_key_final, as_index=False).apply(aggregator_flags)
     df_mktout = pd.merge(df_mktout, df_sizebins, on=merge_key_final, how='left')
 
     # 3l: Merge ICE shocks => final regsfile
-    if variant == "original":
-        merge_key_ice = ['mmc', level2]
-    else:
-        merge_key_ice = ['gamma']
+    merge_key_ice = market_vars    
     df_regsfile = pd.merge(df_mktout, df_ice_final, on=merge_key_ice, how='left')
 
     # Final output
-    if variant == "original":
-        out_regsfile = f"{export_path}/regsfile_mmc_{level2}.dta"
-    else:
-        out_regsfile = f"{export_path}/regsfile_gamma.dta"
+    out_regsfile = f"{export_path}/regsfile_{file_suffix}.dta"
     df_regsfile.to_stata(out_regsfile, write_index=False)
 
-    print(f"Finished variant={variant}, level2={level2}. Output => {out_regsfile}")
+    print(f"Finished market vars={market_vars}. Output => {out_regsfile}")
     print(f"Percentile data => {out_qfile}, {out_qtfile}")
 
 # --------------------------------------------------------------------
-# 4. Run both variants
-# --------------------------------------------------------------------
 if __name__ == "__main__":
+    
+    if len(sys.argv) != 2:
+        print("Usage: python rais_040.py <spec>")
+        sys.exit(1)
+    chosen_spec = sys.argv[1]
+        
+    # Build a dictionary for faster lookup
+    from metafile import specs
+    spec_dict = {spec["name"]: spec for spec in specs}
+    
+    if chosen_spec not in spec_dict:
+        print(f"Spec '{chosen_spec}' not recognized. Options are: {', '.join(spec_dict.keys())}")
+        sys.exit(1)
+    
+    market_vars = spec_dict[chosen_spec]["market_vars"]
+    file_suffix = spec_dict[chosen_spec]["file_suffix"]
+    collapsed_prefix = f"rais_collapsed_firm_{file_suffix}"
+    
+    print(f"Running spec: {chosen_spec}")
+    print(f"Market variables: {market_vars}")
+    print(f"File suffix: {file_suffix}")
+    
+    
     # Original version (markets = mmc + cbo942d)
     process_level2(
-        variant="original",
-        level2="cbo942d",
-        file_rais_collapsed=FILE_RAIS_COLLAPSED_MMC_CBO,
+        market_vars,
+        file_suffix,
+        file_rais_collapsed=f"{MONOPASAS_PATH}/rais_collapsed_firm_{file_suffix}.parquet",
         base_year=1991,
         export_path=EXPORT_PATH
     )
 
-    # Gamma version (markets = gamma)
-    process_level2(
-        variant="gamma",
-        level2="none",
-        file_rais_collapsed=FILE_RAIS_COLLAPSED_GAMMA,
-        base_year=1991,
-        export_path=EXPORT_PATH
-    )
 
     print("\nAll done!")
