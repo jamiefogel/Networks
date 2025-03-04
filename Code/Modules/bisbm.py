@@ -195,6 +195,7 @@ class bisbm():
     #################################################################################
     #
     #################################################################################
+    '''
     def export_blocks(self, output=None, joutput=None, woutput=None, max_level=None, export_mcmc=False):
 
         df = pd.DataFrame({
@@ -287,6 +288,137 @@ class bisbm():
             elif woutput.endswith(".parquet"):
                 worker_blocks.to_parquet(woutput)
             if woutput.endswith(".p"):
+                worker_blocks.to_pickle(woutput)
+    '''
+    def export_blocks(self, output=None, joutput=None, woutput=None, max_level=None, export_mcmc=False):
+        """
+        Create two DataFrames (job_blocks, worker_blocks) for all levels,
+        then merge them onto self.edgelist. This is more memory-efficient
+        than building a single big df with all vertices and levels.
+        """
+        # Determine how many hierarchy levels to export
+        mlevel = self.L if max_level is None else max_level + 1
+    
+        # Prepare arrays for all vertices
+        worker_node_arr = self.g.vp.kind.a.astype(np.int8)      # 0 for job, 1 for worker
+        id_py_arr       = self.g.vp.ids_py.a                    # numeric ID
+        id_arr          = self.g.vp.ids.get_2d_array([0]).flatten()  # string ID (jid or wid)
+    
+        # Separate job vs. worker vertices
+        job_mask    = (worker_node_arr == 0)
+        worker_mask = (worker_node_arr == 1)
+    
+        # We'll store factorized block IDs for each level in dictionaries
+        job_block_assignments    = {}
+        worker_block_assignments = {}
+    
+        self.num_job_blocks    = []
+        self.num_worker_blocks = []
+    
+        # For each level, factorize blocks for jobs and for workers separately
+        for l in range(mlevel):
+            # Get the block assignments for this level
+            if not export_mcmc:
+                blocks = self.state.project_level(l).get_blocks().a
+            else:
+                blocks = self.state_mcmc.project_level(l).get_blocks().a
+            blocks = blocks.astype(np.int32, copy=False)
+    
+            # Factorize the job-node blocks
+            job_vals = blocks[job_mask]
+            job_ids, job_uniques = pd.factorize(job_vals)  # job_ids is an array of "dense" IDs
+            # Factorize the worker-node blocks
+            worker_vals = blocks[worker_mask]
+            worker_ids, worker_uniques = pd.factorize(worker_vals)
+            # Offset worker block IDs so job blocks come first
+            worker_ids_offset = worker_ids + len(job_uniques)
+    
+            # Store in dictionaries
+            job_block_assignments[l]    = job_ids
+            worker_block_assignments[l] = worker_ids_offset
+    
+            # Keep track of how many job/worker blocks at this level
+            njb = len(job_uniques)
+            nwb = len(worker_uniques)
+            self.num_job_blocks.append(njb)
+            self.num_worker_blocks.append(nwb)
+            print(f'Level {l}: Num job blocks {njb}; Num worker blocks {nwb}')
+    
+        # Now build job_blocks DataFrame
+        # --------------------------------
+        job_cols = {
+            "jid_py": id_py_arr[job_mask],
+            "jid":    id_arr[job_mask]
+        }
+        # Add one column per level, e.g. blocks_level_0, blocks_level_1, ...
+        for l in range(mlevel):
+            job_cols[f"blocks_level_{l}"] = job_block_assignments[l]
+    
+        job_blocks = pd.DataFrame(job_cols)
+        # Rename columns to match your original naming scheme
+        # i.e. "job_blocks_level_0" instead of "blocks_level_0"
+        job_blocks.rename(columns=lambda c:
+                          "job_" + c if c not in ("jid", "jid_py") else c,
+                          inplace=True)
+    
+        # Now build worker_blocks DataFrame
+        # -----------------------------------
+        worker_cols = {
+            "wid_py": id_py_arr[worker_mask],
+            "wid":    id_arr[worker_mask]
+        }
+        for l in range(mlevel):
+            worker_cols[f"blocks_level_{l}"] = worker_block_assignments[l]
+    
+        worker_blocks = pd.DataFrame(worker_cols)
+        worker_blocks.rename(columns=lambda c:
+                             "worker_" + c if c not in ("wid", "wid_py") else c,
+                             inplace=True)
+    
+        # Merge onto the edgelist
+        # -------------------------
+        # This is the same logic as your original code, but merges only once for jobs, once for workers.
+        # 'm:1' validate means: many edges can map to one job/worker row.
+        edgelist_w_blocks = self.edgelist.merge(job_blocks,
+                                                left_on='jid_py', right_on='jid_py',
+                                                validate='m:1', copy=False)
+        edgelist_w_blocks = edgelist_w_blocks.merge(worker_blocks,
+                                                    left_on='wid_py', right_on='wid_py',
+                                                    validate='m:1', copy=False)
+    
+        # If you want to drop or rename columns to avoid collisions, do so here.
+        # The refactor avoids "wid_x", "wid_y" collisions because we used distinct column names,
+        # but if needed:
+        # edgelist_w_blocks.drop(columns=['wid_y', 'jid_y'], inplace=True)
+        # edgelist_w_blocks.rename(columns={'wid_x': 'wid', 'jid_x': 'jid'}, inplace=True)
+    
+        # Store final DataFrame
+        self.edgelist_w_blocks = edgelist_w_blocks
+    
+        # Optionally save to disk
+        if output is not None:
+            if output.endswith(".csv"):
+                edgelist_w_blocks.to_csv(output, index=False)
+            elif output.endswith(".parquet"):
+                edgelist_w_blocks.to_parquet(output)
+            elif output.endswith(".p"):
+                with open(output, "wb") as f:
+                    pickle.dump(edgelist_w_blocks, f)
+    
+        if joutput is not None:
+            if joutput.endswith(".csv"):
+                job_blocks.to_csv(joutput, index=False)
+            elif joutput.endswith(".parquet"):
+                job_blocks.to_parquet(joutput)
+            elif joutput.endswith(".p"):
+                job_blocks.to_pickle(joutput)
+    
+        if woutput is not None:
+            if woutput.endswith(".csv"):
+                worker_blocks.to_csv(woutput, index=False)
+            elif woutput.endswith(".parquet"):
+                worker_blocks.to_parquet(woutput)
+            elif woutput.endswith(".p"):
                 worker_blocks.to_pickle(woutput)
 
 
