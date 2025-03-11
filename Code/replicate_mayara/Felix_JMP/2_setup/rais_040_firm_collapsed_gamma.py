@@ -10,6 +10,8 @@ import numpy as np
 import os
 from config import root
 import sys
+from spec_parser import parse_spec
+
 
 # -------------------------------------------------------------------
 # Paths from your preamble
@@ -20,7 +22,7 @@ monopsas_path = f"{base_path}/monopsonies/sas"
 # -------------------------------------------------------------------
 # 1. Emulate the %valid(i=) macro
 # -------------------------------------------------------------------
-def valid(year, market_vars):
+def valid(year, market_vars, _3states):
     """
     For the given year, this function:
       1) Reads in the RAIS data and selects relevant columns.
@@ -49,7 +51,7 @@ def valid(year, market_vars):
         validdata = "crosswalk_cbo02_cbo94"
 
     # (B) Read RAIS file
-    rais_file = os.path.join(monopsas_path, f"rais{year}.parquet")
+    rais_file = os.path.join(monopsas_path, f"rais{year}{_3states}.parquet")
     if not os.path.exists(rais_file):
         print(f"  -> rais{year}.parquet not found; skipping.")
         return None
@@ -94,7 +96,7 @@ def valid(year, market_vars):
         return None
     df_cross_muni = pd.read_parquet(cross_muni_file).drop_duplicates()
     
-    cnae95_master_file = os.path.join(monopsas_path, "rais_firm_cnae95_master_plus.parquet")
+    cnae95_master_file = os.path.join(monopsas_path, f"rais_firm_cnae95_master_plus{_3states}.parquet")
     if not os.path.exists(cnae95_master_file):
         print("  -> rais_firm_cnae95_master_plus missing.")
         return None
@@ -184,10 +186,10 @@ def valid(year, market_vars):
 # -------------------------------------------------------------------
 # 2. Emulate %inyears macro: run valid() for each year
 # -------------------------------------------------------------------
-def inyears(market_vars, start=1985, end=2000):
+def inyears(market_vars, _3states, start=1985, end=2000):
     all_valid = {}
     for y in range(start, end + 1):
-        df = valid(y, market_vars)
+        df = valid(y, market_vars, _3states)
         if df is not None:
             all_valid[y] = df
     return all_valid
@@ -249,34 +251,19 @@ def master(all_valid, market_vars, collapsed_prefix):
 # -------------------------------------------------------------------
 def main():
       
-    if len(sys.argv) != 2:
-        print("Usage: python rais_040.py <spec>")
-        sys.exit(1)
-    chosen_spec = sys.argv[1]
-        
-    # Build a dictionary for faster lookup
-    sys.path.append(root + 'Code/replicate_mayara/Felix_JMP/')
-    from metafile import specs
-    spec_dict = {spec["name"]: spec for spec in specs}
-    
-    if chosen_spec not in spec_dict:
-        print(f"Spec '{chosen_spec}' not recognized. Options are: {', '.join(spec_dict.keys())}")
-        sys.exit(1)
-    
-    market_vars = spec_dict[chosen_spec]["market_vars"]
-    file_suffix = spec_dict[chosen_spec]["file_suffix"]
-    collapsed_prefix = f"rais_collapsed_firm_{file_suffix}"
-    
-    print(f"Running spec: {chosen_spec}")
-    print(f"Market variables: {market_vars}")
-    print(f"File suffix: {file_suffix}")
+    chosen_spec, market_vars, file_suffix, _3states = parse_spec(root)
+    print(chosen_spec)
+    print(market_vars)
+    print(file_suffix)
+    print(_3states)
     
     # Run the entire pipeline twice:
     # once for the original version (USE_GAMMA=False) and once for the gamma version (USE_GAMMA=True)
-    collapsed_prefix = f"rais_collapsed_firm_{file_suffix}"    
-   
+    collapsed_prefix = f"rais_collapsed_firm_{file_suffix}"  
+    print(collapsed_prefix)
+    
     # Build valid{year} datasets for all years.
-    all_valid = inyears(market_vars, start=1985, end=2000)
+    all_valid = inyears(market_vars, _3states, start=1985, end=2000)
     # For the original version, run with level2="cbo942d"; for gamma version, use level2="none".
     master(all_valid, market_vars, collapsed_prefix)
     

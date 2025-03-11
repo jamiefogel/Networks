@@ -5,6 +5,8 @@ import pyreadstat
 from config import root, rais
 import numpy as np
 import pickle
+import sys
+from spec_parser import parse_spec
 
 # Parameters
 DATA_DIR = root + "/Code/replicate_mayara/raisdeidentified/dta/20191213"  # Directory where raw RAIS state-year DTA files are stored
@@ -23,7 +25,7 @@ END_YEAR = 2000
 # Highest paying job selection logic:
 # For each fakeid_worker in a year, keep only the row with maximum earningsdecmw.
 
-def process_year(year, jblocks, wblocks):
+def process_year(year, jblocks, wblocks, _3states):
     # List all files for that year
     # In SAS code: dir /proj/patkin/raisdeidentified/dta/20191213/*&i*.dta
     # Adjust the pattern below as needed. The SAS code seems to pick up all files with the year in the name.
@@ -64,6 +66,10 @@ def process_year(year, jblocks, wblocks):
         )
 
         df = df[conditions]
+        
+        if _3states=='_3states':
+            df['state'] =  pd.to_numeric(df['municipality'].astype(str).str[:2], errors='coerce').astype('Int64')
+            df = df.loc[df.state.isin([31,33,35])]
 
         # Drop duplicates if any (SAS: proc sort nodupkey)
         # Typically not needed if RAIS files are unique, but let's mirror SAS logic:
@@ -105,14 +111,14 @@ def process_year(year, jblocks, wblocks):
     return year_df
 
 
-def import_years(jblocks, wblocks):
+def import_years(jblocks, wblocks, _3states=""):
     for y in range(START_YEAR, END_YEAR + 1):
         print(f"Processing year {y}...")
-        df = process_year(y, jblocks, wblocks)
+        df = process_year(y, jblocks, wblocks, _3states)
         if not df.empty:
             # Save the result – in SAS code it saves to monopsas.raisYYYY
             # We'll just write to a parquet file
-            out_path = os.path.join(OUTPUT_DIR, f"rais{y}.parquet")
+            out_path = os.path.join(OUTPUT_DIR, f"rais{y}{_3states}.parquet")
             df.to_parquet(out_path, index=False)
             print(f"Year {y} processed and saved to {out_path}")
         else:
@@ -137,51 +143,29 @@ def read_blocks(jblocks_filename, wblocks_filename):
 # %import_years;
 # In Python, we just call the function:
 if __name__ == "__main__":
+    chosen_spec, market_vars, file_suffix, _3states = parse_spec(root)
+    
     # Load SBM that we ran on Mayara data
-    filename_stem = root + 'Data/derived/sbm_output/model_sbm_mayara_1986_1990_3states_'
-    jblocks, wblocks = read_blocks(filename_stem + 'jblocks.csv', filename_stem + 'wblocks.csv')
-    # Define output paths
-    # Since we haven't finished and saved the MCMC sweeps, doing this in an ad hoc way
-    output_prefix = root + '/Data/derived/sbm_output/'
-    blocks_mcmc_csv = output_prefix  + 'model_sbm_mayara_1986_1990_3states_mcmc_blocks.csv'
-    jblocks_mcmc_csv = output_prefix + 'model_sbm_mayara_1986_1990_3states_mcmc_jblocks.csv'
-    wblocks_mcmc_csv = output_prefix + 'model_sbm_mayara_1986_1990_3states_mcmc_wblocks.csv'
-
-    blocks_7500_csv = output_prefix  + 'model_sbm_mayara_1986_1990_3states_7500blocks_blocks.csv'
-    jblocks_7500_csv = output_prefix + 'model_sbm_mayara_1986_1990_3states_7500blocks_jblocks.csv'
-    wblocks_7500_csv = output_prefix + 'model_sbm_mayara_1986_1990_3states_7500blocks_wblocks.csv'
+    if _3states=='_3states':
+        spec_list =  ['', '_mcmc', '_7500', '_7500_mcmc']
+    elif _3states=='':
+        spec_list =  ['']
+    for spec in spec_list:
+        filename_stem = root + f'/Data/derived/sbm_output/model_sbm_mayara_1986_1990{_3states}{spec}_'
+        jblocks_temp, wblocks_temp = read_blocks(filename_stem + 'jblocks.csv', filename_stem + 'wblocks.csv')
+        jblocks_temp = jblocks_temp.rename(columns={'gamma':f'gamma{spec}','gamma1':f'gamma1{spec}'})
+        wblocks_temp = wblocks_temp.rename(columns={'iota' :f'iota{spec}',  'iota1':f'iota1{spec}'})
     
-    #model7500 = pickle.load(open(root + '/Data/derived/sbm_output/model_sbm_mayara_1986_1990_3states_7500blocks.p', "rb"))
-    #model7500.export_blocks(output=blocks_7500_csv, joutput=jblocks_7500_csv, woutput=wblocks_7500_csv, max_level=2)
+        if spec==spec_list[0]:
+            jblocks = jblocks_temp.copy()
+            wblocks = wblocks_temp.copy()
+        else:
+            jblocks = jblocks.merge(jblocks_temp[['jid',f'gamma{spec}',f'gamma1{spec}']], on='jid', how='outer', validate='1:1', indicator=True)
+            print(jblocks._merge.value_counts())
+            jblocks.drop(columns=['_merge'], inplace=True)
+            wblocks = wblocks.merge(wblocks_temp[['fakeid_worker',f'iota{spec}',f'iota1{spec}']], on='fakeid_worker', how='outer', validate='1:1', indicator=True)
+            print(wblocks._merge.value_counts())
+            wblocks.drop(columns=['_merge'], inplace=True)
+            
 
-    jblocks_mcmc, wblocks_mcmc = read_blocks(jblocks_mcmc_csv, wblocks_mcmc_csv)
-    jblocks_mcmc = jblocks_mcmc.rename(columns={'gamma':'gamma_mcmc','gamma1':'gamma1_mcmc'})
-    wblocks_mcmc = wblocks_mcmc.rename(columns={'iota':'iota_mcmc',  'iota1':'iota1_mcmc'})
-    
-    jblocks_7500, wblocks_7500 = read_blocks(jblocks_7500_csv, wblocks_7500_csv)
-    jblocks_7500 = jblocks_7500.rename(columns={'gamma':'gamma_7500','gamma1':'gamma1_7500'})
-    wblocks_7500 = wblocks_7500.rename(columns={'iota':'iota_7500',  'iota1':'iota1_7500'})
-    #
-    jblocks = jblocks.merge(jblocks_mcmc[['jid','gamma_mcmc','gamma1_mcmc']], on='jid', how='outer', validate='1:1', indicator=True)
-    print(jblocks._merge.value_counts())
-    jblocks.drop(columns=['_merge'], inplace=True)
-    jblocks = jblocks.merge(jblocks_7500[['jid','gamma_7500','gamma1_7500']], on='jid', how='outer', validate='1:1', indicator=True)
-    print(jblocks._merge.value_counts())
-    jblocks.drop(columns=['_merge'], inplace=True)
-    wblocks = wblocks.merge(wblocks_mcmc[['fakeid_worker','iota_mcmc','iota1_mcmc']], on='fakeid_worker', how='outer', validate='1:1', indicator=True)
-    print(wblocks._merge.value_counts())
-    wblocks.drop(columns=['_merge'], inplace=True)
-    wblocks = wblocks.merge(wblocks_7500[['fakeid_worker','iota_7500','iota1_7500']], on='fakeid_worker', how='outer', validate='1:1', indicator=True)
-    print(wblocks._merge.value_counts())
-    wblocks.drop(columns=['_merge'], inplace=True)
-    
-    
-    import_years(jblocks, wblocks)
-
-
-
-
-'''
-
-'''
-
+    import_years(jblocks, wblocks, _3states = _3states)

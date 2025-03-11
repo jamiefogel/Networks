@@ -29,13 +29,16 @@ import pandas as pd
 import numpy as np
 import os
 from config import root
+import sys
+from spec_parser import parse_spec
+
 
 # Paths
 base_path = root + "/Code/replicate_mayara"
 monopsas_path = f"{base_path}/monopsonies/sas"
 
 
-def get_demos(year, addl_market_vars = ["gamma","gamma1","gamma_mcmc","gamma1_mcmc"]):
+def get_demos(year, _3states, addl_market_vars = ["gamma","gamma1","gamma_mcmc","gamma1_mcmc"]):
     """
     Python equivalent of SAS macro %getdemos(i=...).
     Reads monopsas.rais{year}, merges with crosswalks, filters by certain conditions,
@@ -57,7 +60,7 @@ def get_demos(year, addl_market_vars = ["gamma","gamma1","gamma_mcmc","gamma1_mc
     cboclean = "cbo94"
 
 
-    rais_file = os.path.join(monopsas_path, f"rais{year}.parquet")
+    rais_file = os.path.join(monopsas_path, f"rais{year}{_3states}.parquet")
     if not os.path.exists(rais_file):
         print(f"  -> RAIS data for {year} not found. Skipping.")
         return  # no data => skip
@@ -123,9 +126,9 @@ def get_demos(year, addl_market_vars = ["gamma","gamma1","gamma_mcmc","gamma1_mc
     # must match 'on a.municipality = c.codemun' from SAS
 
     # read rais_firm_cnae95_master_plus
-    cnae95_master_file = os.path.join(monopsas_path, "rais_firm_cnae95_master_plus.parquet")
+    cnae95_master_file = os.path.join(monopsas_path, f"rais_firm_cnae95_master_plus{_3states}.parquet")
     if not os.path.exists(cnae95_master_file):
-        print("  -> rais_firm_cnae95_master_plus missing. Cannot proceed.")
+        print(f"  -> rais_firm_cnae95_master_plus{_3states} missing. Cannot proceed.")
         return
     df_cnae95 = pd.read_parquet(cnae95_master_file).drop_duplicates()
 
@@ -262,9 +265,9 @@ def get_demos(year, addl_market_vars = ["gamma","gamma1","gamma_mcmc","gamma1_mc
 
 
     # Save to an output file (like "rais_for_earnings_premia{year}.dta" in SAS)
-    workers_df.to_parquet(monopsas_path + f"/rais_for_earnings_premia{year}_gamma.parquet", index=False)
-    workers_df.to_stata(monopsas_path + f"/rais_for_earnings_premia{year}_gamma.dta")
-    print(f"  -> Output saved to {monopsas_path}/rais_for_earnings_premia{year}_gamma.parquet")
+    workers_df.to_parquet(monopsas_path + f"/rais_for_earnings_premia{year}_gamma{_3states}.parquet", index=False)
+    workers_df.to_stata(monopsas_path + f"/rais_for_earnings_premia{year}_gamma{_3states}.dta")
+    print(f"  -> Output saved to {monopsas_path}/rais_for_earnings_premia{year}_gamma{_3states}.parquet")
 
     # Equivalent to SAS: proc datasets library=work kill nolist; quit;
     # In Python, we just discard local variables so that no large DataFrames remain in memory.
@@ -273,7 +276,16 @@ def get_demos(year, addl_market_vars = ["gamma","gamma1","gamma_mcmc","gamma1_mc
 # Execute function for each year
 # ------------------------------------------------
 for y in range(1985, 2001):  # 1985..2000
-    addl_market_vars =["gamma","gamma1","gamma_mcmc","gamma1_mcmc","gamma_7500","gamma1_7500"]
-    get_demos(y, addl_market_vars)
+
+    chosen_spec, market_vars, file_suffix, _3states = parse_spec(root)
+    if _3states=='_3states':
+        addl_market_vars =["gamma","gamma1","gamma_mcmc","gamma1_mcmc","gamma_7500","gamma1_7500","gamma_7500_mcmc","gamma1_7500_mcmc"]
+    elif _3states=='':
+        addl_market_vars =["gamma","gamma1"]
+    missing_vars = [var for var in market_vars if var not in addl_market_vars and var not in ['mmc','cbo942d']]
+    if missing_vars:
+        raise ValueError(f"The following market variables are missing from addl_market_vars: {', '.join(missing_vars)}")
+        
+    get_demos(y, _3states, addl_market_vars)
     
-    
+

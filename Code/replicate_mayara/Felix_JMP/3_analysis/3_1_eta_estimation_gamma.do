@@ -55,11 +55,6 @@ else if c(username)=="p13861161" & c(os)=="Unix" {
 	global public			"/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/Code/replicate_mayara/publicdata"
 }
 
-cap log close
-local date = subinstr("`c(current_date)'", " ", "_", .)
-local time = subinstr("`c(current_time)'", ":", "_", .)
-log using "${encrypted}/logs/3_1_eta_estimation_`date'_`time'.log", replace
-
 local outdate		= 20210802
 local premiadate	= 20210802
 local baseyear 		= 1991
@@ -112,7 +107,7 @@ local labsorb "fe_ro"			/* When spec is m, absorb mmc-cbo942d */
 do "${encrypted}/Felix_JMP/3_analysis/specs_config.do"
 args spec
 di "`spec'"
-if "`spec'"=="" local spec "gamma_7500"
+if "`spec'"=="" local spec "3states_gamma"
 di "`spec'"
 
 if "`spec'" == "" {
@@ -120,9 +115,16 @@ if "`spec'" == "" {
     exit 1
 }
 
+
+cap log close
+local date = subinstr("`c(current_date)'", " ", "_", .)
+local time = subinstr("`c(current_time)'", ":", "_", .)
+log using "${encrypted}/logs/3_1_eta_estimation_`spec'_`date'_`time'.log", replace
+
+
 // Retrieve the market variables and file suffix based on the spec
-local mkt "${spec_`spec'_market_vars}"
-local path "${spec_`spec'_file_suffix}"
+local mkt "${s_`spec'_mv}"
+local path "${s_`spec'_fs}"
 
 display "Using market variables: `mkt'"
 display "Using path suffix: `path'"
@@ -229,7 +231,7 @@ if `setup'==1{
 		* Tradable sector dummies (ibgesub only included in TRAINS data at this point)
 		gegen ibge = max(ibgesubsector), by(fakeid_firm)
 		gen T = (ibge<14 | ibge==25)
-		
+
 		
 		* Merge in exporter dummies
 		/* XX
@@ -482,8 +484,7 @@ if `eta_regs'==1{
 			local m_fs_se = _se[`inst']
 			local FS_F = first[4,1]
 			macro list 
-			pause off
-			pause
+
 			di "Running OLS: reghdfe `lhs' `rhs' if `tsamp'==1 & year==`year' [w=`weight'], vce(cluster `clust') absorb(``spec'absorb') "
 			/*qui*/ reghdfe `lhs' `rhs' if `tsamp'==1 & year==`year' [w=`weight'], vce(cluster `clust') absorb(``spec'absorb') 
 			local m_ols_b = _b[`rhs']
@@ -558,8 +559,8 @@ if `eta_regs'==1{
 	}
 	}
 	duplicates drop
-	outsheet using "${monopsonies}/csv/`outdate'/eta_change_regressions_3states_`path'.csv", comma replace
-	outsheet using "${monopsonies}/csv/`outdate'/eta_change_regressions_3states_`path'_`date'_`time'.csv", comma replace
+	outsheet using "${monopsonies}/csv/`outdate'/eta_change_regressions_`path'.csv", comma replace
+	outsheet using "${monopsonies}/csv/`outdate'/eta_change_regressions_`path'_`date'_`time'.csv", comma replace
 
 	
 	******************************************************************************
@@ -586,7 +587,7 @@ if `eta_regs'==1{
 	}
 	duplicates drop
 	compress
-	saveold "${monopsonies}/dta/coeffs/`outdate'/eta_change_delta_ro_3states_`path'.dta", replace
+	saveold "${monopsonies}/dta/coeffs/`outdate'/eta_change_delta_ro_`path'.dta", replace
 
 }
 

@@ -2,6 +2,8 @@
 	Compute earnings premia as year-by-year FEs	
 	Keep singletons to have a premium point estimate for all 
 */
+
+
 version 14.2
 clear all
 set more off
@@ -56,13 +58,10 @@ else if c(username)=="p13861161" & c(os)=="Unix" {
 	global public			"/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/Code/replicate_mayara/replicate_mayara\publicdata"
 }
 
-capture log close 
-log using "${encrypted}/logs/1_2_earnings_premia_gamma.log", replace
-
 do "${encrypted}/Felix_JMP/3_analysis/specs_config.do"
 args spec
 di "`spec'"
-if "`spec'"=="" local spec "gamma_7500"
+if "`spec'"=="" local spec "3states_gamma"
 di "`spec'"
 
 if "`spec'" == "" {
@@ -70,9 +69,17 @@ if "`spec'" == "" {
     exit 1
 }
 
+
+cap log close
+local date = subinstr("`c(current_date)'", " ", "_", .)
+local time = subinstr("`c(current_time)'", ":", "_", .)
+log using "${encrypted}/logs/1_2_earnings_premia_gamma_`spec'_`date'_`time'.log", replace
+
+
 // Retrieve the market variables and file suffix based on the spec
-local mkt "${spec_`spec'_market_vars}"
-local path "${spec_`spec'_file_suffix}"
+local mkt "${s_`spec'_mv}"
+local path "${s_`spec'_fs}"
+local _3states "${s_`spec'_3s}"
 
 display "Using market variables: `mkt'"
 display "Using path suffix: `path'"
@@ -101,7 +108,7 @@ if `balanced_sample'==1{
 
 	forvalues y=`yearfirst'(1)`yearlast'{
 		* Note that the _gamma fileworks for both market definitions cuz havent done any collapses at this stage
-		u `mkt' using "${monopsonies}/sas/rais_for_earnings_premia`y'_gamma.dta", clear
+		u `mkt' using "${monopsonies}/sas/rais_for_earnings_premia`y'_gamma`_3states'.dta", clear
 		gduplicates drop
 		
 		tempfile temp`y'
@@ -120,7 +127,7 @@ if `balanced_sample'==1{
 if `premia'==1{
 	forvalues y=`yearfirst'(1)`yearlast'{
 		di "`y'"
-		u "${monopsonies}/sas/rais_for_earnings_premia`y'_gamma.dta", clear
+		u "${monopsonies}/sas/rais_for_earnings_premia`y'_gamma`_3states'.dta", clear
 		isid fakeid_worker
 		drop if mmc==13007 | mmc==23014
 		

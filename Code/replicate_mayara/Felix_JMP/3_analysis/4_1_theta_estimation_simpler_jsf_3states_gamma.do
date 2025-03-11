@@ -56,16 +56,11 @@ else if c(username)=="p13861161" & c(os)=="Unix" {
 	global monopsonies		"/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/Code/replicate_mayara/monopsonies"
 	global public			"/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/Code/replicate_mayara/publicdata"
 }
-cap log close
-local date = subinstr("`c(current_date)'", " ", "_", .)
-local time = subinstr("`c(current_time)'", ":", "_", .)
-log using "${encrypted}/logs/4_1_theta_estimation_`date'_`time'.log", replace
-
 
 
 do "${encrypted}/Felix_JMP/3_analysis/specs_config.do"
 args spec
-if "`spec'"=="" local spec "gamma_7500"
+if "`spec'"=="" local spec "3states_gamma"
 di "`spec'"
 
 if "`spec'" == "" {
@@ -73,9 +68,16 @@ if "`spec'" == "" {
     exit 1
 }
 
+cap log close
+local date = subinstr("`c(current_date)'", " ", "_", .)
+local time = subinstr("`c(current_time)'", ":", "_", .)
+log using "${encrypted}/logs/4_1_theta_estimation_`spec'_`date'_`time'.log", replace
+
+
+
 // Retrieve the market variables and file suffix based on the spec
-local mkt "${spec_`spec'_market_vars}"
-local path "${spec_`spec'_file_suffix}"
+local mkt "${s_`spec'_mv}"
+local path "${s_`spec'_fs}"
 
 display "Using market variables: `mkt'"
 display "Using path suffix: `path'"
@@ -202,7 +204,7 @@ if `getresiduals'==1{
 			* Get eta inverse
 			
 			preserve
-				insheet using "${monopsonies}/csv/`etachangedate'/eta_change_regressions_3states_`path'.csv", clear
+				insheet using "${monopsonies}/csv/`etachangedate'/eta_change_regressions_`path'.csv", clear
 				keep if samp=="``esamp''" & spec=="l"  & model=="l" & wagevar=="`wvar'" & tariff=="lnT" & year==`baseyear_o2' & clust=="`etaclustmain'" & weight=="`weight'"
 		
 				levelsof iv_b, local(eta_inverse)
@@ -212,8 +214,7 @@ if `getresiduals'==1{
 			preserve
 				keep if !missing(`wvar'res)
 				gen double lnxi_zrot = `wvar'res - `eta_inverse'*lnemp
-				pause off
-				pause
+
 				keep fakeid_firm `mkt' year `wvar' `wvar'res lnemp lnxi_zrot //XX error  `tariff'
 				
 				ren `wvar' 		wagevar
@@ -255,7 +256,7 @@ if `getresiduals'==1{
 
 	duplicates drop
 	compress
-	saveold "${monopsonies}/dta/coeffs/`outdate'/lnxi_zrot_3states_`path'.dta", replace
+	saveold "${monopsonies}/dta/coeffs/`outdate'/lnxi_zrot_`path'.dta", replace
 } /* Close eta regressions */
 
 
@@ -285,7 +286,7 @@ if `theta_regs'==1{
 	foreach eweight in `etaweights'{
 		
 		*** Get eta estimate: always use estimate for unique producers, weighted ***
-		insheet using "${monopsonies}/csv/`etachangedate'/eta_change_regressions_3states_`path'.csv", clear
+		insheet using "${monopsonies}/csv/`etachangedate'/eta_change_regressions_`path'.csv", clear
 		keep if samp=="``esamp''" & spec=="l"  & model=="l" & wagevar=="`wage'" & tariff=="lnT" & year==`baseyear_o2' & clust=="`etaclustmain'" & weight=="`eweight'"
 		
 		levelsof iv_b, local(eta_inverse)
@@ -293,7 +294,7 @@ if `theta_regs'==1{
 		local eta = 1/`eta_inverse'
 
 		* Get estimates of xis 
-		u "${monopsonies}/dta/coeffs/`etalevelsdate'/lnxi_zrot_3states_`path'.dta", clear
+		u "${monopsonies}/dta/coeffs/`etalevelsdate'/lnxi_zrot_`path'.dta", clear
 		keep if samp=="`tsamp'" & wagevartype=="`wage'" & (year==1997 | year== 1991)  & weight=="`eweight'"
 	
 		keep fakeid_firm `mkt' lnemp lnxi_zrot year
@@ -380,7 +381,7 @@ if `theta_regs'==1{
 		
 		*** Merge in delta_ro from changes regression ****
 		preserve
-			u "${monopsonies}/dta/coeffs/`etachangedate'/eta_change_delta_ro_3states_`path'.dta", clear
+			u "${monopsonies}/dta/coeffs/`etachangedate'/eta_change_delta_ro_`path'.dta", clear
 			keep if sample=="``esamp''" & model=="l" & spec=="l" & wagevartype=="`wage'" & tariff=="lnT" & outyear==1997 & clust=="`etaclustmain'" & weight=="`eweight'"
 				
 			keep `mkt' delta_ro
@@ -555,8 +556,7 @@ delta: delta_ro_d
 			
 			noi ivreg2 delta_ro (chng_Lro = ice_dwtrains_hf) [w=all], savefirst saverf cluster(fe_ro) 
 			local diff_se = _se[chng_Lro]
-	pause off
-	pause
+
 		* XX why are these not the same? What is being dropped?
 		count if e(sample)
 		count
@@ -620,8 +620,8 @@ delta: delta_ro_d
 			ren coeffs13 markets
 			keep if !missing(ols_b)
 			
-			outsheet using "${monopsonies}/csv/`outdate'/theta_change_regressions_simpler_3states_clean_`path'.csv", comma replace
-			outsheet using "${monopsonies}/csv/`outdate'/theta_change_regressions_simpler_3states_clean_`path'_`date'_`time'.csv", comma replace
+			outsheet using "${monopsonies}/csv/`outdate'/theta_change_regressions_simpler_clean_`path'.csv", comma replace
+			outsheet using "${monopsonies}/csv/`outdate'/theta_change_regressions_simpler_clean_`path'_`date'_`time'.csv", comma replace
 
 			} /* Close delta option */
 			} /* Close chng_Lro */

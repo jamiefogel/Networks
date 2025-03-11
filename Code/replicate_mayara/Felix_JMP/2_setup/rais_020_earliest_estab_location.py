@@ -6,8 +6,13 @@ Created on Fri Jan  3 09:57:38 2025
 """
 import os
 import pandas as pd
-import numpy as np
 from config import root
+import sys
+from spec_parser import parse_spec
+
+
+chosen_spec, market_vars, file_suffix, _3states = parse_spec(root)
+
 
 # Paths
 base_path = root + "/Code/replicate_mayara"
@@ -34,7 +39,7 @@ crosswalk_muni = pd.read_parquet(crosswalk_path)
 location_list = []
 
 for year in range(first_year, last_year + 1):
-    rais_file = os.path.join(monopsas_path, f"rais{year}.parquet")
+    rais_file = os.path.join(monopsas_path, f"rais{year}{_3states}.parquet")
     if not os.path.exists(rais_file):
         print(f"Warning: RAIS file for year {year} not found. Skipping.")
         continue
@@ -121,12 +126,12 @@ output_dir = os.path.join(monopsas_path, "outputs")
 os.makedirs(output_dir, exist_ok=True)
 
 rais_estab_location_master.to_parquet(
-    os.path.join(output_dir, "rais_estab_location_master.parquet"),
+    os.path.join(output_dir, "rais_estab_location_master{_3states}.parquet"),
     index=False
 )
 
 miss_location_estabs.to_parquet(
-    os.path.join(output_dir, "miss_location_estabs.parquet"),
+    os.path.join(output_dir, "miss_location_estabs{_3states}.parquet"),
     index=False
 )
 

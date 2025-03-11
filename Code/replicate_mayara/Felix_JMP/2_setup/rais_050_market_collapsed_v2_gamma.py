@@ -16,6 +16,8 @@ import pandas as pd
 import numpy as np
 from config import root
 import sys
+from spec_parser import parse_spec
+
 
 # --------------------------------------------------------------------
 # 1. File paths
@@ -366,27 +368,7 @@ def process_level2(
 # --------------------------------------------------------------------
 if __name__ == "__main__":
     
-    if len(sys.argv) != 2:
-        print("Usage: python rais_040.py <spec>")
-        sys.exit(1)
-    chosen_spec = sys.argv[1]
-        
-    # Build a dictionary for faster lookup
-    from metafile import specs
-    spec_dict = {spec["name"]: spec for spec in specs}
-    
-    if chosen_spec not in spec_dict:
-        print(f"Spec '{chosen_spec}' not recognized. Options are: {', '.join(spec_dict.keys())}")
-        sys.exit(1)
-    
-    market_vars = spec_dict[chosen_spec]["market_vars"]
-    file_suffix = spec_dict[chosen_spec]["file_suffix"]
-    collapsed_prefix = f"rais_collapsed_firm_{file_suffix}"
-    
-    print(f"Running spec: {chosen_spec}")
-    print(f"Market variables: {market_vars}")
-    print(f"File suffix: {file_suffix}")
-    
+    chosen_spec, market_vars, file_suffix, _3states = parse_spec(root)
     
     # Original version (markets = mmc + cbo942d)
     process_level2(

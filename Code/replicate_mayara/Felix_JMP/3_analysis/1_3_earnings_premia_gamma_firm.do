@@ -58,14 +58,10 @@ else if c(username)=="p13861161" & c(os)=="Unix" {
 }
 
 
-capture log close 
-log using "${encrypted}/logs/1_3_earnings_premia_gamma.log", replace
-
-
 do "${encrypted}/Felix_JMP/3_analysis/specs_config.do"
 args spec
 di "`spec'"
-if "`spec'"=="" local spec "gamma_7500"
+if "`spec'"=="" local spec "3states_gamma"
 di "`spec'"
 
 if "`spec'" == "" {
@@ -73,9 +69,16 @@ if "`spec'" == "" {
     exit 1
 }
 
+cap log close
+local date = subinstr("`c(current_date)'", " ", "_", .)
+local time = subinstr("`c(current_time)'", ":", "_", .)
+log using "${encrypted}/logs/1_3_earnings_premia_gamma_`spec'_`date'_`time'.log", replace
+
+
 // Retrieve the market variables and file suffix based on the spec
-local mkt "${spec_`spec'_market_vars}"
-local path "${spec_`spec'_file_suffix}"
+local mkt "${s_`spec'_mv}"
+local path "${s_`spec'_fs}"
+local _3states "${s_`spec'_3s}"
 
 display "Using market variables: `mkt'"
 display "Using path suffix: `path'"
@@ -97,7 +100,7 @@ local yearlast  = 2000
 if `premia'==1{
 	
 	forvalues y=`yearfirst'(1)`yearlast'{		
-		u "${monopsonies}/sas/rais_for_earnings_premia`y'_gamma.dta", clear
+		u "${monopsonies}/sas/rais_for_earnings_premia`y'_gamma`_3states'.dta", clear
 		isid fakeid_worker
 		drop if mmc==13007 | mmc==23014
 		
@@ -158,3 +161,4 @@ if `erasefiles'==1{
 	cd "${monopsonies}/sas/"
 	shell rm rais_for_earnings_premia*
 }
+log close

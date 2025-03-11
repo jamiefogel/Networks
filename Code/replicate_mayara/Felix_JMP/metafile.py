@@ -11,8 +11,8 @@ import time
 
 # Define the full paths to your files
 output_prefix = root + '/Data/derived/sbm_output/'
-jblocks_csv = output_prefix + 'model_sbm_mayara_1986_1990_3states_7500blocks_jblocks.csv'
-wblocks_csv = output_prefix + 'model_sbm_mayara_1986_1990_3states_7500blocks_wblocks.csv'
+jblocks_csv = output_prefix + 'model_sbm_mayara_1986_1990_3states_7500_jblocks.csv'
+wblocks_csv = output_prefix + 'model_sbm_mayara_1986_1990_3states_7500_wblocks.csv'
 
 # Wait until both files exist
 while not (os.path.exists(jblocks_csv) and os.path.exists(wblocks_csv)):
@@ -29,54 +29,89 @@ specs = [
     {
         "name": "gamma",
         "market_vars": ["gamma"],
-        "file_suffix": "gamma"
+        "file_suffix": "gamma",
+        "_3states":""
     },
     {
         "name": "original",
         "market_vars": ["mmc", "cbo942d"],
-        "file_suffix": "mmc_cbo942d"
+        "file_suffix": "mmc_cbo942d",
+        "_3states":""
     },
     {
-        "name": "gamma1",
+        "name": "3states_gamma",
+        "market_vars": ["gamma"],
+        "file_suffix": "3states_gamma",
+        "_3states":"_3states"
+    },
+    {
+        "name": "3states_original",
+        "market_vars": ["mmc", "cbo942d"],
+        "file_suffix": "3states_mmc_cbo942d",
+        "_3states":"_3states"
+    },
+    {
+        "name": "3states_gamma1",
         "market_vars": ["gamma1"],
-        "file_suffix": "gamma1"
+        "file_suffix": "3states_gamma1",
+        "_3states":"_3states"
     },
     {
-        "name": "gamma_mcmc",
+        "name": "3states_gamma_mcmc",
         "market_vars": ["gamma_mcmc"],
-        "file_suffix": "gamma_mcmc"
+        "file_suffix": "3states_gamma_mcmc",
+        "_3states":"_3states"
     },
     {
-        "name": "gamma1_mcmc",
+        "name": "3states_gamma1_mcmc",
         "market_vars": ["gamma1_mcmc"],
-        "file_suffix": "gamma1_mcmc"
+        "file_suffix": "3states_gamma1_mcmc",
+        "_3states":"_3states"
     },
     {
-        "name": "gamma_7500",
+        "name": "3states_gamma_7500",
         "market_vars": ["gamma_7500"],
-        "file_suffix": "gamma_7500"
+        "file_suffix": "3states_gamma_7500",
+        "_3states":"_3states"
     },
     {
-        "name": "gamma1_7500",
+        "name": "3states_gamma1_7500",
         "market_vars": ["gamma1_7500"],
-        "file_suffix": "gamma1_7500"
+        "file_suffix": "3states_gamma1_7500",
+        "_3states":"_3states"
+    },
+    {
+        "name": "3states_gamma_7500_mcmc",
+        "market_vars": ["gamma_7500_mcmc"],
+        "file_suffix": "3states_gamma_7500_mcmc",
+        "_3states":"_3states"
+    },
+    {
+        "name": "3states_gamma1_7500_mcmc",
+        "market_vars": ["gamma1_7500_mcmc"],
+        "file_suffix": "3states_gamma1_7500_mcmc",
+        "_3states":"_3states"
     }
 ]
 
 # Define which scripts to run
 # Upstream Python scripts (to run once) and spec-dependent scripts.
 '''
+        
+        
+        
+'''
+run_configs = {
+    "python_scripts": [
         "rais_010_annual_files_20210802_w_sbm.py",
         "rais_020_earliest_estab_location.py", 
         "rais_020_municipality_changes.py", 
         "rais_020_earliest_worker_characteristic_20200715.py", 
         "rais_020_earliest_firm_cnae.py",
-'''
-run_configs = {
-    "python_scripts": [
         "rais_030_for_earnings_premia_gamma.py",
         "rais_040_firm_collapsed_gamma.py", 
         "rais_050_market_collapsed_v2_gamma.py"
+        
     ],
     "stata_scripts": [
         # List only the spec-dependent do files you want to run in this batch.
@@ -97,8 +132,10 @@ def generate_specs_config(specs, output_path):
             # Join market_vars list into a space-separated string
             market_vars = " ".join(spec["market_vars"])
             file_suffix = spec["file_suffix"]
-            f.write(f'global spec_{name}_market_vars "{market_vars}"\n')
-            f.write(f'global spec_{name}_file_suffix "{file_suffix}"\n')
+            _3states = spec["_3states"]
+            f.write(f'global s_{name}_mv "{market_vars}"\n')
+            f.write(f'global s_{name}_fs "{file_suffix}"\n')
+            f.write(f'global s_{name}_3s "{_3states}"\n')
 
 # Suppose your specs are defined in your metafile
 config_file_path = root + 'Code/replicate_mayara/Felix_JMP/3_analysis/specs_config.do'
@@ -153,6 +190,7 @@ def run_python_script(script_path, *args):
     runtime = end_time - start_time
     print(f"Finished {script_path} at {end_time} (runtime: {runtime})")
 
+
 def run_stata_script(do_file, spec):
     start_time = datetime.now()
     print(f"Starting Stata do file {do_file} for spec {spec} at {start_time}")
@@ -163,7 +201,7 @@ def run_stata_script(do_file, spec):
         process = subprocess.Popen(
             [stata_executable, '-b', 'do', do_file, f'{spec}'],
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
             text=True
         )
         for line in iter(process.stdout.readline, ''):
@@ -181,6 +219,10 @@ def run_stata_script(do_file, spec):
     end_time = datetime.now()
     runtime = end_time - start_time
     print(f"Finished {do_file} for spec {spec} at {end_time} (runtime: {runtime})")
+
+
+
+
 
 def main():
     # Run the upstream Python scripts if flagged
@@ -218,3 +260,9 @@ if __name__ == '__main__':
     
 # Command line usage:
 # python metafile.py --run_python --run_stata --specs gamma
+
+# parallel --jobs 4 python metafile.py --run_python --run_stata --specs ::: gamma  original 3states_gamma 3states_original 3states_gamma1 3states_gamma_mcmc 3states_gamma1_mcmc 3states_gamma_7500 3states_gamma1_7500 3states_gamma_7500_mcmc 3states_gamma1_7500_mcmc
+
+'''
+echo "3states_gamma 3states_original 3states_gamma1 3states_gamma_mcmc 3states_gamma1_mcmc 3states_gamma_7500 3states_gamma1_7500 3states_gamma_7500_mcmc 3states_gamma1_7500_mcmc" | xargs -n 1 -P 4 -I {} python metafile.py  --run_stata --specs {}
+'''

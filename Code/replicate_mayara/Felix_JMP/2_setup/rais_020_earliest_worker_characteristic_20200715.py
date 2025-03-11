@@ -1,13 +1,17 @@
 import pandas as pd
 import os
 from config import root
+from spec_parser import parse_spec
+
+
+chosen_spec, market_vars, file_suffix, _3states = parse_spec(root)
 
 # Set base directory paths
 base_path =  root + "Code/replicate_mayara/"
 
 
 base_path = root + "/Code/replicate_mayara"
-monopsas_path = f"{base_path}/monopsonies"
+monopsas_path = f"{base_path}/monopsonies/sas"
 ipea_path = f"{base_path}/publicdata/IPEA/IPEA_minwage"
 tariffs_path = f"{base_path}/publicdata/Tariffs"
 harmonized_path = f"{base_path}/raisdictionaries/harmonized"
@@ -22,13 +26,13 @@ last_year = 2014 # XX 2015
 worker_data = []
 
 # Load crosswalk data for agegroup to age
-crosswalk_agegroup_to_age = pd.read_pickle(f"{monopsas_path}/sas/crosswalk_agegroup_to_age.pkl")
+crosswalk_agegroup_to_age = pd.read_pickle(f"{monopsas_path}/crosswalk_agegroup_to_age.pkl")
 
 for year in range(first_year, last_year + 1):
     print(year)
     try:
         # Try to read the yearly RAIS data
-        rais_data = pd.read_parquet(f"{monopsas_path}/sas/rais{year}.parquet")
+        rais_data = pd.read_parquet(f"{monopsas_path}/rais{year}{_3states}.parquet")
     except FileNotFoundError:
         # Print a warning message if the file does not exist and continue to the next year
         print(f"Warning: File for year {year} not found. Skipping...")
@@ -92,7 +96,7 @@ rais_worker_traits_master = (
 )
 
 # Save the final dataset
-rais_worker_traits_master.to_pickle(f"{monopsas_path}/sas/rais_worker_traits_master.pkl")
+rais_worker_traits_master.to_pickle(f"{monopsas_path}/rais_worker_traits_master{_3states}.pkl")
 
 # Clean up temporary dataframes
 del  gender_data, educ_data, birth_data, gender_master, educ_master, birth_master

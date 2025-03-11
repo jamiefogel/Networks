@@ -2,6 +2,10 @@ import pandas as pd
 import os
 import numpy as np
 from config import root
+from spec_parser import parse_spec
+
+
+chosen_spec, market_vars, file_suffix, _3states = parse_spec(root)
 
 # Paths
 base_path = root + "/Code/replicate_mayara"
@@ -9,7 +13,7 @@ monopsas_path = f"{base_path}/monopsonies/sas"
 
 # Paths
 base_path = root + "/Code/replicate_mayara"
-monopsonies_path = f"{base_path}/monopsonies"
+monopsonies_path = f"{base_path}/monopsonies/sas"
 harmonized_path = f"{base_path}/raisdictionaries/harmonized"
 
 # Year range
@@ -30,7 +34,7 @@ last_year = 2014 #XX 2015
 all_firms_list = []
 
 for year in range(first_year, last_year + 1):
-    fpath = f"{monopsas_path}/rais{year}.parquet"
+    fpath = f"{monopsas_path}/rais{year}{_3states}.parquet"
     if not os.path.exists(fpath):
         print(f"Warning: RAIS file for {year} not found - skipping.")
         continue
@@ -85,8 +89,8 @@ rais_firm_cnae95_master = rais_firm_cnae95_master.drop_duplicates(subset=["fakei
 rais_firm_cnae95_master = rais_firm_cnae95_master.drop(columns=["year"])
 
 # Save intermediate results
-rais_firm_cnae95_master.to_parquet(f"{monopsas_path}/rais_firm_cnae95_master.parquet", index=False)
-missing_firms.to_parquet(f"{monopsas_path}/miss_cnae95_firms.parquet", index=False)
+rais_firm_cnae95_master.to_parquet(f"{monopsas_path}/rais_firm_cnae95_master{_3states}.parquet", index=False)
+missing_firms.to_parquet(f"{monopsas_path}/miss_cnae95_firms{_3states}.parquet", index=False)
 print("Step 1 complete: Created rais_firm_cnae95_master and identified missing_cnae95_firms.")
 
 
@@ -98,7 +102,7 @@ print("Step 1 complete: Created rais_firm_cnae95_master and identified missing_c
 # -------------------------------------------------------------------
 ibge_list = []
 for year in range(1985, 1995):
-    fpath = f"{monopsas_path}/rais{year}.parquet"
+    fpath = f"{monopsas_path}/rais{year}{_3states}.parquet"
     if not os.path.exists(fpath):
         print(f"Warning: no file for IBGE subactivity in {year} - skipping.")
         continue
@@ -126,7 +130,7 @@ if len(ibge_list) > 0:
     cross_ibge = cross_ibge.drop(columns=["obs"])
     cross_ibge.rename(columns={"cnae95": "cnae95_from_ibge"}, inplace=True)
     
-    cross_ibge.to_parquet(f"{monopsonies_path}/crosswalk_ibgesubactivity_cnae95.parquet", index=False)
+    cross_ibge.to_parquet(f"{monopsonies_path}/crosswalk_ibgesubactivity_cnae95{_3states}.parquet", index=False)
     print("Step 2 complete: Created crosswalk_ibgesubactivity_cnae95.")
 else:
     cross_ibge = pd.DataFrame(columns=["ibgesubactivity","cnae95_from_ibge"])
@@ -143,7 +147,7 @@ cnae20_list = []
 for year in range(2006, 2016):
     if year == 2010:
         continue  # skip year=2010 as SAS does
-    fpath = f"{monopsas_path}/rais{year}.parquet"
+    fpath = f"{monopsas_path}/rais{year}{_3states}.parquet"
     if not os.path.exists(fpath):
         print(f"Warning: no file for year={year}, skipping in cnae20 crosswalk.")
         continue
@@ -169,7 +173,7 @@ if len(cnae20_list) > 0:
     # Rename cnaeclass95 -> cnae95_from_cnae20
     cnae20_df.rename(columns={"cnaeclass95":"cnae95_from_cnae20"}, inplace=True)
     
-    cnae20_df.to_parquet(f"{monopsonies_path}/crosswalk_cnae20_cnae95.parquet", index=False)
+    cnae20_df.to_parquet(f"{monopsonies_path}/crosswalk_cnae20_cnae95{_3states}.parquet", index=False)
     print("Step 3 complete: Created crosswalk_cnae20_cnae95.")
 else:
     cnae20_df = pd.DataFrame(columns=["cnaeclass20","cnae95_from_cnae20"])
@@ -190,7 +194,7 @@ else:
 # A) Earliest IBGE for missing-cnae firms
 ibge_miss_list = []
 for year in range(1985, 1995):
-    fpath = f"{monopsas_path}/rais{year}.parquet"
+    fpath = f"{monopsas_path}/rais{year}{_3states}.parquet"
     if not os.path.exists(fpath):
         continue
     df = pd.read_parquet(fpath, columns=["fakeid_firm", "ibgesubactivity"])
@@ -213,7 +217,7 @@ cnae20_miss_list = []
 for year in range(2006, 2016):
     if year == 2010:
         continue
-    fpath = f"{monopsas_path}/rais{year}.parquet"
+    fpath = f"{monopsas_path}/rais{year}{_3states}.parquet"
     if not os.path.exists(fpath):
         continue
     df = pd.read_parquet(fpath, columns=["fakeid_firm", "cnaeclass20"])
@@ -267,5 +271,5 @@ final_master = pd.concat([
 final_master = final_master.drop_duplicates(subset=["fakeid_firm","cnae95_assigned"], keep="first")
 
 # Save final
-final_master.to_parquet(f"{monopsonies_path}/rais_firm_cnae95_master_plus.parquet", index=False)
+final_master.to_parquet(f"{monopsonies_path}/rais_firm_cnae95_master_plus{_3states}.parquet", index=False)
 print("Step 4 complete: Final master with assigned CNAE95 created.")
