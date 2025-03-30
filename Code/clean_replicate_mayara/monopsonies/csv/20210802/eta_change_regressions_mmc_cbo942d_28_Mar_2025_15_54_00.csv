@@ -1,0 +1,2 @@
+ols_b,ols_se,iv_b,iv_se,rf_b,rf_se,fs_b,fs_se,fs_F,obs,firms,markets,year,spec,model,tariff,clust,samp,wagevar,weight
+.0011,.0010077,1.120359,.1050158,-.372714,.0213034,-.3326738,.0252592,173.4588,909313,360728,16132,1997,"l","l","lnT","firm","all","lndp","all"
