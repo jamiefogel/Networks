@@ -110,7 +110,6 @@ display "Using path suffix: `path'"
 if `setup'==1{
         ****************************
         * 1. Process tariff dataset
-
 		u "${public}/Tariffs/tariffs_maindataset_long.dta", clear
 		ren cnae10 cnae95
 		keep if year==1990 | year==1994
@@ -205,7 +204,7 @@ if `setup'==1{
 		//replace chng_lnErpTRAINS 	= 0 if T==0
 		
 		* Compute firm baseline share
-        * XX How does this differ from what's done in _050?
+        * XX This is a at the firm level. In _050 we do this at the market level
 		preserve
 			 keep if year==`baseyear'
 			 gegen double sumearn = sum(totmearn), by(`mkt')
@@ -266,8 +265,7 @@ if `setup'==1{
 		gen double up`baseyear_n'mkt = up`baseyear_n'==1 | (up`baseyear_n'mkt_temp==1 & T==0)
 		drop up`baseyear_n'mkt_temp
 		*/
-pause off
-pause
+
 		* Merge in market shocks
 		merge m:1 `mkt' using `market', keep(3) nogen
 		
@@ -275,7 +273,7 @@ pause
 		gen double lnemp = ln(emp)
 		
 		gegen fe_zro = group(cnpj_raiz `mkt')
-pause	
+	
 		di "Long differences"
 		preserve
 			keep fe_zro year lnemp lndp lndw
@@ -302,7 +300,6 @@ pause
 		restore 
 		
 		* XX Saving data set for analysis with Ben
-
 		preserve
 				merge m:1 year fe_zro using `long', keep(1 3) nogen
 				saveold "${monopsonies}/sas/eta_changes_regsfile_`path'_keepyearsvars.dta", replace
@@ -335,8 +332,9 @@ pause
 if `eta_regs'==1{
 	
 	u "${monopsonies}/sas/eta_changes_regsfile_`path'.dta", clear
-	
-	//cap drop if inlist(cbo942d,31,22,37)
+	* CBO codes: https://concla.ibge.gov.br/images/concla/documentacao/ibgexcbo94.xls 
+	drop if inlist(cbo942d,31,22,37)
+	* XX drop 21? 
 	
 	* Cross-section FEs
 	gegen fe_ro = group(`mkt')
@@ -359,11 +357,22 @@ if `eta_regs'==1{
 	ren beshare		bes
 	
 	
-di "HERE"
-di "Running ivreghdfe chng91_lndp (chng91_lnemp = chng_lnT) if all==1 & year==1997 [w=all], cluster(firm) absorb(delta_ro = fe_ro) "
-/*qui*/ ivreghdfe chng91_lndp (chng91_lnemp = chng_lnT) if all==1 & year==1997 [w=all], savefirst saverf cluster(firm) absorb(delta_ro = fe_ro) 
+	* We lose a pretty signficant number of observations here because regression variables are missing or there are singleton observations
+	di "HERE"
+	di "Running ivreghdfe chng91_lndp (chng91_lnemp = chng_lnT) if all==1 & year==1997 [w=all], cluster(firm) absorb(delta_ro = fe_ro) "
+	/*qui*/ ivreghdfe chng91_lndp (chng91_lnemp = chng_lnT) if all==1 & year==1997 [w=all], savefirst saverf cluster(firm) absorb(delta_ro = fe_ro)
+	* XX Ben thinks we should be weighting by initial employment. But weighting by bemp makes 1/eta larger, and thus farther from Mayara's estimte
+	*	- weighting by bes gives 0.69
+	*	- weighting by bws gives 0.84
+	preserve 
+	gen esample = e(sample)
+	keep if esample
+	keep esample cnpj_raiz mmc cbo942d
+	duplicates drop
+	save "${monopsonies}/dta/coeffs/`outdate'/eta_regs_esample.dta", replace
+	restore
 
-preserve
+	preserve
 	keep if all==1 & year==1997
 	keep cnpj_raiz `mkt' chng91_lndp chng91_lnemp delta_ro
 	keep if !missing(delta_ro)

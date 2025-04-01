@@ -177,7 +177,6 @@ if `premia'==1{
 		****************** MMC premia (excl. industry) ****************
 		reghdfe lndecearn female age2-age5 educ2-educ9 , absorb(dprem_zro=fe_zro) noconstant keepsingletons
 
-
 		keep if !missing(dprem_zro) 
 		keep cnpj_raiz `mkt' dprem_zro davgw_zro
 		gduplicates drop

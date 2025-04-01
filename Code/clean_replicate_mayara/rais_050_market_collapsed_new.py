@@ -183,6 +183,7 @@ def process_level2(market_vars, file_suffix, file_rais_collapsed, df_cross_cnae9
     )
         
     df_regsfile = pd.merge(df_mktout, df_ice_final, on=market_vars, how='left')
+    df_regsfile = pd.merge(df_regsfile, group_sums, on=market_vars, how='left')
 
         
     '''
@@ -196,7 +197,7 @@ def process_level2(market_vars, file_suffix, file_rais_collapsed, df_cross_cnae9
     
     # Rearrange columns so that the final output contains exactly: year, mkt_emp, ice_dwErpTRAINS, ice_dwTRAINS, ice_dwTRAINS_Hf
     final_cols = ['year', 'mkt_emp', 'ice_dwErpTRAINS', 'ice_dwTRAINS', 'ice_dwTRAINS_Hf'] + market_vars
-    df_regsfile = df_regsfile[final_cols]
+    #df_regsfile = df_regsfile[final_cols]
    
     # Export the final dataset (Stata .dta format) to the export_path
     out_file = f"{export_path}/regsfile_{file_suffix}.dta"
