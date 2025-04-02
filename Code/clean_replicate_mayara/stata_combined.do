@@ -71,6 +71,8 @@ collapse (sum) firm_mkt_tot_earndec = earningsdecmw firm_mkt_emp (firstnm) lndpt
 
 reshape wide firm_mkt_tot_earndec firm_mkt_emp lndpt, i($firmid $mkt chng_lnTRAINS) j(year)
 
+save collapsed_reshaped, replace
+
 gen chng91_lndp = lndpt1997 - lndpt1991
 gen chng91_lnemp = log(firm_mkt_emp1997) - log(firm_mkt_emp1991)
 gen chng_lnT = chng_lnTRAINS*-1
@@ -129,3 +131,11 @@ gen double chng_Lro = (`eta'/(`eta'+1))*(ln(Sum1997) - ln(Sum1991) )
 * Identify the first value within each market with non-missing delta_ro and run the regression only on these obs rather than collapsing to the market level
 bysort $mkt ( delta_ro ): gen n = _n
 ivreg2 delta_ro (chng_Lro = delta_ice_hf_m) if n==1, savefirst saverf cluster(fe_ro) 
+
+
+local theta_inverse = _b[chng_Lro] + `eta_inverse'
+di `theta_inverse'
+local theta = `theta_inverse'
+
+di `eta'
+di `theta'
