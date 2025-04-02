@@ -113,8 +113,6 @@ replace delta_ice_hf_m = -delta_ice_hf_m
 	
 
 foreach year in 1991 1997{
-local eta_inverse =  1.32 //_b[chng91_lnemp]
-local eta = 1/`eta_inverse'
 
 	gen log_firm_mkt_emp`year' = log(firm_mkt_emp`year')
 	gen lhs`year' = lndpt`year' - `eta_inverse' * log_firm_mkt_emp`year'
