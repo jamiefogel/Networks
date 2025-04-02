@@ -1,4 +1,4 @@
-version 14.2
+*version 14.2
 clear all
 set more off
 set matsize 11000
@@ -28,7 +28,8 @@ else if c(username)=="p13861161" & c(os)=="Unix" {
 	global encrypted 		"/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/Code/clean_replicate_mayara"
 	global dictionaries		"/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/Code/replicate_mayara/raisdictionaries/harmonized"
 	global deIDrais			"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\raisdeidentified"
-	global monopsonies		"/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/Code/clean_replicate_mayara/monopsonies"
+	global monopsonies		"/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/Code/replicate_mayara/monopsonies"
+	*global monopsonies		"/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/Code/clean_replicate_mayara/monopsonies"
 	global public			"/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/Code/replicate_mayara/publicdata"
 }
 
@@ -58,10 +59,14 @@ replace chng_lnTRAINS 		= 0 if T==0
 
 // XX Still 2 million obs that are missing chng_lnTRAINS but are allegedly tradable. Should these be missing or 0?
 count if mi(chng_lnTRAINS )
+// replace chng_lnTRAINS 		= 0 if mi(chng_lnTRAINS)
+// If we do the replace above it gets us to ~18,000 markets but doesn't really change eta_hat
+
 
 * Collapse to firm-market year level
-
-collapse (sum) firm_mkt_tot_earndec = earningsdecmw (count) firm_mkt_emp=cnpj_raiz (firstnm) lndpt chng_lnTRAINS, by($firmid $mkt year)
+keep pis cnpj_raiz earningsdecmw year jid ibgesubsector cnae95 chng_lnTRAINS lndecearn lndpt lndpt T mmc cbo942d
+gen firm_mkt_emp = 1
+collapse (sum) firm_mkt_tot_earndec = earningsdecmw firm_mkt_emp (firstnm) lndpt chng_lnTRAINS, by($firmid $mkt year)
 
 
 reshape wide firm_mkt_tot_earndec firm_mkt_emp lndpt, i($firmid $mkt chng_lnTRAINS) j(year)
@@ -73,4 +78,54 @@ gegen fe_ro = group($mkt)
 
 ivreghdfe chng91_lndp (chng91_lnemp = chng_lnT) , savefirst saverf cluster($firmid) absorb(delta_ro = fe_ro)
 
+local eta_inverse =  _b[chng91_lnemp]
+local eta = 1/`eta_inverse'
+di "Eta = `eta'"
+local obs = e(N)
+di `obs'
+unique $firmid if e(sample)
+local firms = `r(unique)'
+unique $mkt if e(sample)
+local mkts = `r(unique)'
 
+
+
+
+
+
+**************************
+* THETA
+
+bysort $mkt: egen mkt_tot_earndec1991 = total(firm_mkt_tot_earndec1991)
+gen s_zm = firm_mkt_tot_earndec1991/mkt_tot_earndec1991
+gen s_zm_sq = s_zm^2
+
+* Note I am not yet restricting to tradables only
+bysort $mkt: egen denom = total(s_zm_sq)
+gen num = s_zm_sq * chng_lnTRAINS
+bysort $mkt: egen delta_ice_hf_m = total(num/denom)
+
+replace delta_ice_hf_m = 0 if missing(delta_ice_hf_m)
+replace delta_ice_hf_m = -delta_ice_hf_m
+	
+	
+
+foreach year in 1991 1997{
+local eta_inverse =  1.32 //_b[chng91_lnemp]
+local eta = 1/`eta_inverse'
+
+	gen log_firm_mkt_emp`year' = log(firm_mkt_emp`year')
+	gen lhs`year' = lndpt`year' - `eta_inverse' * log_firm_mkt_emp`year'
+	qui areg lhs`year', absorb(fe_ro)
+	predict lnxi_zrot`year', resid
+	
+	gen double emp`year' 			= exp(log_firm_mkt_emp`year')
+	gen double xi_zro`year' 		= exp(lnxi_zrot`year')
+	gen double product`year'		= (emp`year'*xi_zro`year')^((`eta'+1)/`eta')
+	gegen double Sum`year'			= sum(product`year'), by($mkt)		
+}
+gen double chng_Lro = (`eta'/(`eta'+1))*(ln(Sum1997) - ln(Sum1991) )
+
+* Identify the first value within each market with non-missing delta_ro and run the regression only on these obs rather than collapsing to the market level
+bysort $mkt ( delta_ro ): gen n = _n
+ivreg2 delta_ro (chng_Lro = delta_ice_hf_m) if n==1, savefirst saverf cluster(fe_ro) 

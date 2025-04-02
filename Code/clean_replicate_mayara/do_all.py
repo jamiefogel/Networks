@@ -155,6 +155,7 @@ def run_pull():
         print(year_df.columns)
         print(year_df.shape)
         
+run_pull()        
         
 dfs = []
 for year in [1991,1997]:
