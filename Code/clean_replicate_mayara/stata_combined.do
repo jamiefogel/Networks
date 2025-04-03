@@ -62,11 +62,16 @@ count if mi(chng_lnTRAINS )
 // replace chng_lnTRAINS 		= 0 if mi(chng_lnTRAINS)
 // If we do the replace above it gets us to ~18,000 markets but doesn't really change eta_hat
 
+* Note that T is constant within cnpj_year-year but not within cnpj_raiz because firms can change ibgessubsector over time
+bysort cnpj_raiz: egen T_1991 = max(T*(year==1991))
+
+
+save precollapse, replace
 
 * Collapse to firm-market year level
-keep pis cnpj_raiz earningsdecmw year jid ibgesubsector cnae95 chng_lnTRAINS lndecearn lndpt lndpt T mmc cbo942d
+keep pis cnpj_raiz earningsdecmw year jid ibgesubsector cnae95 chng_lnTRAINS lndecearn lndpt lndpt T T_1991 mmc cbo942d
 gen firm_mkt_emp = 1
-collapse (sum) firm_mkt_tot_earndec = earningsdecmw firm_mkt_emp (firstnm) lndpt chng_lnTRAINS, by($firmid $mkt year)
+collapse (sum) firm_mkt_tot_earndec = earningsdecmw firm_mkt_emp (firstnm) lndpt chng_lnTRAINS T_1991, by($firmid $mkt year)
 
 
 reshape wide firm_mkt_tot_earndec firm_mkt_emp lndpt, i($firmid $mkt chng_lnTRAINS) j(year)
@@ -98,20 +103,21 @@ local mkts = `r(unique)'
 **************************
 * THETA
 
-bysort $mkt: egen mkt_tot_earndec1991 = total(firm_mkt_tot_earndec1991)
+bysort $mkt: egen mkt_tot_earndec1991 = total(firm_mkt_tot_earndec1991 ) // XX thisseems like not restricting to tradables would matter 
 gen s_zm = firm_mkt_tot_earndec1991/mkt_tot_earndec1991
 gen s_zm_sq = s_zm^2
 
 * Note I am not yet restricting to tradables only
-bysort $mkt: egen denom = total(s_zm_sq)
+bysort $mkt: egen denom = total(s_zm_sq * T_1991)
 gen num = s_zm_sq * chng_lnTRAINS
-bysort $mkt: egen delta_ice_hf_m = total(num/denom)
+bysort $mkt: egen delta_ice_hf_m = total((num/denom)* T_1991)
 
 replace delta_ice_hf_m = 0 if missing(delta_ice_hf_m)
 replace delta_ice_hf_m = -delta_ice_hf_m
 	
 	
-
+local eta_inverse=1.36
+local eta = 1/`eta_inverse'
 foreach year in 1991 1997{
 
 	gen log_firm_mkt_emp`year' = log(firm_mkt_emp`year')
