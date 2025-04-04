@@ -133,6 +133,7 @@ def run_pull():
         # We'll assume unique after this filtering:
         year_df = year_df.drop_duplicates(subset=["pis"])
         
+        year_df['state'] =  pd.to_numeric(year_df['codemun'].astype(str).str[:2], errors='coerce').astype('Int64')
         # XX This is where we would run the SBM
     
         # XX Should we be drpping Manaus and other microregions here? We drop certain micro regions in 3_1 but isn't that after we compute shares? But msybe it's ok since we are computing shares within markets and this would drop entire markets. But gammas will span mmcs so it may actually be important to do the drop here once we start doing gammas or other market definitions
@@ -148,7 +149,7 @@ def run_pull():
         year_df = pd.merge(year_df, mmc_codemun_crosswalk, left_on='codemun', right_on='codemun', how='inner')  
         year_df = pd.merge(year_df, df_valid_cbo94,       left_on='cbo1994', right_on='cbo94', how='left', suffixes=('', '_vd'))
         
-        out_path = os.path.join(OUTPUT_DIR, f"rais_mayara_pull_{year}{_3states}.parquet")
+        out_path = os.path.join(OUTPUT_DIR, f"rais_mayara_pull_{year}.parquet")
         year_df.to_parquet(out_path, index=False)
         print(f"Year {year} processed and saved to {out_path}")
     
@@ -159,7 +160,7 @@ run_pull()
         
 dfs = []
 for year in [1991,1997]:
-    year_df = pd.read_parquet(os.path.join(OUTPUT_DIR, f"rais_mayara_pull_{year}{_3states}.parquet"))
+    year_df = pd.read_parquet(os.path.join(OUTPUT_DIR, f"rais_mayara_pull_{year}.parquet"))
     dfs.append(year_df)
 
 worker = pd.concat(dfs, ignore_index=True)
@@ -183,11 +184,42 @@ worker = worker.drop(columns='mmc_drop')
 
 worker = worker.loc[~worker.cbo942d.isin([22,31,37])]
 
-worker.to_stata(monopsas_path + f"/worker_level.dta")
 
 
+
+jblocks = pd.read_csv(root + '/Data/derived/sbm_output/model_clean_sbm_mayara_1986_1990_jblocks.csv')
+jblocks = jblocks[['jid','job_blocks_level_0']].rename(columns={'job_blocks_level_0':'gamma'})
+
+jblocks_3states = pd.read_csv(root + '/Data/derived/sbm_output/model_clean_sbm_mayara_1986_1990_3states_jblocks.csv')
+jblocks_3states = jblocks_3states[['jid','job_blocks_level_0']].rename(columns={'job_blocks_level_0':'gamma_3states'})
+
+wblocks = pd.read_csv(root + '/Data/derived/sbm_output/model_clean_sbm_mayara_1986_1990_wblocks.csv')
+wblocks = wblocks[['wid','worker_blocks_level_0']].rename(columns={'worker_blocks_level_0':'iota'})
+
+wblocks_3states = pd.read_csv(root + '/Data/derived/sbm_output/model_clean_sbm_mayara_1986_1990_3states_wblocks.csv')
+wblocks_3states = wblocks_3states[['wid','worker_blocks_level_0']].rename(columns={'worker_blocks_level_0':'iota_3states'})
+
+worker = worker.merge(jblocks, on='jid', how='outer', validate='m:1', indicator='_merge_gamma')
+worker._merge_gamma.value_counts()
+worker = worker.merge(jblocks_3states, on='jid', how='outer', validate='m:1', indicator='_merge_gamma_3states')
+worker._merge_gamma_3states.value_counts()
+
+worker['wid'] = worker.pis
+worker = worker.merge(wblocks, on='wid', how='outer', validate='m:1', indicator='_merge_iota')
+worker._merge_iota.value_counts()
+worker = worker.merge(wblocks_3states, on='wid', how='outer', validate='m:1', indicator='_merge_iota_3states')
+worker._merge_iota_3states.value_counts()
+
+print(pd.crosstab(worker.state, worker._merge_gamma))
+print(pd.crosstab(worker.state, worker._merge_iota))
+
+worker.to_stata(OUTPUT_DIR + f"/worker_level.dta")
+
+
+
+'''
 # XX This is where we would merge on iotas and gammas
-
+model_clean_sbm_mayara_1986_1990_3states_jblocks.csv
 
 ########################
 # Create firm-market-level data set for eta regressions
@@ -228,3 +260,6 @@ Run pull_raw
 
 Keep only 1991 and 1997 and append them. This is the start of our "master" data set
 Merge on earliest cnae for each cnpj_raiz from "rais_firm_cnae95_master_plus.parquet". This is unique on cnpj_raiz
+
+
+'''

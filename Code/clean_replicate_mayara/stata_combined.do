@@ -19,8 +19,8 @@ else if c(username)=="p13861161" & c(os)=="Windows" {
 	*global encrypted 		"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\clean_replicate_mayara"
 	global dictionaries		"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\raisdictionaries\harmonized"
 	global deIDrais			"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\raisdeidentified"
-	global monopsonies		"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\monopsonies"
-	*global monopsonies		"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\clean_replicate_mayara\monopsonies"
+	*global monopsonies		"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\monopsonies"
+	global monopsonies		"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\clean_replicate_mayara\monopsonies"
 	global public			"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\publicdata"
 }
 
@@ -28,8 +28,8 @@ else if c(username)=="p13861161" & c(os)=="Unix" {
 	global encrypted 		"/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/Code/clean_replicate_mayara"
 	global dictionaries		"/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/Code/replicate_mayara/raisdictionaries/harmonized"
 	global deIDrais			"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\raisdeidentified"
-	global monopsonies		"/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/Code/replicate_mayara/monopsonies"
-	*global monopsonies		"/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/Code/clean_replicate_mayara/monopsonies"
+	*global monopsonies		"/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/Code/replicate_mayara/monopsonies"
+	global monopsonies		"/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/Code/clean_replicate_mayara/monopsonies"
 	global public			"/home/DLIPEA/p13861161/labormkt/labormkt_rafaelpereira/NetworksGit/Code/replicate_mayara/publicdata"
 }
 
@@ -73,8 +73,10 @@ keep pis cnpj_raiz earningsdecmw year jid ibgesubsector cnae95 chng_lnTRAINS lnd
 gen firm_mkt_emp = 1
 collapse (sum) firm_mkt_tot_earndec = earningsdecmw firm_mkt_emp (firstnm) lndpt chng_lnTRAINS T_1991, by($firmid $mkt year)
 
-
-reshape wide firm_mkt_tot_earndec firm_mkt_emp lndpt, i($firmid $mkt chng_lnTRAINS) j(year)
+reshape wide firm_mkt_tot_earndec firm_mkt_emp lndpt chng_lnTRAINS, i($firmid $mkt) j(year)
+// chng_lnTRAINS will only vary across years if the firm wasn't in the data in one year and if the firm isn't in the data one year it's going to be dropped anyways.
+drop if chng_lnTRAINS1991!= chng_lnTRAINS1997
+ren chng_lnTRAINS1991 chng_lnTRAINS
 
 save collapsed_reshaped, replace
 
@@ -84,6 +86,9 @@ gen chng_lnT = chng_lnTRAINS*-1
 gegen fe_ro = group($mkt)
 
 ivreghdfe chng91_lndp (chng91_lnemp = chng_lnT) , savefirst saverf cluster($firmid) absorb(delta_ro = fe_ro)
+* ivreghdfe chng91_lndp (chng91_lnemp = chng_lnT) [w=firm_mkt_emp1991], savefirst saverf cluster($firmid) absorb(delta_ro = fe_ro)
+
+drop if !e(sample)
 
 local eta_inverse =  _b[chng91_lnemp]
 local eta = 1/`eta_inverse'
@@ -134,12 +139,13 @@ gen double chng_Lro = (`eta'/(`eta'+1))*(ln(Sum1997) - ln(Sum1991) )
 
 * Identify the first value within each market with non-missing delta_ro and run the regression only on these obs rather than collapsing to the market level
 bysort $mkt ( delta_ro ): gen n = _n
+
 ivreg2 delta_ro (chng_Lro = delta_ice_hf_m) if n==1, savefirst saverf cluster(fe_ro) 
 
 
 local theta_inverse = _b[chng_Lro] + `eta_inverse'
 di `theta_inverse'
-local theta = `theta_inverse'
+local theta = 1/`theta_inverse'
 
 di `eta'
 di `theta'
