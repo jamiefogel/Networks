@@ -389,8 +389,8 @@ class bisbm():
         # If you want to drop or rename columns to avoid collisions, do so here.
         # The refactor avoids "wid_x", "wid_y" collisions because we used distinct column names,
         # but if needed:
-        # edgelist_w_blocks.drop(columns=['wid_y', 'jid_y'], inplace=True)
-        # edgelist_w_blocks.rename(columns={'wid_x': 'wid', 'jid_x': 'jid'}, inplace=True)
+        edgelist_w_blocks.drop(columns=['wid_y', 'jid_y'], inplace=True)
+        edgelist_w_blocks.rename(columns={'wid_x': 'wid', 'jid_x': 'jid'}, inplace=True)
     
         # Store final DataFrame
         self.edgelist_w_blocks = edgelist_w_blocks
