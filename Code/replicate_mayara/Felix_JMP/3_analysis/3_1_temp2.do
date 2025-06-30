@@ -66,7 +66,7 @@ local baseyear_o2	= `baseyear'+6
 local baseyear_p1	= `baseyear'-3
 local baseyear_p2	= `baseyear'-5
 
-local setup 			= 1
+local setup 			= 0
 local eta_regs 			= 1
 local usesample 		= 0			/* Use 10% random sample of firms*/
 
@@ -107,7 +107,7 @@ local labsorb "fe_ro"			/* When spec is m, absorb mmc-cbo942d */
 do "${encrypted}/Felix_JMP/3_analysis/specs_config.do"
 args spec
 di "`spec'"
-if "`spec'"=="" local spec "3states_original"
+if "`spec'"=="" local spec "3states_gamma"
 di "`spec'"
 
 if "`spec'" == "" {
@@ -156,11 +156,9 @@ if `setup'==1{
 
 		u "${monopsonies}/sas/regsfile_`path'.dta", clear
 		isid `mkt' year
-		* XX This keep should not drop anything
 		keep if year==`baseyear'
-		* XX mkt_emp is market-level employment in the base year (1991). This variable is computed using all firms, including non-tradable, but the regsfile_`path' data set only has rows for tradable firms 
 		ren mkt_emp bemp
-		* XX ice_dwerp ice_dwtrains    these variables don't exist in the input data set. I think it should be the ones renamed below, but that's a guess
+		* XX ice_dwerp ice_dwtrains    these variables don't exist in the inputdata set. I think it should be the ones renamed below, but that's a guess
 		ren (ice_dwErpTRAINS ice_dwTRAINS)(ice_dwerp ice_dwtrains)
 		keep `mkt' ice_dwerp ice_dwtrains bemp
 		gduplicates drop
@@ -338,15 +336,6 @@ if `setup'==1{
 			sa `long'
 		restore
 		
-		* XX Saving data set for analysis with Ben
-
-		preserve
-				merge m:1 year fe_zro using `long', keep(1 3) nogen
-				saveold "${monopsonies}/sas/eta_changes_regsfile_`path'_keepyearsvars.dta", replace
-				pause off
-				pause
-		restore
-		
 		di "Keep changes and baseyear info only"
 		keep if inlist(year,`baseyear_p2',`baseyear_p1',`baseyear',`baseyear_o1',`baseyear_o2')
 		merge m:1 year fe_zro using `long', keep(1 3) nogen
@@ -367,7 +356,6 @@ if `setup'==1{
 ***************************************************
 ***************** Eta regressions *****************
 ***************************************************	
-
 
 if `eta_regs'==1{
 	
@@ -495,7 +483,7 @@ estimates clear
 	u `klfirmallllnT1997lndpall', clear
 	
 	duplicates drop
-	outsheet using "${monopsonies}/csv/`outdate'/eta_change_regressions_`path'.csv", comma replace
+	outsheet using "${monopsonies}/csv/`outdate'/aeta_change_regressions_`path'.csv", comma replace
 	outsheet using "${monopsonies}/csv/`outdate'/eta_change_regressions_`path'_`date'_`time'.csv", comma replace
 
 	
@@ -507,9 +495,10 @@ estimates clear
 	
 	duplicates drop
 	compress
-	saveold "${monopsonies}/dta/coeffs/`outdate'/eta_change_delta_ro_`path'.dta", replace
+	saveold "${monopsonies}/dta/coeffs/`outdate'/aeta_change_delta_ro_`path'.dta", replace
 
 }
+
 
 
 log close 

@@ -20,8 +20,10 @@ else{
 
 
 else if c(username)=="p13861161" & c(os)=="Windows" {
-	global encrypted 		"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\clean_replicate_mayara"
-	global monopsonies		"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\clean_replicate_mayara\monopsonies"
+	global encrypted 		"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara"
+	*global encrypted 		"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\clean_replicate_mayara"
+	global monopsonies		"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\monopsonies"
+	*global monopsonies		"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\clean_replicate_mayara\monopsonies"
 	global public			"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\publicdata"
 }
 
@@ -56,10 +58,17 @@ local path "${s_`spec'_fs}"
 
 
 local mkt "mmc cbo942d"
-local path "mmc_cbo942d"
+local path "3states_mmc_cbo942d"
+local _3states "_3states"
 
 display "Using market variables: `mkt'"
 display "Using path suffix: `path'"
+
+global workerid "fakeid_worker"
+*global workerid "pis"
+
+global firmid "fakeid_firm"
+*global firmid "cnpj_raiz"
 
 
 
@@ -78,7 +87,7 @@ local baseyear_o1 	= `baseyear'+3
 local baseyear_o2	= `baseyear'+6
 local baseyear_p1	= `baseyear'-3
 
-local getresiduals		= 0
+local getresiduals		= 1
 local theta_regs 		= 1
 	
 * Make folders with output date if they don't yet exist
@@ -133,8 +142,8 @@ if `getresiduals'==1{
 	* Grab firm-market pairs in the eta_change regressions
 	preserve
 		u "${monopsonies}/sas/eta_changes_regsfile_`path'.dta", clear	
-		isid year cnpj_raiz mmc cbo942d
-		keep cnpj_raiz `mkt'  T //bemp up`baseyear_n' up`baseyear_n'mkt
+		isid year $firmid mmc cbo942d
+		keep $firmid `mkt'  T //bemp up`baseyear_n' up`baseyear_n'mkt
 		drop if inlist(cbo942d,31,22,37)
 		gduplicates drop 
 		tempfile pairs
@@ -158,14 +167,14 @@ if `getresiduals'==1{
 	*	or by singletons or by missing values of chng91_lndp, chng91_lnemp, and chng_lnT. However, we
 	* 	seem to be doing ok b/c we are getting the same number of markets in the eta and theta regressions
 	* XX Theoretically, are we sure we want to make this restriction? Stick with it for now.
-	keep cnpj_raiz cnae95 `mkt' year emp avgdecearn avgmearn
-	merge m:1 cnpj_raiz `mkt' using `pairs', keep(3) nogen
+	keep $firmid cnae95 `mkt' year emp avgdecearn avgmearn
+	merge m:1 $firmid `mkt' using `pairs', keep(3) nogen
 	
 
 	* XXJSF Bring in firm-market average earnings and earnings premia created in 1_earnings_premia_combined.do. 
 	*	Earnings premia (dprem_zro) computed by regressing log earnings on gender, age, education, and firm-market FEs 
 	*	Average wages (davgw_zro) computed by regressing log earnings on firm-market FEs. We never actually use these (I think they are for robustness checks)
-	merge 1:1 cnpj_raiz `mkt' year using "${monopsonies}/sas/rais_lnearn_premia_firm_`path'_`premiadate'.dta", ///
+	merge 1:1 $firmid `mkt' year using "${monopsonies}/sas/rais_lnearn_premia_firm_`path'_`premiadate'.dta", ///
 	keepusing(davgw_zro dprem_zro) keep(3) nogen
 	
 	ren davgw_zro 		lndw
@@ -179,11 +188,11 @@ if `getresiduals'==1{
 	* FEs
 	/* XX Never used
 	cap gegen fe_rot = group(`mkt' year)
-	cap gegen fe_zro = group(cnpj_raiz `mkt')
+	cap gegen fe_zro = group($firmid `mkt')
 	*/
 	gegen double fe_ro = group(`mkt')
 	
-	gen double firm = cnpj_raiz
+	gen double firm = $firmid
 	
 	gen all = 1
 	//ren bemp w0
@@ -227,7 +236,7 @@ if `getresiduals'==1{
 				// XX keep if !missing(lndpres)
 				keep if !missing(lnxi_zrot)
 				
-				keep cnpj_raiz `mkt' year lndp  lnemp lnxi_zrot //XX error  dwtrains_hf lndpres
+				keep $firmid `mkt' year lndp  lnemp lnxi_zrot //XX error  dwtrains_hf lndpres
 				
 				ren lndp 		wagevar
 				//ren lndpres 	wagevarres
@@ -236,7 +245,7 @@ if `getresiduals'==1{
 				gen wagevartype = "lndp"
 				gen weight		= "all"
 				
-				order cnpj_raiz `mkt' year
+				order $firmid `mkt' year
 				
 				compress
 				tempfile rall`year'lndpall
@@ -259,7 +268,7 @@ if `getresiduals'==1{
 	}
 	duplicates drop
 	compress
-	isid cnpj_raiz mmc cbo942d year
+	isid $firmid mmc cbo942d year
 	saveold "${monopsonies}/dta/coeffs/`outdate'/lnxi_zrot_`path'.dta", replace
 } /* Close eta regressions */
 
@@ -303,9 +312,9 @@ if `theta_regs'==1{
 		u "${monopsonies}/dta/coeffs/`etalevelsdate'/lnxi_zrot_`path'.dta", clear
 		keep if samp=="all" & wagevartype=="lndp" & (year==1997 | year== 1991)  & weight=="all"
 	
-		keep cnpj_raiz `mkt' lnemp lnxi_zrot year
+		keep $firmid `mkt' lnemp lnxi_zrot year
 
-		reshape wide ln*, i(cnpj_raiz `mkt') j(year)
+		reshape wide ln*, i($firmid `mkt') j(year)
 		
 		* XXJSF I think this block is computing delta ln L_m as defined at the top of page 26 of Mayara's JMP. We 
 		*	call this chng_Lro and it is the RHS var that is instrumented in the theta regression 
@@ -328,7 +337,7 @@ if `theta_regs'==1{
 		preserve
 			u "${monopsonies}/sas/regsfile_`path'.dta", clear
 			ren ice_dwTRAINS_Hf ice_dwtrains_hf // XX
-			keep `mkt' year ice_dwtrains_hf sum_e sum_e2 mkt_emp mkt_temp hf*
+			keep `mkt' year ice_dwtrains_hf /*sum_e sum_e2*/ mkt_emp mkt_temp hf*
 			keep if year==1991
 			gduplicates drop
 			tempfile market

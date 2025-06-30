@@ -33,7 +33,7 @@ cap mkdir "${monopsonies}/dta/coeffs/${outdate}"
 do "${encrypted}/Felix_JMP/3_analysis/specs_config.do"
 args spec
 di "`spec'"
-if "`spec'"=="" local spec "original"
+if "`spec'"=="" local spec "gamma"
 di "`spec'"
 
 if "`spec'" == "" {
@@ -202,6 +202,7 @@ display "Using path suffix: ${path}"
 	* Sample restrictions 
 
 	* Drop certain mmcs
+	// XX this doesn't seem to actually do anything?
 	//drop if mmc==13007 
 	//merge m:1 mmc using "${public}/other/DK (2017)/ReplicationFiles/Data_other/mmc_drop.dta", keep(3) nogen
 	//drop if mmc_drop==1
@@ -209,17 +210,17 @@ display "Using path suffix: ${path}"
 	* Merge in tariffs so can also restrict to tradables
 	merge m:1 cnae95 using `t_change', keep(1 3) 
 	* XX My hypothesis is that most non-tradable sectors are excluded from the data and thus we need to impute these zeroes. 
-	*replace tradable = 0 	   if _merge==1
-	*replace chng_lnTRAINS = 0 if _merge==1
-	drop _merge
+	//replace chng_lnTRAINS = 0 if _merge==1
 	
 	* Tradable sector dummies (ibgesub only included in TRAINS data at this point)
 	gegen 	ibge				= max(ibgesubsector), by(fakeid_firm)
 	gen 	T 					= (ibge<14 | ibge==25)	
-	drop 	ibgesubsector
 	replace chng_lnTRAINS 		= 0 if T==0
 	replace chng_lnErpTRAINS 	= 0 if T==0
-	
+		
+	drop ibgesubsector _merge
+		
+		
 	* Compute firm baseline share
 	preserve
 		 keep if year == 1991
@@ -317,7 +318,7 @@ display "Using path suffix: ${path}"
 	u "${monopsonies}/sas/eta_changes_regsfile_${path}_${outdate}.dta", clear
 	keep if year == 1997
 
-	//cap drop if inlist(cbo942d,31,22,37) // XXBMS do we want to drop these here? 
+	//drop if inlist(cbo942d,31,22,37) // XXBMS do we want to drop these here? 
 	
 	* Cross-section FEs
 	gegen fe_ro = group(${mkt})

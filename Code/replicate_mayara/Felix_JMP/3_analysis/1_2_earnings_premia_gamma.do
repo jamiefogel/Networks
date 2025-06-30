@@ -163,6 +163,9 @@ if `premia'==1{
 		****************** MMC premia (excl. industry) ****************
 		reghdfe lndecearn female age2-age5 educ2-educ9, absorb(dprem_ro=fe_ro) noconstant
 			
+
+
+			
 		keep if  !missing(dprems_ro) 
 		keep `mkt' dprems_ro dprem_ro davgw_ro 
 		gduplicates drop

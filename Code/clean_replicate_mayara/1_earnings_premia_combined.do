@@ -21,10 +21,12 @@ else{
 
 
 else if c(username)=="p13861161" & c(os)=="Windows" {
-	global encrypted 		"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\clean_replicate_mayara"
+	global encrypted 		"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara"
+	*global encrypted 		"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\clean_replicate_mayara"
 	global dictionaries		"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\raisdictionaries\harmonized"
 	global deIDrais			"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\raisdeidentified"
-	global monopsonies		"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\clean_replicate_mayara\monopsonies"
+	global monopsonies		"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\monopsonies"
+	*global monopsonies		"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\clean_replicate_mayara\monopsonies"
 	global public			"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\publicdata"
 }
 
@@ -61,12 +63,17 @@ local path "${s_`spec'_fs}"
 local _3states "${s_`spec'_3s}"
 
 local mkt "mmc cbo942d"
-local path "mmc_cbo942d"
+local path "mmc_cbo942d_3states"
+local _3states "_3states"
 
 display "Using market variables: `mkt'"
 display "Using path suffix: `path'"
 
+global workerid "fakeid_worker"
+*global workerid "pis"
 
+global firmid "fakeid_firm"
+*global firmid "cnpj_raiz"
 
 * Make folders with output date if they don't yet exist
 cap mkdir "${monopsonies}/csv/`outdate'"
@@ -111,7 +118,7 @@ if `premia'==1{
 	forvalues y=`yearfirst'(1)`yearlast'{
 		di "`y'"
 		u "${monopsonies}/sas/rais_for_earnings_premia`y'_gamma`_3states'.dta", clear
-		isid pis
+		isid $workerid
 		drop if mmc==13007 | mmc==23014
 		
 		* Keep if education category is well-defined
@@ -136,7 +143,7 @@ if `premia'==1{
 		gen educ9 = (educ >=9)
 		
 		gegen double fe_ro = group(`mkt')
-        gegen double fe_zro = group(cnpj_raiz `mkt')
+        gegen double fe_zro = group($firmid `mkt')
 
 		
         **********************************
@@ -178,7 +185,7 @@ if `premia'==1{
 		reghdfe lndecearn female age2-age5 educ2-educ9 , absorb(dprem_zro=fe_zro) noconstant keepsingletons
 
 		keep if !missing(dprem_zro) 
-		keep cnpj_raiz `mkt' dprem_zro davgw_zro
+		keep $firmid `mkt' dprem_zro davgw_zro
 		gduplicates drop
 
 		compress

@@ -60,7 +60,7 @@ else if c(username)=="p13861161" & c(os)=="Unix" {
 
 do "${encrypted}/Felix_JMP/3_analysis/specs_config.do"
 args spec
-if "`spec'"=="" local spec "3states_gamma"
+if "`spec'"=="" local spec "3states_original"
 di "`spec'"
 
 if "`spec'" == "" {

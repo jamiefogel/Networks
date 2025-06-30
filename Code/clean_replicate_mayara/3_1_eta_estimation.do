@@ -11,8 +11,10 @@ set seed 34317154
 
 
 else if c(username)=="p13861161" & c(os)=="Windows" {
-	global encrypted 		"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\clean_replicate_mayara"
-	global monopsonies		"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\clean_replicate_mayara\monopsonies"
+	global encrypted 		"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara"
+	*global encrypted 		"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\clean_replicate_mayara"
+	global monopsonies		"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\monopsonies"
+	*global monopsonies		"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\clean_replicate_mayara\monopsonies"
 	global public			"\\storage6\usuarios\labormkt_rafaelpereira\NetworksGit\Code\replicate_mayara\publicdata"
 }
 
@@ -98,10 +100,17 @@ local path "${s_`spec'_fs}"
 */
 
 local mkt "mmc cbo942d"
-local path "mmc_cbo942d"
+local path "3states_mmc_cbo942d"
+local _3states "_3states"
 
 display "Using market variables: `mkt'"
 display "Using path suffix: `path'"
+
+global workerid "fakeid_worker"
+*global workerid "pis"
+
+global firmid "fakeid_firm"
+*global firmid "cnpj_raiz"
 
 
 
@@ -148,11 +157,11 @@ if `setup'==1{
         ********************************************************
         * 3. Process firm level data and merge on firm earnings premia
 		u "${monopsonies}/sas/rais_collapsed_firm_`path'.dta", clear
-		isid cnpj_raiz `mkt' year
+		isid $firmid `mkt' year
 		keep if inlist(year,`baseyear_p2',`baseyear_p1',`baseyear',`baseyear_o1',`baseyear_o2') // XX This should be unnecessary; data set will only contain base year (1991)
-		merge 1:1 cnpj_raiz `mkt' year using "${monopsonies}/sas/rais_lnearn_premia_firm_`path'_`premiadate'.dta", ///
+		merge 1:1 $firmid `mkt' year using "${monopsonies}/sas/rais_lnearn_premia_firm_`path'_`premiadate'.dta", ///
 		    keepusing(dprem_zro davgw_zro) keep(3) nogen
-		isid cnpj_raiz `mkt' year
+		isid $firmid `mkt' year
 		ren dprem_zro lndp
 		ren davgw_zro lndw
 		
@@ -194,7 +203,7 @@ if `setup'==1{
 		*replace chng_lnTRAINS = 0 if _merge==1
 		drop _merge
 		* Tradable sector dummies (ibgesub only included in TRAINS data at this point)
-		gegen ibge = max(ibgesubsector), by(cnpj_raiz)
+		gegen ibge = max(ibgesubsector), by($firmid)
 		gen T = (ibge<14 | ibge==25)
 
 
@@ -217,20 +226,20 @@ if `setup'==1{
 			 gegen double Tsumemp = sum(emp) if T==1, by(`mkt')
 			 gen double bTeshare = emp/Tsumemp if T==1
 			 
-			 keep cnpj_raiz `mkt' beshare bwshare bTeshare bTwshare 
+			 keep $firmid `mkt' beshare bwshare bTeshare bTwshare 
 			 tempfile shares
 			 sa `shares'
 		restore
         * XX I can't see where any of these shares are actually used here or in 4_1. 
 
 		* Merge in base shares, replacing with zero if firm was not there
-		merge m:1 cnpj_raiz `mkt' using `shares', keep(1 3) nogen
+		merge m:1 $firmid `mkt' using `shares', keep(1 3) nogen
 
 		* Dummy for whether firm-market pair existed in `baseyear'
 		gen double in`baseyear_n'mkt = !missing(beshare)
 
 		* Dummy for whether firm exited in `baseyear'
-		gegen in`baseyear_n' = max(in`baseyear_n'mkt), by(cnpj_raiz)
+		gegen in`baseyear_n' = max(in`baseyear_n'mkt), by($firmid)
 
 		foreach var of varlist beshare bwshare bTeshare bTwshare{
 			replace `var' = 0 if missing(`var')
@@ -247,16 +256,16 @@ if `setup'==1{
         * XX I think this can all be deleted because it flags unique producers within each market but the resulting flag is only used for robustness checks
 		preserve
 			keep if year==`baseyear' & T==1
-			keep cnpj_raiz cnae95 `mkt'
-			bys cnae95 `mkt': gegen producers = count(cnpj_raiz)
+			keep $firmid cnae95 `mkt'
+			bys cnae95 `mkt': gegen producers = count($firmid)
 			keep if producers==1
-			keep cnpj_raiz `mkt'
+			keep $firmid `mkt'
 			
 			gen up`baseyear_n' = 1
 			tempfile unique 
 			sa `unique'
 		restore	
-		merge m:1 cnpj_raiz `mkt' using `unique', keep(1 3) nogen
+		merge m:1 $firmid `mkt' using `unique', keep(1 3) nogen
 
 		replace up`baseyear_n' = 0 if missing(up`baseyear_n')
 
@@ -272,7 +281,7 @@ if `setup'==1{
 		* Log employment
 		gen double lnemp = ln(emp)
 		
-		gegen fe_zro = group(cnpj_raiz `mkt')
+		gegen fe_zro = group($firmid `mkt')
 	
 		di "Long differences"
 		preserve
@@ -311,14 +320,14 @@ if `setup'==1{
 		keep if inlist(year,`baseyear_p2',`baseyear_p1',`baseyear',`baseyear_o1',`baseyear_o2')
 		merge m:1 year fe_zro using `long', keep(1 3) nogen
 		
-		keep 	cnpj_raiz `mkt' year cnae95 ///
+		keep 	$firmid `mkt' year cnae95 ///
 				fe_zro bTwshare bTeshare  bwshare  beshare   ///
 				chng*  T bemp // ice_dwerp ice_dwtrains Tnexplib bexp //up`baseyear_n' up`baseyear_n'mkt
 		
-		order	year fe_zro cnpj_raiz `mkt' cnae95 T bemp //Tnexplib explib  explib   // up`baseyear_n' up`baseyear_n'mkt
+		order	year fe_zro $firmid `mkt' cnae95 T bemp //Tnexplib explib  explib   // up`baseyear_n' up`baseyear_n'mkt
 				
 		compress
-		isid cnpj_raiz year `mkt'
+		isid $firmid year `mkt'
 		saveold "${monopsonies}/sas/eta_changes_regsfile_`path'.dta", replace
 
  /* Close use sample */
@@ -347,7 +356,7 @@ if `eta_regs'==1{
 	//replace chng_lnE = - chng_lnE
 	//replace ice_dwtrains = - ice_dwtrains
 	
-	gen double firm = cnpj_raiz
+	gen double firm = $firmid
 	gen all = 1
 	ren bemp w0
 	
@@ -367,14 +376,14 @@ if `eta_regs'==1{
 	preserve 
 	gen esample = e(sample)
 	keep if esample
-	keep esample cnpj_raiz mmc cbo942d
+	keep esample $firmid mmc cbo942d
 	duplicates drop
 	save "${monopsonies}/dta/coeffs/`outdate'/eta_regs_esample.dta", replace
 	restore
 
 	preserve
 	keep if all==1 & year==1997
-	keep cnpj_raiz `mkt' chng91_lndp chng91_lnemp delta_ro
+	keep $firmid `mkt' chng91_lndp chng91_lnemp delta_ro
 	keep if !missing(delta_ro)
 
 	ren chng91_lndp  chng_wagevar
@@ -395,7 +404,7 @@ restore
 drop delta_ro
 
 local obs = e(N)
-unique cnpj_raiz if e(sample)
+unique $firmid if e(sample)
 local firms = `r(unique)'
 unique `mkt' if e(sample)
 local mkts = `r(unique)'
