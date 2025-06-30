@@ -160,7 +160,6 @@ def get_demos(year, _3states, addl_market_vars = ["gamma","gamma1","gamma_mcmc",
     mask_full = (
         df_rais_full["municipality"].notna() &
         df_rais_full["earningsdecmw"].notna() & (df_rais_full["earningsdecmw"] > 0) &
-        (df_rais_full["admmonth"] != 12) &
         df_rais_full["ibgesubsector"].notna() & (df_rais_full["ibgesubsector"] != 24) &
         df_rais_full["educ"].between(1, 11, inclusive="both") &
         df_rais_full["agegroup"].between(3, 7, inclusive="both")

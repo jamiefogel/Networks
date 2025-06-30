@@ -259,7 +259,7 @@ def misclassification_experiment(reg_df_w_FEs_w_shock, stata_or_python):
     plt.grid(True)
     plt.show()
 
-    return misclassification_ests
+    return misclassification_ests, eta_hat_true, theta_hat_true
 
 
 def run_estimations_for_combinations(data, combinations, stata_or_python='Python'):
@@ -343,6 +343,8 @@ def main():
         # Other market definitions
         (['iota'], ['gamma'], 'panel_iv', None),                    # delta = None
         (['iota'], ['occ2', 'code_micro'], 'panel_iv', None),       # delta = None
+        (['iota'], ['code_micro'], 'panel_iv', None),  
+        (['iota'], ['occ2'], 'panel_iv', None),  
         (['occ2'], ['code_micro'], 'panel_iv', None),               # delta = None
         (['occ2'], ['gamma'], 'panel_iv', None),               # delta = None
     ]
@@ -358,7 +360,35 @@ def main():
 
     ##################
     # Experiment with misclassification
-    misclassification_ests = misclassification_experiment(reg_df_w_FEs_w_shock, stata_or_python)
+    misclassification_ests, eta_hat_true, theta_hat_true = misclassification_experiment(reg_df_w_FEs_w_shock, stata_or_python)
+
+    # Create the plot for elasticity estimates
+    plot_misclassification=True
+    if plot_misclassification==True:
+        
+        plt.rcParams['text.usetex'] = True
+        plt.rcParams['font.size'] = 14
+        plt.rcParams['axes.labelsize'] = 16
+        plt.rcParams['axes.titlesize'] = 16
+        
+        plt.figure(figsize=(12, 6))
+        plt.axhline(y=eta_hat_true, color='b', linestyle=':', label=r'True $\eta$')
+        plt.plot(misclassification_ests['Misclassification_Rate'], misclassification_ests['Estimated_Eta'], 'b-o', label=r'Estimated $\eta$')
+        plt.plot(misclassification_ests['Misclassification_Rate'], misclassification_ests['Theoretical_Eta'], color='darkorange', linestyle=':', linewidth=2.5, label=r'Theoretical $\eta$')
+        plt.axhline(y=theta_hat_true, color='r', linestyle=':', label=r'True $\theta$')
+        plt.plot(misclassification_ests['Misclassification_Rate'], misclassification_ests['Estimated_Theta'], 'r-o', label=r'Estimated $\theta$')
+        plt.plot(misclassification_ests['Misclassification_Rate'], misclassification_ests['Theoretical_Theta'], color='black', linestyle=':', linewidth=2.5, label=r'Theoretical $\theta$')
+        plt.xlabel('Misclassification Rate')
+        plt.ylabel('Elasticity Estimate')
+        #plt.title('Elasticity Estimates vs Misclassification Rate')
+        plt.legend()
+        plt.grid(True)
+        plt.savefig(root + 'Results/market_power/misclassification_simulations.pdf', format='pdf')
+        plt.show()
+    
+
+
+
 
 
     #####################################
@@ -429,11 +459,12 @@ def main():
     plt.hist(values_wrong_params_mkt, bins=bin_edges - offset*2, weights=weights, alpha=0.5, label='Wrong Params, Market', color='orange', edgecolor='black')
     
     # Add labels, title, and legend
-    plt.title('Weighted Histograms with Transparency', fontsize=14)
-    plt.xlabel('Values', fontsize=12)
-    plt.ylabel('Weighted Frequency', fontsize=12)
-    plt.legend(fontsize=12)
+    #plt.title('Weighted Histograms with Transparency', fontsize=14)
+    plt.xlabel('Markdown')
+    plt.ylabel('Weighted Frequency')
+    plt.legend()
     plt.grid(axis='y', alpha=0.75)
+    plt.yscale('log')
     plt.show()
     
     
@@ -441,26 +472,89 @@ def main():
     
     #################
     # Log scale on y-axis
-    
-    # Adjust bin edges slightly for better separation
-    offset = (bin_edges[1] - bin_edges[0]) * 0.1
-    
-    plt.figure(figsize=(10, 6))
-    plt.hist(values_right_params_gamma, bins=bin_edges, weights=weights, alpha=0.5, label='Right Params, Gamma', color='blue', edgecolor='black')
-    plt.hist(values_wrong_params_gamma, bins=bin_edges + offset, weights=weights, alpha=0.5, label='Wrong Params, Gamma', color='red', edgecolor='black')
-    plt.hist(values_right_params_mkt, bins=bin_edges - offset, weights=weights, alpha=0.5, label='Right Params, Market', color='green', edgecolor='black')
-    plt.hist(values_wrong_params_mkt, bins=bin_edges, weights=weights, alpha=0.5, label='Wrong Params, Market', color='orange', edgecolor='black')
-    
-    # Add log scale to y-axis
-    plt.yscale('log')
-    
-    # Add labels, title, and legend
-    plt.title('Weighted Histograms with Transparency (Log Scale)', fontsize=14)
-    plt.xlabel('Values', fontsize=12)
-    plt.ylabel('Weighted Frequency (Log Scale)', fontsize=12)
-    plt.legend(fontsize=12)
-    plt.grid(axis='y', alpha=0.75)
-    plt.show()
+    if 1==1:   
+        
+        
+        plt.rcParams['text.usetex'] = True
+        plt.rcParams['font.size'] = 14
+        plt.rcParams['axes.labelsize'] = 16
+        plt.rcParams['axes.titlesize'] = 16
+        
+        bin_edges = np.histogram_bin_edges(np.concatenate([values_right_params_gamma, values_wrong_params_gamma, values_right_params_mkt, values_wrong_params_mkt]), bins=30)
+        # Adjust bin edges slightly for better separation
+        offset = (bin_edges[1] - bin_edges[0]) * 0.1
+        
+        plt.figure(figsize=(10, 6))
+        plt.hist(values_right_params_gamma, bins=bin_edges, weights=weights, alpha=0.5, label='Right Params, Gamma', color='blue', edgecolor='black')
+        plt.hist(values_wrong_params_gamma, bins=bin_edges + offset, weights=weights, alpha=0.5, label='Wrong Params, Gamma', color='red', edgecolor='black')
+        plt.hist(values_right_params_mkt, bins=bin_edges - offset, weights=weights, alpha=0.5, label='Right Params, Market', color='green', edgecolor='black')
+        plt.hist(values_wrong_params_mkt, bins=bin_edges, weights=weights, alpha=0.5, label='Wrong Params, Market', color='orange', edgecolor='black')
+        
+        # Add log scale to y-axis
+        plt.yscale('log')
+        
+        # Add labels, title, and legend
+        #plt.title('Weighted Histograms with Transparency (Log Scale)', fontsize=14)
+        plt.xlabel('Markdown')
+        plt.ylabel('Weighted Frequency (Log Scale)')
+        plt.legend()
+        plt.grid(axis='y', alpha=0.75)
+        plt.savefig(root + 'Results/market_power/markdown_hist.pdf', format='pdf')
+        plt.show()
+
+    ########
+    # 1 x 2 plots, log scale
+    if 1==1:   
+        
+        
+        plt.rcParams['text.usetex'] = True
+        plt.rcParams['font.size'] = 14
+        plt.rcParams['axes.labelsize'] = 16
+        plt.rcParams['axes.titlesize'] = 16        
+        
+        bin_edges = np.histogram_bin_edges(np.concatenate([values_right_params_gamma, values_wrong_params_gamma, values_right_params_mkt, values_wrong_params_mkt]), bins=30)
+        # Adjust bin edges slightly for better separation
+        offset = (bin_edges[1] - bin_edges[0]) * 0.1
+        fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(14, 6), sharey=True)
+        # Turn on/off log scale
+        log = True
+        # Gamma panel
+        axes[0].hist(values_right_params_gamma, bins=bin_edges, weights=weights,
+                     alpha=0.5, label='Right Params, Gamma', color='blue', edgecolor='black', log=log)
+        axes[0].hist(values_wrong_params_gamma, bins=bin_edges-offset, weights=weights,
+                     alpha=0.5, label='Wrong Params, Gamma', color='red', edgecolor='black', log=log)
+        axes[0].set_title('Gamma')
+        axes[0].set_xlabel('Markdown')
+        axes[0].set_ylabel('Weighted Frequency (Log Scale)')
+        axes[0].legend()
+        axes[0].grid(axis='y', alpha=0.75)
+        
+        # Market panel
+        axes[1].hist(values_right_params_mkt, bins=bin_edges, weights=weights,
+                     alpha=0.5, label='Right Params, Administrative', color='green', edgecolor='black', log=log)
+        axes[1].hist(values_wrong_params_mkt, bins=bin_edges-offset, weights=weights,
+                     alpha=0.5, label='Wrong Params, Administrative', color='orange', edgecolor='black', log=log)
+        axes[1].set_title('Administrative')
+        axes[1].set_xlabel('Markdown Elasticity')
+        axes[1].legend()
+        axes[1].grid(axis='y', alpha=0.75)
+        
+        #plt.suptitle('Weighted Histograms by Parameter Type', fontsize=16)
+        plt.tight_layout(rect=[0, 0, 1, 0.95])
+        plt.savefig(root + 'Results/market_power/markdown_hist_2x1.pdf', format='pdf')
+        plt.show()
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

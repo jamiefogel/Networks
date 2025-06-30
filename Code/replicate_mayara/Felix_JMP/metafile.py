@@ -97,19 +97,20 @@ specs = [
 # Define which scripts to run
 # Upstream Python scripts (to run once) and spec-dependent scripts.
 '''
-        
-        
-        
-'''
-run_configs = {
-    "python_scripts": [
-        "rais_010_annual_files_20210802_w_sbm.py",
+XX I don't think we actually need to run these because I don't think their output is used anywhere in the eta/theta estimation pipeline
+
         "rais_020_earliest_estab_location.py", 
         "rais_020_municipality_changes.py", 
-        "rais_020_earliest_worker_characteristic_20200715.py", 
+        "rais_020_earliest_worker_characteristic_20200715.py",         
+        
+        
+        "rais_010_annual_files_20210802_w_sbm.py",
         "rais_020_earliest_firm_cnae.py",
         "rais_030_for_earnings_premia_gamma.py",
         "rais_040_firm_collapsed_gamma.py", 
+'''
+run_configs = {
+    "python_scripts": [
         "rais_050_market_collapsed_v2_gamma.py"
         
     ],
@@ -260,8 +261,6 @@ if __name__ == '__main__':
     
 # Command line usage:
 # python metafile.py --run_python --run_stata --specs gamma
-
-# parallel --jobs 4 python metafile.py --run_python --run_stata --specs ::: gamma  original 3states_gamma 3states_original 3states_gamma1 3states_gamma_mcmc 3states_gamma1_mcmc 3states_gamma_7500 3states_gamma1_7500 3states_gamma_7500_mcmc 3states_gamma1_7500_mcmc
 
 '''
 echo "3states_gamma 3states_original 3states_gamma1 3states_gamma_mcmc 3states_gamma1_mcmc 3states_gamma_7500 3states_gamma1_7500 3states_gamma_7500_mcmc 3states_gamma1_7500_mcmc" | xargs -n 1 -P 4 -I {} python metafile.py  --run_stata --specs {}

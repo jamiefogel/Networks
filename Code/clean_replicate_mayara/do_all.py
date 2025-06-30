@@ -210,11 +210,11 @@ worker._merge_iota.value_counts()
 worker = worker.merge(wblocks_3states, on='wid', how='outer', validate='m:1', indicator='_merge_iota_3states')
 worker._merge_iota_3states.value_counts()
 
-print(pd.crosstab(worker.state, worker._merge_gamma))
-print(pd.crosstab(worker.state, worker._merge_iota))
+print(pd.crosstab(worker.state, worker._merge_gamma_3states))
+print(pd.crosstab(worker.state, worker._merge_iota_3states))
 
+worker = worker.loc[(worker._merge_gamma!='right') & (worker._merge_iota!='right')]
 worker.to_stata(OUTPUT_DIR + f"/worker_level.dta")
-
 
 
 '''

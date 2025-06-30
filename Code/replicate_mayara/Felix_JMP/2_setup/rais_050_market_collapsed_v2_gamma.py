@@ -177,6 +177,10 @@ def process_level2(
         out['ice_dwKume']      = ((earnd / sum_e)     * c_kume).sum()
         out['ice_dwTRAINS_Hf'] = ((earnd2 / sum_e2)   * c_train).sum()
         out['iceT_dwTRAINS']   = ((tearnd / sum_t)    * c_train).sum()
+        out['sum_e']            = sum_e
+        out['sum_e2']           = sum_e2
+        out['sum_emp']          = sum_emp
+        out['sum_t']            = sum_t
         return pd.Series(out)
 
     group_ice = market_vars
