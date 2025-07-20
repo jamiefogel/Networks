@@ -486,6 +486,68 @@ class bisbm():
             
             
             
+    ###############################################################
+    # Posterior vertex–block probabilities (“soft assignments”)
+    # https://chatgpt.com/share/687d7877-0468-800d-a730-3de2bf5a0231
+    ###############################################################
+    def collect_soft_assignments(self,
+                                 nsweeps      = 5000,
+                                 burnin       = 1000,
+                                 thin         = 10,
+                                 beta         = 1.0,
+                                 reuse_mcmc   = True,
+                                 verbose      = True):
+        """
+        After the SBM is fitted (self.state), sample the posterior
+        partition with MCMC and return a vertex‑property map P[v][r]
+        whose entries sum to one for every vertex v.
+
+        Parameters
+        ----------
+        nsweeps  : int   – number of *recorded* sweeps **after** burn‑in
+        burnin   : int   – initial sweeps discarded
+        thin     : int   – collect marginals every `thin` sweeps
+        beta     : float – inverse temperature (β=1 ⇒ exact posterior)
+        reuse_mcmc : bool – if True and self.state_mcmc exists, keep using it
+        """
+        if self.state is None:
+            raise RuntimeError("Run fit() first!")
+
+        # 1. Get a chain to sample from
+        if reuse_mcmc and self.state_mcmc is not None:
+            st = self.state_mcmc
+        else:
+            st = self.state.copy()          # preserves clabel, deg‑corr, etc.
+            self.state_mcmc = st
+
+        # 2. Burn‑in
+        for _ in range(burnin):
+            st.multiflip_mcmc_sweep(beta=beta, niter=1)
+
+        # 3. Initialise / accumulate vertex marginals
+        pv = None
+        recorded = 0
+        total    = nsweeps * thin
+        for it in range(total):
+            st.multiflip_mcmc_sweep(beta=beta, niter=1)
+            if (it % thin) == 0:             # thinning
+                pv = st.collect_vertex_marginals(pv)  # Graph‑Tool API
+                recorded += 1
+                if verbose and recorded % 500 == 0:
+                    print(f"... {recorded}/{nsweeps} samples collected")
+
+        # 4. Normalise counts to probabilities
+        probs = pv.copy("double")
+        for v in self.g.vertices():
+            s = pv[v].a.sum()
+            if s > 0:
+                probs[v].a = pv[v].a / s
+
+        self.vertex_soft_probs = probs  # stash for later use
+        return probs
+
+            
+            
 '''
 #Code to plot entropy improvmenet from MCMC sweeps
 
