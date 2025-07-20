@@ -491,122 +491,93 @@ class bisbm():
     # Posterior vertex–block probabilities (“soft assignments”)
     # https://chatgpt.com/share/687d7877-0468-800d-a730-3de2bf5a0231
     ###############################################################
+    def _save_checkpoint(self, path: str, sweep_no: int, entropy: float, pv):
+        """Overwrite the single‑file checkpoint."""
+        # Serialise pv via graph‑tool’s internal routine -> bytes object
+        pv_bytes = gt.serialization.dumps_dict({"pv": pv})
+        # Grab block labels (1‑D NumPy array) – enough to rebuild state
+        labels = self.state_mcmc.get_blocks().a.copy()
+        meta = dict(sweep_no=sweep_no,
+                    entropy=entropy,
+                    pv_bytes=pv_bytes,
+                    labels=labels)
+        with open(path, "wb") as fh:
+            pickle.dump(meta, fh, protocol=pickle.HIGHEST_PROTOCOL)
+
+    def _load_checkpoint(self, path: str):
+        """Return (sweep_no, entropy, pv, rebuilt_state) from file."""
+        with open(path, "rb") as fh:
+            meta = pickle.load(fh)
+        pv     = gt.serialization.loads_dict(meta["pv_bytes"])["pv"]
+        labels = meta["labels"]
+        # Rebuild a BlockState from stored labels (cheap)
+        st = gt.BlockState(self.g, b=labels, deg_corr=True, clabel=self.g.vp.type)
+        return meta["sweep_no"], meta["entropy"], pv, st
+
+    # ──────────────────────────────────────────────────────────────
     def collect_soft_assignments(self,
-                                 nsweeps: int = 5000,
-                                 burnin: int = 1000,
+                                 nsweeps: int = 1200,
+                                 burnin: int = 300,
                                  thin: int = 10,
                                  beta: float = 1.0,
-                                 reuse_mcmc: bool = True,
+                                 checkpoint_path: str = "soft_assignment_ckpt.pkl",
                                  checkpoint_every: int = 5,
-                                 checkpoint_dir: str = "soft_assignment_ckpts",
+                                 resume: bool = False,
                                  verbose: bool = True):
-        """Sample posterior partitions and build vertex–block soft assignments.
-
-        Parameters
-        ----------
-        nsweeps : int
-            Number of *recorded* sweeps (after burn‑in & thinning).
-        burnin : int
-            Initial sweeps discarded before collecting marginals.
-        thin : int
-            Record marginals every ``thin`` sweeps.
-        beta : float
-            Inverse temperature; ``beta=1`` samples the exact posterior.
-        reuse_mcmc : bool
-            If ``True`` and ``self.state_mcmc`` exists, continue that chain.
-        checkpoint_every : int
-            Save histogram & state every N *recorded* samples.
-        checkpoint_dir : str
-            Folder where checkpoints are written.
-        verbose : bool
-            Print progress messages.
-
-        Side effects
-        ------------
-        Creates / updates ``self.vertex_soft_probs`` (PropertyMap) and
-        writes checkpoints so the run can be resumed after interruption.
-        """
+        """Posterior vertex‑block probabilities with *single‑file* checkpoint."""
         if self.state is None:
-            raise RuntimeError("Run fit() before soft‑assignment sampling.")
+            raise RuntimeError("Run fit() first!")
 
-        # ------------------------------------------------------------------
-        # 0.  Directory setup & helpers
-        # ------------------------------------------------------------------
-        os.makedirs(checkpoint_dir, exist_ok=True)
-
-        def _save_checkpoint(sample_id: int, pv, st):
-            """Persist sampler state + marginal histogram."""
-            ts = int(time.time())
-            # Graph‑Tool native save formats (compressed)
-            state_file = os.path.join(checkpoint_dir, f"state_{sample_id:06d}_{ts}.gt.gz")
-            pv_file    = os.path.join(checkpoint_dir, f"pv_{sample_id:06d}_{ts}.pm.gz")
-            st.save(state_file)
-            pv.save(pv_file)
-            # small JSON manifest (human‑readable)
-            meta = {
-                "sample_id": sample_id,
-                "timestamp": ts,
-                "beta": beta,
-                "burnin": burnin,
-                "thin": thin,
-                "entropy": float(st.entropy())
-            }
-            with open(os.path.join(checkpoint_dir, f"meta_{sample_id:06d}.json"), "w") as fh:
-                json.dump(meta, fh)
-
-        # ------------------------------------------------------------------
-        # 1.  Obtain / set up the sampling chain
-        # ------------------------------------------------------------------
-        if reuse_mcmc and getattr(self, "state_mcmc", None) is not None:
-            st = self.state_mcmc
+        # ── Initialise / resume  ──────────────────────────────────
+        start_sweep = 0
+        pv = None
+        if resume and os.path.exists(checkpoint_path):
+            start_sweep, _, pv, self.state_mcmc = self._load_checkpoint(checkpoint_path)
+            if verbose:
+                print(f"[Resume] loaded checkpoint at sweep {start_sweep}")
         else:
-            st = self.state.copy()
-            self.state_mcmc = st  # cache for future calls
+            # Fresh sampling chain
+            self.state_mcmc = self.state.copy()
 
-        # ------------------------------------------------------------------
-        # 2.  Burn‑in phase
-        # ------------------------------------------------------------------
-        for _ in range(burnin):
+        st = self.state_mcmc
+
+        # ── Burn‑in  ──────────────────────────────────────────────
+        burn_target = max(0, burnin - start_sweep)
+        if burn_target and verbose:
+            print(f"[Burn‑in] extra {burn_target} sweeps to reach {burnin} total")
+        for _ in range(burn_target):
             st.multiflip_mcmc_sweep(beta=beta, niter=1)
+            start_sweep += 1
 
-        # ------------------------------------------------------------------
-        # 3.  Sampling + marginal accumulation
-        # ------------------------------------------------------------------
-        pv = None  # histogram property map
+        # ── Sampling  ────────────────────────────────────────────
         recorded = 0
-        total_sweeps = nsweeps * thin
-        for sweep in range(total_sweeps):
+        needed_recordings = nsweeps // thin
+        while recorded < needed_recordings:
             st.multiflip_mcmc_sweep(beta=beta, niter=1)
+            start_sweep += 1
 
-            if (sweep % thin) == 0:
+            if start_sweep % thin == 0:
                 pv = st.collect_vertex_marginals(pv)
                 recorded += 1
 
-                # checkpoint
-                if (recorded % checkpoint_every) == 0:
-                    _save_checkpoint(recorded, pv, st)
+                # Checkpoint?
+                if recorded % checkpoint_every == 0:
+                    self._save_checkpoint(checkpoint_path, start_sweep, st.entropy(), pv)
+                    if verbose:
+                        print(f"[Checkpoint] sweep {start_sweep}, recorded {recorded}/{needed_recordings}")
 
-                if verbose and (recorded % 50 == 0):
-                    print(f"[SoftAssign] recorded {recorded}/{nsweeps} samples | H= {st.entropy():.2f}")
-
-        # ------------------------------------------------------------------
-        # 4.  Normalise to probabilities
-        # ------------------------------------------------------------------
+        # ── Final normalisation  ─────────────────────────────────
         probs = pv.copy("double")
         for v in self.g.vertices():
-            denom = pv[v].a.sum()
-            if denom > 0:
-                probs[v].a = pv[v].a / denom
-
+            s = pv[v].a.sum()
+            if s:
+                probs[v].a = pv[v].a / s
         self.vertex_soft_probs = probs
-        # final checkpoint (guaranteed to reflect full run)
-        _save_checkpoint(recorded, pv, st)
-
+        # Final save (overwrite once more so we have complete run)
+        self._save_checkpoint(checkpoint_path, start_sweep, st.entropy(), pv)
         if verbose:
-            print("[SoftAssign] Completed sampling. Probabilities stored in self.vertex_soft_probs.")
+            print("[Done] soft assignments collected and checkpoint saved")
         return probs
-
-
             
             
 '''
