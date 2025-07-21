@@ -459,31 +459,32 @@ class bisbm():
         self.iota_mean_earnings=iota_mean_earnings
 
 
-    def mcmc_sweeps(self, savefile, tempsavedir='./', numiter=1000, seed=734):
+    def mcmc_sweeps(self, savefile, tempsavedir='./', numiter=1000, seed=734,
+                    checkpoint_every=10, entropy_every=1):
         print('Starting MCMC sweeps at ', datetime.datetime.now())
         gt.seed_rng(seed)
         self.state_mcmc = self.state.copy()
         
-        entropy = []
-        entropy.append(self.state_mcmc.entropy())
-
+        entropy = [self.state_mcmc.entropy()]
         t0 = datetime.datetime.now()
-
-        for i in range(numiter): # this should be sufficiently large
-            print(i)
-            self.state_mcmc.multiflip_mcmc_sweep(beta=np.inf, niter=5)
+    
+        for i in range(numiter):
+            self.state_mcmc.multiflip_mcmc_sweep(beta=np.inf, niter=1)
             entropy.append(self.state_mcmc.entropy())
-            pickle.dump(entropy, open(tempsavedir + 'entropy.p', "wb" ) )
-            print("Cumulative Improvement (%): ", round(((entropy[0] - entropy[-1])/entropy[0]) *100, 4))
-            print("Marginal Improvement (%): ", round(((entropy[-2] - entropy[-1])/entropy[-2]) *100, 4))
-            print("Time spent: ", datetime.datetime.now()-t0)
-
-            # Create a temporary filename with a random suffix
-            temp_filename = os.path.join(tempsavedir, 'tmp_state_mcmc_iters_' + uuid.uuid4().hex + '.p')
-            pickle.dump([self.state_mcmc, i, entropy], open(temp_filename, "wb"))
-            os.rename(temp_filename, savefile)
-            
-            
+    
+            if i % entropy_every == 0:
+                # Entropy saving is lightweight
+                with open(os.path.join(tempsavedir, 'entropy.p'), "wb") as ef:
+                    pickle.dump(entropy, ef)
+    
+            if (i+1) % checkpoint_every == 0 or i == numiter-1:
+                # Periodically save full state (heavy), ideally every 3-5 iterations
+                temp_filename = os.path.join(tempsavedir, f'tmp_state_mcmc_{uuid.uuid4().hex}.p')
+                pickle.dump([self.state_mcmc, i, entropy], open(temp_filename, "wb"))
+                os.rename(temp_filename, savefile)
+    
+            if i % entropy_every == 0:
+                print(f"Iter {i}: Entropy = {entropy[-1]:.2f}, Time elapsed: {datetime.datetime.now() - t0}")
             
             
             
@@ -515,7 +516,7 @@ class bisbm():
         return meta["sweep_no"], meta["entropy"], pv, st
 
     # ──────────────────────────────────────────────────────────────
-    def collect_soft_assignments(self,
+    def collect_soft_assignments(self, *,
                                  nsweeps: int = 1200,
                                  burnin: int = 300,
                                  thin: int = 10,
@@ -524,60 +525,79 @@ class bisbm():
                                  checkpoint_every: int = 5,
                                  resume: bool = False,
                                  verbose: bool = True):
-        """Posterior vertex‑block probabilities with *single‑file* checkpoint."""
+        """
+        Collect posterior vertex–block probabilities, saving a *label‑aligned,
+        normalised* probability map every `checkpoint_every` recordings.
+        """
+    
         if self.state is None:
             raise RuntimeError("Run fit() first!")
-
-        # ── Initialise / resume  ──────────────────────────────────
-        start_sweep = 0
-        pv = None
-        if resume and os.path.exists(checkpoint_path):
-            start_sweep, _, pv, self.state_mcmc = self._load_checkpoint(checkpoint_path)
-            if verbose:
-                print(f"[Resume] loaded checkpoint at sweep {start_sweep}")
-        else:
-            # Fresh sampling chain
-            self.state_mcmc = self.state.copy()
-
-        st = self.state_mcmc
-
-        # ── Burn‑in  ──────────────────────────────────────────────
-        burn_target = max(0, burnin - start_sweep)
-        if burn_target and verbose:
-            print(f"[Burn‑in] extra {burn_target} sweeps to reach {burnin} total")
-        for _ in range(burn_target):
-            st.multiflip_mcmc_sweep(beta=beta, niter=1)
-            start_sweep += 1
-
-        # ── Sampling  ────────────────────────────────────────────
-        recorded = 0
-        needed_recordings = nsweeps // thin
-        while recorded < needed_recordings:
-            st.multiflip_mcmc_sweep(beta=beta, niter=1)
-            start_sweep += 1
-
-            if start_sweep % thin == 0:
-                pv = st.collect_vertex_marginals(pv)
-                recorded += 1
-
-                # Checkpoint?
-                if recorded % checkpoint_every == 0:
-                    self._save_checkpoint(checkpoint_path, start_sweep, st.entropy(), pv)
-                    if verbose:
-                        print(f"[Checkpoint] sweep {start_sweep}, recorded {recorded}/{needed_recordings}")
-
-        # ── Final normalisation  ─────────────────────────────────
+    
+        gt.seed_rng(42)
+        state_mcmc = self.state.copy()
+    
+        # ── Burn‑in ─────────────────────────────────────────────────
+        if verbose:
+            print(f"[Burn‑in] {burnin} sweeps at β={beta}")
+        gt.mcmc_equilibrate(state_mcmc,
+                            wait=burnin,
+                            mcmc_args=dict(niter=1, beta=beta))
+    
+        # ── Sampling setup ─────────────────────────────────────────
+        bs = []                                          # collected partitions
+        total_rec = nsweeps // thin                      # # recorded partitions
+    
+        if verbose:
+            print(f"[Sampling] {nsweeps} sweeps, thin={thin}, "
+                  f"checkpt every {checkpoint_every} recs, β={beta}")
+    
+        # ── Sampling loop ──────────────────────────────────────────
+        for rec in range(1, total_rec + 1):
+            gt.mcmc_equilibrate(state_mcmc,
+                                force_niter=thin,
+                                mcmc_args=dict(niter=1, beta=beta))
+            bs.append(state_mcmc.b.a.copy())
+    
+            # periodic checkpoint with full alignment + normalisation
+            if rec % checkpoint_every == 0 or rec == total_rec:
+                pmode_ck = gt.PartitionModeState(bs, converge=True)
+                pv_ck = pmode_ck.get_marginal(self.g)
+    
+                # per‑vertex normalisation
+                probs_ck = pv_ck.copy("double")
+                for v in self.g.vertices():
+                    s = probs_ck[v].a.sum()
+                    if s:
+                        probs_ck[v].a /= s
+    
+                # lightweight save
+                with open(checkpoint_path, "wb") as f:
+                    pickle.dump(probs_ck, f)
+    
+                if verbose:
+                    print(f"[Checkpoint] {rec}/{total_rec} recorded "
+                          f"(saved normalised pv)")
+    
+        # ── Final result ───────────────────────────────────────────
+        pmode = gt.PartitionModeState(bs, converge=True)
+        pv = pmode.get_marginal(self.g)
+    
         probs = pv.copy("double")
         for v in self.g.vertices():
-            s = pv[v].a.sum()
+            s = probs[v].a.sum()
             if s:
-                probs[v].a = pv[v].a / s
+                probs[v].a /= s
+    
         self.vertex_soft_probs = probs
-        # Final save (overwrite once more so we have complete run)
-        self._save_checkpoint(checkpoint_path, start_sweep, st.entropy(), pv)
+    
+        # overwrite checkpoint with final probabilities
+        with open(checkpoint_path, "wb") as f:
+            pickle.dump(probs, f)
         if verbose:
-            print("[Done] soft assignments collected and checkpoint saved")
+            print("[Done] soft assignments aligned, normalised and saved.")
+    
         return probs
+
             
             
 '''
