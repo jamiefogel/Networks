@@ -37,23 +37,21 @@ for year in range(first_year, last_year + 1):
     fpath = f"{monopsas_path}/rais{year}{_3states}.parquet"
     if not os.path.exists(fpath):
         print(f"Warning: RAIS file for {year} not found - skipping.")
-        continue
-    
+        continue    
     if year < 1995:
         # cnaeclass95 doesn't exist pre-1995
         df = pd.read_parquet(fpath, columns=["fakeid_firm"]).drop_duplicates()
         df["cnae95"] = np.nan
     else:
         # Post-1995
-        cols = ["fakeid_firm", "cnaeclass95"]
+        cols = ["fakeid_firm", "clas_cnae"]  # XX edited this on 8/4
         # read cnaeclass95 if it exists
         try:
             df = pd.read_parquet(fpath, columns=cols).drop_duplicates()
-            df = df.rename(columns={"cnaeclass95": "cnae95"})
+            df = df.rename(columns={"clas_cnae": "cnae95"})  # XX edited this on 8/4
         except Exception as e:
             print(f"Could not read cnaeclass95 for {year} - skipping.")
             continue
-    
     df["year"] = year
     all_firms_list.append(df)
 
@@ -67,6 +65,7 @@ valid_cnae95_codes = valid_cnae95["cnae95"].unique()
 # In SAS we do an inner join on cnae95 with valid_cnae95.
 # But remember cnae95 can be NA for < 1995, so those won't match.
 df_valid = all_firms.dropna(subset=["cnae95"])
+df_valid['cnae95'] = df_valid['cnae95'].astype('Int64') # XX added this on 8/4
 df_valid = df_valid[df_valid["cnae95"].isin(valid_cnae95_codes)]
 
 # Combine valid-cnae rows

@@ -371,8 +371,10 @@ def process_level2(
 
 # --------------------------------------------------------------------
 if __name__ == "__main__":
-    
-    chosen_spec, market_vars, file_suffix, _3states = parse_spec(root)
+
+    market_vars = ['mmc','cbo942d']
+    _3states='_3states'
+    file_suffix = "3states_mmc_cbo942d"
     
     # Original version (markets = mmc + cbo942d)
     process_level2(

@@ -103,16 +103,17 @@ XX I don't think we actually need to run these because I don't think their outpu
         "rais_020_municipality_changes.py", 
         "rais_020_earliest_worker_characteristic_20200715.py",         
         
-        
+
         "rais_010_annual_files_20210802_w_sbm.py",
-        "rais_020_earliest_firm_cnae.py",
-        "rais_030_for_earnings_premia_gamma.py",
-        "rais_040_firm_collapsed_gamma.py", 
+
+
 '''
 run_configs = {
     "python_scripts": [
-        "rais_050_market_collapsed_v2_gamma.py"
-        
+        "rais_020_earliest_firm_cnae.py",
+        "rais_030_for_earnings_premia_gamma.py",
+        "rais_040_firm_collapsed_gamma.py", 
+        "rais_050_market_collapsed_v2_gamma.py"    
     ],
     "stata_scripts": [
         # List only the spec-dependent do files you want to run in this batch.

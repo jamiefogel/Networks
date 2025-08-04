@@ -22,7 +22,7 @@ else if c(username)=="p13861161" & c(os)=="Unix" {
 }
 
 * Set ${outdate} macro
-global outdate = 20250407
+global outdate = 20250804
 
 * Make folders with output date if they don't yet exist
 cap mkdir "${monopsonies}/csv/${outdate}"
@@ -33,7 +33,7 @@ cap mkdir "${monopsonies}/dta/coeffs/${outdate}"
 do "${encrypted}/Felix_JMP/3_analysis/specs_config.do"
 args spec
 di "`spec'"
-if "`spec'"=="" local spec "gamma"
+if "`spec'"=="" local spec "3states_original"
 di "`spec'"
 
 if "`spec'" == "" {
@@ -44,7 +44,7 @@ if "`spec'" == "" {
 cap log close
 local date = subinstr("`c(current_date)'", " ", "_", .)
 local time = subinstr("`c(current_time)'", ":", "_", .)
-log   using "${encrypted}/logs/1_3_earnings_premia_gamma_`spec'_`date'_`time'.log", replace
+log   using "${encrypted}/logs/stata_combined_new_`spec'_`date'_`time'.log", replace
 
 * Retrieve the market variables and file suffix based on the spec
 global mkt 		"${s_`spec'_mv}"
@@ -188,6 +188,7 @@ display "Using path suffix: ${path}"
 	sa `market'
 
 	u "${monopsonies}/sas/rais_collapsed_firm_${path}.dta", clear
+	 destring ibgesubsector , replace
 	isid fakeid_firm ${mkt} year
 	keep if inlist(year,1991,1997)
 	
