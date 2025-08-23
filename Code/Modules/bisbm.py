@@ -190,106 +190,6 @@ class bisbm():
 
 
 
-
-
-    #################################################################################
-    #
-    #################################################################################
-    '''
-    def export_blocks(self, output=None, joutput=None, woutput=None, max_level=None, export_mcmc=False):
-
-        df = pd.DataFrame({
-            'worker_node': self.g.vp.kind.a.astype(np.int8),  # 0/1 flag
-            'id_py': self.g.vp.ids_py.a,
-            'id': self.g.vp.ids.get_2d_array([0]).flatten()
-        })
-        num_job_blocks = []
-        num_worker_blocks = []
-        mlevel = self.L if max_level is None else max_level + 1
-
-      
-
-        # Loop over levels and compute new block IDs using efficient numpy operations.
-        for l in range(mlevel):
-            # Select the state to use
-            if not export_mcmc:
-                blocks = self.state.project_level(l).get_blocks().a
-            else:
-                blocks = self.state_mcmc.project_level(l).get_blocks().a
-            blocks = np.asarray(blocks, dtype=np.int32)
-            
-            # Use numpy arrays to avoid grouping the entire DataFrame:
-            worker_arr = df['worker_node'].to_numpy(dtype=np.int8)
-            new_ids = np.empty_like(blocks, dtype=np.int32)
-    
-            # For job nodes (worker_node==0): factorize and assign new IDs.
-            job_mask = worker_arr == 0
-            job_ids, job_uniques = pd.factorize(blocks[job_mask])
-            new_ids[job_mask] = job_ids.astype(np.int32)
-            
-            # For worker nodes (worker_node==1): factorize and offset by number of unique job groups.
-            worker_mask = ~job_mask
-            worker_ids, worker_uniques = pd.factorize(blocks[worker_mask])
-            new_ids[worker_mask] = worker_ids.astype(np.int32) + len(job_uniques)
-    
-            # Record block counts (the new numbering ensures job groups come first)
-            njb = len(job_uniques)
-            nwb = len(worker_uniques)
-            num_job_blocks.append(njb)
-            num_worker_blocks.append(nwb)
-            print(f'Level {l}: Num job blocks {njb}; Num worker blocks {nwb}')
-    
-            # Instead of concatenating, simply add a new column for this level
-            df[f'blocks_level_{l}'] = new_ids
-    
-            # Free temporary arrays
-            del blocks, new_ids
-            
-        # Separate vertex info into job and worker blocks
-        job_blocks = df.loc[df['worker_node'] == 0].copy().drop(columns=['worker_node'])
-        job_blocks.rename(columns={"id": "jid", "id_py": "jid_py"}, inplace=True)
-        job_blocks = job_blocks.rename(columns=lambda cname: "job_" + cname if cname not in ["jid", "jid_py"] else cname)
-    
-        worker_blocks = df.loc[df['worker_node'] == 1].copy().drop(columns=['worker_node'])
-        worker_blocks.rename(columns={"id": "wid", "id_py": "wid_py"}, inplace=True)
-        worker_blocks = worker_blocks.rename(columns=lambda cname: "worker_" + cname if cname not in ["wid", "wid_py"] else cname)
-    
-        # Merge job and worker block assignments into the original edgelist.
-        # Using copy=False when possible to reduce memory overhead.
-        edgelist_w_blocks = self.edgelist.merge(job_blocks, on='jid_py', validate='m:1', copy=False)
-        edgelist_w_blocks = edgelist_w_blocks.merge(worker_blocks, on='wid_py', validate='m:1', copy=False)
-        edgelist_w_blocks.drop(columns=['wid_y', 'jid_y'], inplace=True)
-        edgelist_w_blocks.rename(columns={'wid_x': 'wid', 'jid_x': 'jid'}, inplace=True)
-        self.edgelist_w_blocks = edgelist_w_blocks
-    
-        self.num_job_blocks = num_job_blocks
-        self.num_worker_blocks = num_worker_blocks
-
-        if output is not None:
-            if output.endswith(".csv"):
-                edgelist_w_blocks.to_csv(output, index=False)
-            elif output.endswith(".parquet"):
-                edgelist_w_blocks.to_parquet(output)
-            elif output.endswith(".p"):
-                pickle.dump( edgelist_w_blocks, open(output, "wb" ) )
-                #edgelist_w_blocks.to_pickle(output)
-
-        if joutput is not None:
-            if joutput.endswith(".csv"):
-                job_blocks.to_csv(joutput, index=False)
-            elif joutput.endswith(".parquet"):
-                job_blocks.to_parquet(joutput)
-            elif joutput.endswith(".p"):
-                job_blocks.to_pickle(joutput)
-
-        if woutput is not None:
-            if woutput.endswith(".csv"):
-                worker_blocks.to_csv(woutput, index=False)
-            elif woutput.endswith(".parquet"):
-                worker_blocks.to_parquet(woutput)
-            if woutput.endswith(".p"):
-                worker_blocks.to_pickle(woutput)
-    '''
     def export_blocks(self, output=None, joutput=None, woutput=None, max_level=None, export_mcmc=False):
         """
         Create two DataFrames (job_blocks, worker_blocks) for all levels,
@@ -460,31 +360,29 @@ class bisbm():
 
 
     def mcmc_sweeps(self, savefile, tempsavedir='./', numiter=1000, seed=734,
-                    checkpoint_every=10, entropy_every=1):
+                    save_every=5, iters_per_sweep=5):
+        # Saving the object takes about 5 min; 2-3 min per sweep
         print('Starting MCMC sweeps at ', datetime.datetime.now())
         gt.seed_rng(seed)
-        self.state_mcmc = self.state.copy()
         
-        entropy = [self.state_mcmc.entropy()]
+        entropy = [self.state.entropy()]
         t0 = datetime.datetime.now()
     
         for i in range(numiter):
-            self.state_mcmc.multiflip_mcmc_sweep(beta=np.inf, niter=1)
-            entropy.append(self.state_mcmc.entropy())
+            self.state.multiflip_mcmc_sweep(beta=np.inf, niter=iters_per_sweep)
+            entropy.append(self.state.entropy())
     
-            if i % entropy_every == 0:
+    
+            if (i+1) % save_every == 0 or i == numiter-1:
                 # Entropy saving is lightweight
                 with open(os.path.join(tempsavedir, 'entropy.p'), "wb") as ef:
                     pickle.dump(entropy, ef)
-    
-            if (i+1) % checkpoint_every == 0 or i == numiter-1:
                 # Periodically save full state (heavy), ideally every 3-5 iterations
                 temp_filename = os.path.join(tempsavedir, f'tmp_state_mcmc_{uuid.uuid4().hex}.p')
-                pickle.dump([self.state_mcmc, i, entropy], open(temp_filename, "wb"))
+                pickle.dump([self.state, i, entropy], open(temp_filename, "wb"))
                 os.rename(temp_filename, savefile)
     
-            if i % entropy_every == 0:
-                print(f"Iter {i}: Entropy = {entropy[-1]:.2f}, Time elapsed: {datetime.datetime.now() - t0}")
+            print(f"Iter {i}: Entropy = {entropy[-1]:.2f}, Time elapsed: {datetime.datetime.now() - t0}")
             
             
             
@@ -497,7 +395,7 @@ class bisbm():
         # Serialise pv via graph‑tool’s internal routine -> bytes object
         pv_bytes = gt.serialization.dumps_dict({"pv": pv})
         # Grab block labels (1‑D NumPy array) – enough to rebuild state
-        labels = self.state_mcmc.get_blocks().a.copy()
+        labels = self.state.get_blocks().a.copy()
         meta = dict(sweep_no=sweep_no,
                     entropy=entropy,
                     pv_bytes=pv_bytes,
@@ -517,8 +415,8 @@ class bisbm():
 
     # ──────────────────────────────────────────────────────────────
     def collect_soft_assignments(self, *,
-                                 nsweeps: int = 1200,
-                                 burnin: int = 300,
+                                 nsweeps: int = 10000,
+                                 burnin: int = 30,
                                  thin: int = 10,
                                  beta: float = 1.0,
                                  checkpoint_path: str = "soft_assignment_ckpt.pkl",
@@ -534,12 +432,11 @@ class bisbm():
             raise RuntimeError("Run fit() first!")
     
         gt.seed_rng(42)
-        state_mcmc = self.state.copy()
     
         # ── Burn‑in ─────────────────────────────────────────────────
         if verbose:
             print(f"[Burn‑in] {burnin} sweeps at β={beta}")
-        gt.mcmc_equilibrate(state_mcmc,
+        gt.mcmc_equilibrate(self.state,
                             wait=burnin,
                             mcmc_args=dict(niter=1, beta=beta))
     
@@ -553,10 +450,12 @@ class bisbm():
     
         # ── Sampling loop ──────────────────────────────────────────
         for rec in range(1, total_rec + 1):
-            gt.mcmc_equilibrate(state_mcmc,
+            print(f'Running block {rec} of {total_rec}')
+            print(datetime.datetime.now())
+            gt.mcmc_equilibrate(self.state,
                                 force_niter=thin,
                                 mcmc_args=dict(niter=1, beta=beta))
-            bs.append(state_mcmc.b.a.copy())
+            bs.append(self.state.b.a.copy())
     
             # periodic checkpoint with full alignment + normalisation
             if rec % checkpoint_every == 0 or rec == total_rec:
