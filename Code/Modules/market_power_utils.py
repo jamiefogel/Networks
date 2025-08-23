@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Created on Tue Nov 19 17:07:24 2024
@@ -15,6 +16,8 @@ import tempfile
 import ast
 import statsmodels.api as sm
 import shutil
+from sklearn.metrics import adjusted_rand_score
+from linearmodels.iv import IV2SLS
 
 
 
@@ -30,11 +33,11 @@ def compute_ell(df, eta, theta):
 
 # Equation 46
 def compute_pi(df):
-    df['denominator'] = df.groupby(['jid_masked'])['ell_iota_j'].transform('sum')
+    df['denominator'] = df.groupby(['jid'])['ell_iota_j'].transform('sum')
     return df['ell_iota_j'] / df['denominator']
 
 # Equation 48 - Job j's payrolls share of market gamma (summing across all iotas)
-def compute_s_j_mkt(df, wagevar='wage_guess', emp_counts='ell_iota_j',jobvar='jid_masked', marketvar='gamma'):
+def compute_s_j_mkt(df, wagevar='wage_guess', emp_counts='ell_iota_j',jobvar='jid', marketvar='gamma'):
     df['wl'] = df[wagevar] * df[emp_counts]
     df['numerator']   = df.groupby(jobvar)['wl'].transform('sum')
     df['denominator'] = df.groupby(marketvar)['wl'].transform('sum')
@@ -43,7 +46,7 @@ def compute_s_j_mkt(df, wagevar='wage_guess', emp_counts='ell_iota_j',jobvar='ji
 # Equation 49: compute markdown
 def compute_epsilon_j(df, eta, theta):
     df['pi_times_s'] = df['pi_iota_j'] * df['s_gamma_iota']
-    df['weighted_share'] = df.groupby('jid_masked')['pi_times_s'].transform('sum')
+    df['weighted_share'] = df.groupby('jid')['pi_times_s'].transform('sum')
     df['epsilon_j'] = eta *(1-df['s_j_gamma']) + theta * df['s_j_gamma'] * (1 - df['weighted_share'])
     return df['epsilon_j'] 
 
@@ -273,28 +276,52 @@ def compute_markdowns_w_iota(df, wagevar, jobvar, marketvar, workertypevar, eta,
     markdown_w_iota = epsilon_j / (1 + epsilon_j)
     return markdown_w_iota
 
-def generate_shocks(df, alpha=2, beta=5, delta=0):
-    
-    gamma_jid_masked_cw = df[['gamma','jid_masked']].drop_duplicates()
+def generate_shocks(df, alpha=2, beta=5, delta=0, k=0.5, l=0.5):
+    '''
+    Parameters
+    ----------
+    df : data frame
+        Worker-level data frame that is wide on year (pre vs. post)
+    alpha : numeric, optional
+        First parameter of beta distribution used to generate Bernoulli parameter p_gamma (probability instrument is 1). The default is 2.
+    beta : numeric, optional
+        Second parameter of beta distribution used to generate Bernoulli parameter p_gamma (probability instrument is 1). The default is 5.
+    delta : numeric, optional
+        First stage coefficient on instrument. The default is 0.
+    k : numeric, optional
+        Dependence between instrument and iota-gamma fixed effects. All correlation comes at the gamma level. The default is 0.5.
+    l : numeric, optional
+        Controls the amount of noise in the fixed effect that is independent of the instrument. The default is 0.5.
+
+    Returns
+    -------
+    df : TYPE
+        DESCRIPTION.
+
+    '''
+    gamma_jid_cw = df[['gamma','jid']].drop_duplicates()
     # Draw a Bernoulli parameter for each gamma
     p_gamma = {gamma: np.random.beta(alpha, beta, 1)[0] for gamma in df['gamma'].unique()} # This is phi_j
-    gamma_jid_masked_cw['p_gamma'] = gamma_jid_masked_cw['gamma'].map(p_gamma)
+    gamma_jid_cw['p_gamma'] = gamma_jid_cw['gamma'].map(p_gamma)
+    df['p_gamma'] = df['gamma'].map(p_gamma)
     
     # Draw Bernoulli samples for each row using the probability in p_gamma column
-    gamma_jid_masked_cw['Z_j'] = np.random.binomial(1, gamma_jid_masked_cw['p_gamma'])
-    df = df.merge(gamma_jid_masked_cw[['jid_masked','Z_j']], on='jid_masked', how='inner', validate='m:1', indicator=False)
+    gamma_jid_cw['Z_j'] = np.random.binomial(1, gamma_jid_cw['p_gamma'])
+    df = df.merge(gamma_jid_cw[['jid','Z_j']], on='jid', how='inner', validate='m:1', indicator=False)
   
     # Generate a random shock 
     # This is called "xi" on Overleaf
-    jid_shock = {jid_masked: np.random.random() for jid_masked in df['jid_masked'].unique()} # This is phi_j
-    df['jid_masked_shock'] = df['jid_masked'].map(jid_shock)
-    # This is called "zeta" on Overleaf
-    iota_gamma_shock = {iota_gamma: np.random.random() for iota_gamma in df['iota_gamma'].unique()}
+    jid_shock = {jid: np.random.random() for jid in df['jid'].unique()} # This is phi_j
+    df['jid_shock'] = df['jid'].map(jid_shock)
+    # This is called "zeta" on Overleaf. XX maybe change to normal at some point? We say normal in the paper.
+    iota_gamma_shock = {iota_gamma: np.random.random()*l for iota_gamma in df['iota_gamma'].unique()}
     df['iota_gamma_shock'] = df['iota_gamma'].map(iota_gamma_shock)
+    # By adding k * p_gamma we allow for correlation between the zeta_ig shock and the instrument
+    df['iota_gamma_shock'] = df['iota_gamma_shock'] + k*df['p_gamma']
 
     df['phi_iota_j_new'] = np.exp( \
-        df['iota_gamma_fes']   + df['jid_masked_fes'] + \
-        df['iota_gamma_shock'] + df['jid_masked_shock'] + \
+        df['iota_gamma_fes']   + df['jid_fes'] + \
+        df['iota_gamma_shock'] + df['jid_shock'] + \
         delta * df['Z_j']) 
     
     return df
@@ -304,15 +331,15 @@ def run_two_step_estimation(reg_df_w_FEs_w_shock, estimation_strategy, delta=0, 
     reg_df2 = prepare_step1_data(reg_df_w_FEs_w_shock, estimation_strategy, workertypevar = workertypevar, mktvar = mktvar, delta = delta)
     
     # Step 1: Estimate eta_hat
-    eta_hat = estimate_eta_hat(reg_df2, estimation_strategy, stata_or_python)
+    eta_hat, eta_first_stage_f = estimate_eta_hat(reg_df2, estimation_strategy, stata_or_python)
     
     # Step 2: Data Preparation
     reg_df3 = prepare_step2_data(reg_df2, eta_hat, estimation_strategy)
     
     # Step 2: Estimate theta_hat
-    theta_hat = estimate_theta_hat(reg_df3, estimation_strategy, stata_or_python)
+    theta_hat, theta_first_stage_f = estimate_theta_hat(reg_df3, estimation_strategy, stata_or_python)
     
-    return eta_hat, theta_hat
+    return eta_hat, theta_hat, eta_first_stage_f, theta_first_stage_f
 
 
 def prepare_step1_data(reg_df_w_FEs_w_shock, estimation_strategy, workertypevar, mktvar, delta=0):
@@ -327,7 +354,7 @@ def prepare_step1_data(reg_df_w_FEs_w_shock, estimation_strategy, workertypevar,
         'worker_mkt_id', 'worker_type_id'
     ]
     if estimation_strategy == 'panel_iv':
-        variables += ['jid_masked_shock', 'iota_gamma_shock', 'Z_j']
+        variables += ['jid_shock', 'iota_gamma_shock', 'Z_j']
     reg_df2 = reg_df_w_FEs_w_shock[variables].copy()
     
     for var in ['ell_iota_j_pre_shock', 'ell_iota_j_post_shock', 'wage_pre_shock', 'wage_post_shock']:
@@ -339,7 +366,7 @@ def prepare_step1_data(reg_df_w_FEs_w_shock, estimation_strategy, workertypevar,
     # Instrument for IV estimation
     if estimation_strategy == 'panel_iv':
         if delta == 0:
-            reg_df2['shock_iv'] = reg_df2['jid_masked_shock'] + reg_df2['iota_gamma_shock']
+            reg_df2['shock_iv'] = reg_df2['jid_shock'] + reg_df2['iota_gamma_shock']
         else:
             reg_df2['shock_iv'] = reg_df2['Z_j']
     
@@ -375,14 +402,23 @@ def estimate_eta_hat(reg_df2, estimation_strategy, stata_or_python):
             absorb_var=absorb_var,
             scalar_name='eta_hat'
         )
+        first_stage_f = np.nan
     if stata_or_python=='Python':
         import pyfixest as pf
         if regression_type=='ols':
             fit = pf.feols(f"{dependent_var} ~ {independent_var} | {absorb_var}", data=reg_df2)
+            first_stage_f = np.nan
+            eta_hat = fit.coef().loc[independent_var] - 1
         elif regression_type=='iv':
-            fit = pf.feols(f"{dependent_var} ~ 1 | {absorb_var} | {independent_var} ~ {instrument_var} ", data=reg_df2)
-        eta_hat = fit.coef().loc[independent_var] - 1
-    return eta_hat
+            g = reg_df2.groupby(absorb_var)
+            def demean(s): return s - g[s.name].transform('mean')
+            y_t = demean(reg_df2[dependent_var]).rename(dependent_var)
+            x_t = demean(reg_df2[independent_var]).rename(independent_var)
+            z_t = demean(reg_df2[instrument_var]).rename(instrument_var)
+            res = IV2SLS(y_t, exog=None, endog=x_t, instruments=z_t).fit(cov_type='robust')
+            eta_hat = res.params[independent_var] - 1
+            first_stage_f = res.first_stage.diagnostics.loc[independent_var, "f.stat"]
+    return eta_hat, first_stage_f
 
 def prepare_step2_data(reg_df2, eta_hat, estimation_strategy):
     for period in ['pre_shock', 'post_shock']:
@@ -445,14 +481,23 @@ def estimate_theta_hat(reg_df3, estimation_strategy, stata_or_python):
             absorb_var=absorb_var,
             scalar_name='theta_hat'
         )
+        first_stage_f = np.nan
     if stata_or_python=='Python':
         import pyfixest as pf
         if regression_type=='ols':
             fit = pf.feols(f"{dependent_var} ~ {independent_var} | {absorb_var}", data=reg_df3)
+            theta_hat = fit.coef().loc[independent_var] - 1
+            first_stage_f = np.nan
         elif regression_type=='iv':
-            fit = pf.feols(f"{dependent_var} ~ 1 | {absorb_var} | {independent_var} ~ {instrument_var} ", data=reg_df3)
-        theta_hat = fit.coef().loc[independent_var] - 1
-    return theta_hat
+            g = reg_df3.groupby(absorb_var)
+            def demean(s): return s - g[s.name].transform('mean')
+            y_t = demean(reg_df3[dependent_var]).rename(dependent_var)
+            x_t = demean(reg_df3[independent_var]).rename(independent_var)
+            z_t = demean(reg_df3[instrument_var]).rename(instrument_var)
+            res = IV2SLS(y_t, exog=None, endog=x_t, instruments=z_t).fit(cov_type='robust')
+            first_stage_f = res.first_stage.diagnostics.loc[independent_var, "f.stat"]
+            theta_hat = res.params[independent_var] - 1
+    return theta_hat, first_stage_f
 
 def run_stata_regression(dataframe, regression_type, dependent_var, independent_var, instrument_var=None, absorb_var=None, scalar_name='parameter_hat'):
     # Build the regression command
@@ -486,10 +531,10 @@ def run_stata_regression(dataframe, regression_type, dependent_var, independent_
     parameter_hat = results['scalar_results'][scalar_name]
     return parameter_hat
 
-def find_equilibrium(df, eta, theta, tol=1e-4, max_iter=100):
-    diff = tol + 1
+def find_equilibrium(df, eta, theta, tol=1e-5, min_iter=10, max_iter=100):
+    diff_mean = tol + 1
     iter_count = 0
-    while diff > tol and iter_count < max_iter:
+    while iter_count < min_iter or (diff_mean > tol and iter_count < max_iter) :
         df[['s_gamma_iota','ell_iota_j']] = compute_ell(df, eta, theta)
         df['pi_iota_j'] = compute_pi(df)
         df['s_j_gamma'] = compute_s_j_mkt(df)
@@ -498,23 +543,26 @@ def find_equilibrium(df, eta, theta, tol=1e-4, max_iter=100):
         # Update wage_guess
         df['wage_guess_new'] = df['epsilon_j']/(1+df['epsilon_j']) * df['phi_iota_j_new']
         diff = np.abs(df['wage_guess_new'] - df['wage_guess']).sum()
+        diff_mean = np.abs(df['wage_guess_new'] - df['wage_guess']).mean()
         #diff_l = np.abs(reg_df_w_FEs_w_shock['wage_guess_new'] - reg_df_w_FEs_w_shock['wage_guess_new']).sum()
         df['wage_guess'] = df['wage_guess_new']
         if True: #iter%10==0:
             print(iter_count)
             print(diff)
+            print(diff_mean)
+            #print(df['wage_guess'].describe())
         iter_count += 1
     return df['wage_guess']
 
-def introduce_misclassification_by_jid(df, misclassification_rate):
+def misclassify_jobs_random(df, misclassification_rate):
     # Create a copy of the dataframe to avoid modifying the original
     df_misclassified = df.copy()
     
     # Calculate the probability distribution of gammas
     gamma_probs = df_misclassified['gamma'].value_counts(normalize=True)
     
-    # Get unique jid_masked values
-    unique_jids = df_misclassified['jid_masked'].unique()
+    # Get unique jid values
+    unique_jids = df_misclassified['jid'].unique()
     
     # Generate new gammas for all unique jids
     new_gammas = np.random.choice(gamma_probs.index, size=len(unique_jids), p=gamma_probs.values)
@@ -526,9 +574,101 @@ def introduce_misclassification_by_jid(df, misclassification_rate):
     new_gamma_dict = dict(zip(unique_jids[misclassify_mask], new_gammas[misclassify_mask]))
     
     # Apply new gammas to misclassified jids
-    df_misclassified['gamma_error'] = df_misclassified['jid_masked'].map(new_gamma_dict).fillna(df_misclassified['gamma'])
+    df_misclassified['gamma_error'] = df_misclassified['jid'].map(new_gamma_dict).fillna(df_misclassified['gamma'])
     
-    return df_misclassified
+    return df_misclassified['gamma_error']
+
+
+def misclassify_jobs_by_within_gamma_quantile(
+    df: pd.DataFrame,
+    rank_variable: str,
+    frac_reassign: float = 0.10,
+    job_ids_to_reassign: np.ndarray | list | None = None,
+    random_state: int | None = None,
+    ascending_gamma_rank: bool = True,
+    move_distance: int = 1,
+    edge_behavior: str = "clip",
+) -> pd.DataFrame:
+    """
+    Reassign a fraction (or a specified set) of jobs to adjacent markets (gammas)
+    based on each job's within-gamma Z_j percentile.
+
+    Parameters
+    ----------
+    df : DataFrame
+        Must contain columns: 'jid', 'gamma', rank_variable.
+    frac_reassign : float, default 0.10
+        Fraction of jobs to reassign (ignored if job_ids_to_reassign is provided).
+    rank_variable : dataframe column name
+        Name of variable on which to rank gammas 
+    job_ids_to_reassign : array-like or None
+        Explicit set of jid values to reassign. If provided, overrides frac_reassign.
+    random_state : int or None
+        RNG seed for reproducibility.
+    ascending_gamma_rank : bool, default True
+        How to rank gammas by their mean rank_variable:
+        - True  => rank 1 = lowest mean rank_variable, max rank = highest mean rank_variable
+        - False => rank 1 = highest mean rank_variable, max rank = lowest mean rank_variable
+        “Higher-ranked” means moving toward larger rank numbers in this convention.
+    edge_behavior : {"clip","stay"}, default "clip"
+        What to do if a job is at the top/bottom gamma and tries to move beyond:
+        - "clip": clamp to the edge gamma (rank stays within [1, G])
+        - "stay": cancel the move (job keeps its current gamma)
+
+    Returns
+    -------
+    DataFrame
+        Original columns plus:
+         - 'gamma_rank': integer rank of the job's current gamma
+         - 'within_gamma_pct': job's within-gamma percentile in [0,1]
+         - 'move_dir': drawn in {-1,+1} for reassigned jobs, else 0
+         - 'gamma_new': the post-reassignment gamma label
+    """
+    rng = np.random.default_rng(random_state)
+    out = df.copy()
+
+    # 1) Gamma means and *dense* ranks 1..G via rank (no sort+enumerate)
+    p_gamma_hat = out.groupby("gamma", observed=True)[rank_variable].mean()
+    gamma_rank_map = p_gamma_hat.rank(method="dense", ascending=True).astype(int)
+    out["gamma_rank"] = out["gamma"].map(gamma_rank_map).astype(int)
+    out["p_gamma_hat"] = out["gamma"].map(p_gamma_hat)
+    G = int(gamma_rank_map.max())
+
+    # Build dictionary that maps each gamma rank to the gamma value
+    rank_to_gamma = {int(r): g for g, r in gamma_rank_map.items()}
+
+    # 2) Within-gamma percentile (0..1, ties averaged), fully vectorized
+    out["within_gamma_pct"] = out.groupby("gamma", observed=True)[rank_variable].rank(method="average",pct=True) 
+
+    # 3) Choose which jobs to reassign
+    if job_ids_to_reassign is not None:
+        reassigned = out["jid"].isin(job_ids_to_reassign).to_numpy()
+    else:
+        k = int(round(frac_reassign * len(out)))
+        idx = rng.choice(out.index.to_numpy(), size=k, replace=False) if k > 0 else np.array([], dtype=int)
+        reassigned = out.index.isin(idx) # Vector indicating whether each jid is to be reassigned
+
+    # 4) Direction: P(+1)=percentile, P(-1)=1-p (use binomial for vectorization)
+    move = np.zeros(len(out), dtype=int)
+    p = out.loc[reassigned,'within_gamma_pct']
+    move[reassigned] = move_distance * ( 2 * rng.binomial(1, p) - 1)   # {0,1} -> {-1,+1}
+    out["move_dir"] = move
+
+    # 5) Move one rank up/down with edge handling
+    target_rank = out["gamma_rank"] + out["move_dir"]
+    if edge_behavior == "clip":
+        target_rank = target_rank.clip(1, G)
+    elif edge_behavior == "stay":
+        overshoot = (target_rank < 1) | (target_rank > G)
+        target_rank = target_rank.where(~overshoot, out["gamma_rank"])
+    else:
+        raise ValueError("edge_behavior must be 'clip' or 'stay'.")
+
+    out["gamma_new"] = target_rank.map(rank_to_gamma)
+    return out["gamma_new"]
+
+
+
 
 def compute_market_hhi(df, market_col='gamma'):
     # Compute market shares
@@ -549,9 +689,14 @@ def compute_theoretical_eta(df, wagevar, worker_type_true, job_type_true, job_ty
     df['mu_iota_gamma_j'] = np.log( df.groupby([worker_type_true,job_type_true])['temp2'].transform('sum') )  / (1 + eta_true)
     df['wbar_minus_mu_ig'] = df.groupby([worker_type_true,job_type_true])['ln_wage_post_shock'].transform('mean') - df['mu_iota_gamma_j']
     
-    tilde_beta_1 = sm.OLS(df['ln_wage_demeaned_within_iota_gamma'], sm.add_constant(df['ln_wage_demeaned_within_iota_m'])).fit().params.iloc[1]
+    y = df['ln_wage_demeaned_within_iota_gamma'].astype('float64')
+    x = df['ln_wage_demeaned_within_iota_m'].astype('float64')
+    tilde_beta_1 = sm.OLS(y, sm.add_constant(x)).fit().params.iloc[1]
+    del y, x
     # Beta_1 measures the correlation between the deviation of my wage from my gamma average and the deviation of my wage from my miscalssified market wage. 
-    tilde_beta_2 = sm.OLS(df['wbar_minus_mu_ig'], sm.add_constant(df['ln_wage_demeaned_within_iota_m'])).fit().params.iloc[1]
+    y = df['wbar_minus_mu_ig'].astype('float64')
+    x = df['ln_wage_demeaned_within_iota_m'].astype('float64')
+    tilde_beta_2 = sm.OLS(y, sm.add_constant(x)).fit().params.iloc[1]
     bias = (theta_true-eta_true) * (1 - tilde_beta_1 - tilde_beta_2)
     eta_hat_theoretical = eta_true + bias
     if return_betas:
@@ -592,8 +737,13 @@ def compute_theoretical_theta(df, wagevar, worker_type_true, job_type_true, job_
     df_iota_m = df_iota_m.merge(delta_term1, on=[worker_type_true,job_type_misclassified], validate='1:1')
     df_iota_m['delta_iota_m'] = df_iota_m['delta_term1'] - df_iota_m['sum_s_mu']
     
-    coef1 = sm.OLS(df_iota_m['sum_s_mu'], sm.add_constant(df_iota_m['mu_iota_m_demeaned'])).fit().params.iloc[1]
-    coef2 = sm.OLS(df_iota_m['delta_iota_m'], sm.add_constant(df_iota_m['mu_iota_m_demeaned'])).fit().params.iloc[1]
+    y = df_iota_m['sum_s_mu'].astype('float64')
+    x = df_iota_m['mu_iota_m_demeaned'].astype('float64')
+    coef1 = sm.OLS(y, sm.add_constant(x)).fit().params.iloc[1]
+    del x, y
+    y = df_iota_m['delta_iota_m'].astype('float64')
+    x = df_iota_m['mu_iota_m_demeaned'].astype('float64')
+    coef2 = sm.OLS(y, sm.add_constant(x)).fit().params.iloc[1]
     bias = (eta_true - theta_true) * ( 1 - coef1 - coef2)
     theta_hat_theoretical  = theta_true + bias
     if return_betas:
@@ -601,3 +751,241 @@ def compute_theoretical_theta(df, wagevar, worker_type_true, job_type_true, job_
     else:
         return theta_hat_theoretical
     
+    
+    
+def compute_rand_index(df, def1_vars, def2_vars):
+    """
+    Compute the Adjusted Rand Index between two market definitions.
+    
+    Parameters
+    ----------
+    df : pd.DataFrame
+        The dataframe containing the data.
+    def1_vars : str or list of str
+        Variable(s) defining the first market definition.
+    def2_vars : str or list of str
+        Variable(s) defining the second market definition.
+    
+    Returns
+    -------
+    float
+        Adjusted Rand Index between the two definitions.
+    """
+    
+    # Ensure inputs are lists
+    if isinstance(def1_vars, str):
+        def1_vars = [def1_vars]
+    if isinstance(def2_vars, str):
+        def2_vars = [def2_vars]
+    
+    # Create group labels by concatenating variables
+    labels1 = df[def1_vars].astype(str).agg("_".join, axis=1)
+    labels2 = df[def2_vars].astype(str).agg("_".join, axis=1)
+    
+    # Compute adjusted Rand score
+    return adjusted_rand_score(labels1, labels2)
+
+    
+  
+
+def load_and_prepare_data(root, eta_bhm, theta_bhm):
+    # Pull region codes
+    region_codes = pd.read_csv(root + '/Data/raw/munic_microregion_rm.csv', encoding='latin1')
+
+    ################################
+    # Load earnings panel data 
+     ################################
+     
+    MAYARA_OUTPUT_DIR = root + "/Code/replicate_mayara/monopsonies/sas"
+    _3states = '_3states'
+    dfs = []
+    for year in [1991,1997]:
+        #export_filename = os.path.join(MAYARA_OUTPUT_DIR, f"rais{year}{_3states}.parquet")
+        export_filename = os.path.join(MAYARA_OUTPUT_DIR, f"rais_for_earnings_premia{year}_gamma{_3states}.parquet")
+        year_df = pd.read_parquet(export_filename)
+        dfs.append(year_df)
+    
+    data_full = pd.concat(dfs, ignore_index=True)
+    # XX Why are there a non-trivial number of missing fakeid_worker values here?
+    # year_df['mi'] = year_df.fakeid_worker.isna()
+    #pd.crosstab(year_df['mi'] ,year_df._merge_worker_gamma_pre)
+    # _merge_worker_gamma_pre  left_only  right_only     both
+    # mi                                                     
+    # False                      6701856           0  4991899
+    # True                       1973966     2830512   255850
+    del year_df
+    
+    iotas = pd.read_csv(root + '../market_power/Data/dump/sbm_output/model_sbm_1986_1991_wblocks.csv')[['wid','worker_blocks_level_0']].rename(columns={'worker_blocks_level_0':'iota'})
+    
+    data_full = data_full.loc[data_full.fakeid_worker.notna()]
+    data_full['wid'] = data_full['fakeid_worker'].astype('Int64')
+    data_full = data_full.merge(iotas, on='wid', how='left',validate='m:1', indicator='_merge_iotas')
+    # Temporarily just set all iotas equal to 1 since we aren't using iotas in estimation or in the theory of the paper
+    #data_full['iota'] = 1
+    
+    #usecols = ['wid', 'jid', 'year', 'iota', 'gamma', 'cnpj_raiz', 'id_estab',
+    #           'real_hrly_wage_dec', 'ln_real_hrly_wage_dec', 'codemun', 'cbo942d', 'occ2_first',
+    #           'code_meso', 'occ2Xmeso', 'occ2Xmeso_first']
+    data_full['real_hrly_wage_dec'] = data_full['earningsdecmw']
+    data_full['ln_real_hrly_wage_dec'] = np.log(data_full['real_hrly_wage_dec'])
+
+    # Create variable for Mayara's market definitions
+    data_full['mkt_mayara'] = data_full.groupby(['mmc', 'cbo942d']).ngroup()
+
+    # Compute Markdowns and merge on
+    markdown_w_iota = compute_markdowns_w_iota(data_full, 'real_hrly_wage_dec', 'jid', 'gamma', 'iota', eta_bhm, theta_bhm)
+    markdown_w_iota = pd.DataFrame(markdown_w_iota).reset_index().rename(columns={0:'markdown_w_iota'})
+    data_full = data_full.merge(markdown_w_iota, on='jid', how='outer', validate='m:1')
+
+    reg_df = data_full[['wid', 'jid', 'iota', 'gamma', 'cbo942d', 'mmc', 'mkt_mayara',
+                        'ln_real_hrly_wage_dec', 'markdown_w_iota']].copy()
+    reg_df['y_tilde'] = reg_df.ln_real_hrly_wage_dec + np.log(reg_df.markdown_w_iota)
+    reg_df['iota_gamma'] = reg_df.iota.astype(str) + '_' + reg_df.gamma.astype(str)
+
+    # Trim approximately top 1% of wages
+    
+    reg_df = reg_df.loc[reg_df.ln_real_hrly_wage_dec < reg_df.ln_real_hrly_wage_dec.quantile(0.99)]
+
+    # Save dataframe as parquet file
+    reg_df.to_parquet(root + '../market_power/Data/dump/MarketPower_reghdfe_data.parquet')
+
+    return reg_df
+
+def mode_or_first(series):
+    mode_values = series.mode()
+    return mode_values.iloc[0] if not mode_values.empty else np.nan
+
+# Estimate job and iota-gamma FEs
+def estimate_fixed_effects(reg_df, stata_or_python):
+    
+    if stata_or_python == "Stata":
+        # Your Stata code as a Python string
+        stata_code = """
+        clear
+        set more off
+        log using "log_file_path", replace
+        
+        use "dta_path", clear
+        reghdfe y_tilde, absorb(jid_fes=jid iota_gamma_fes=iota_gamma, savefe) residuals(resid)
+        
+        save "results_path", replace
+        """
+
+        results_reg1 = run_stata_code(reg_df, stata_code)
+        reg_df_w_FEs = results_reg1['results_df']
+    elif stata_or_python == "Python":
+        import pyfixest as pf
+        # Perform the regression with fixed effects for 'jid' and 'iota_gamma'
+        fit_ols = pf.feols("y_tilde ~ 1 | jid + iota_gamma", data=reg_df)
+        # Extract the fixed effects as a dictionary
+        fixed_effects = fit_ols.fixef()
+        # Loop through each fixed effect group and add it to the original DataFrame
+        for fe_var, fe_values in fixed_effects.items():
+            fe_varname = fe_var[fe_var.find("(") + 1: fe_var.find(")")]
+            fe_df = pd.DataFrame(list(fixed_effects[fe_var].items()), columns=[fe_varname, f'{fe_varname}_fes'])
+            fe_df[fe_varname] = fe_df[fe_varname].astype(reg_df[fe_varname].dtype)
+            # Merge the fixed effect estimates back to the original DataFrame
+            reg_df = reg_df.merge(fe_df, on=fe_varname, how='left', validate='m:1', indicator=f'_merge_{fe_varname}')
+        reg_df_w_FEs = reg_df.copy()
+    else:
+        raise ValueError("Invalid value for 'stata_or_python'. Should be 'Stata' or 'Python'.")
+        
+    reg_df_w_FEs = reg_df_w_FEs.groupby(['iota', 'gamma', 'iota_gamma', 'jid']).agg({
+        'jid_fes': 'first',          # These don't vary within the group, so we can take the first value
+        'iota_gamma_fes': 'first',          # These don't vary within the group, so we can take the first value
+        'markdown_w_iota': 'first',         # These don't vary within the group, so we can take the first value
+        'cbo942d': 'first',                    # These don't vary within the group, so we can take the first value
+        'mmc': mode_or_first,        # Use custom function to handle ties
+        'ln_real_hrly_wage_dec': 'mean',    # Average of log earnings within the group
+        'wid': 'count'               # Count of rows in this group
+    }).reset_index()
+
+    
+    # Rename the count column to something more descriptive
+    reg_df_w_FEs = reg_df_w_FEs.rename(columns={'wid': 'iota_gamma_jid_count'})
+
+    return reg_df_w_FEs
+
+
+def generate_shocks_and_find_equilibrium(reg_df_w_FEs, alpha, beta, delta, eta, theta):
+    reg_df_w_FEs_w_shock = generate_shocks(reg_df_w_FEs, alpha=alpha, beta=beta, delta=delta)
+    
+    reg_df_w_FEs_w_shock['wage_guess_initial'] = reg_df_w_FEs_w_shock['markdown_w_iota'] * reg_df_w_FEs_w_shock['phi_iota_j_new']
+    reg_df_w_FEs_w_shock['wage_guess'] = reg_df_w_FEs_w_shock['wage_guess_initial']
+    reg_df_w_FEs_w_shock['iota_count'] = reg_df_w_FEs_w_shock.groupby('iota')['iota_gamma_jid_count'].transform('sum')
+
+    # Next steps:
+    #   1. Compute ell_iota_j following eq (45)
+    #   2. Then iterate through 45-50
+    #   3. Iterate until ell and w stabilize
+
+    reg_df_w_FEs_w_shock['real_hrly_wage_dec'] = np.exp(reg_df_w_FEs_w_shock['ln_real_hrly_wage_dec'])
+
+    # Restricting to jid-iotas with non-missing wages.
+    reg_df_w_FEs_w_shock = reg_df_w_FEs_w_shock.loc[reg_df_w_FEs_w_shock['wage_guess'].notna()]
+
+    reg_df_w_FEs_w_shock['wage_post_shock'] = find_equilibrium(reg_df_w_FEs_w_shock, eta, theta)
+
+    reg_df_w_FEs_w_shock.rename(columns={
+        'iota_gamma_jid_count': 'ell_iota_j_pre_shock',
+        'ell_iota_j': 'ell_iota_j_post_shock',
+        'real_hrly_wage_dec': 'wage_pre_shock'
+    }, inplace=True)
+
+    return reg_df_w_FEs_w_shock
+
+    
+
+
+
+
+def run_estimations_for_combinations(data, combinations, stata_or_python='Python'):
+    """
+    Runs estimations for each combination of worker type, market definition, estimation type, and delta.
+    
+    Parameters:
+    - data: pandas DataFrame containing the necessary data for estimations.
+    - combinations: list of tuples, where each tuple is (workertypevar, mktvar, est_type, delta).
+      - workertypevar: list of strings representing worker type variables.
+      - mktvar: list of strings representing market variables.
+      - est_type: string representing the estimation type (e.g., 'panel_iv', 'panel_ols', 'ols').
+      - delta: float or None, delta parameter to pass to run_two_step_estimation.
+    - stata_or_python: string, either 'Stata' or 'Python'. Default is 'Python'.
+    
+    Returns:
+    - estimates_df: pandas DataFrame containing the estimation results.
+    """
+    estimates_list = []
+    
+    for combo in combinations:
+        wkr, mkt, est_type, delta = combo
+        # Convert the lists to strings for better readability
+        wkr_key = ','.join(wkr)
+        mkt_key = ','.join(mkt)
+        
+        # Run estimation
+        eta_hat, theta_hat, eta_first_stage_f, theta_first_stage_f = run_two_step_estimation(
+            data,
+            est_type,
+            delta=delta,
+            workertypevar=wkr,
+            mktvar=mkt,
+            stata_or_python=stata_or_python
+        )
+        
+        # Append the result as a record to the list
+        estimates_list.append({
+            'WORKERTYPE': wkr_key,
+            'MKT': mkt_key,
+            'EST_TYPE': est_type,
+            'DELTA': delta,
+            'ETA_HAT': eta_hat,
+            'THETA_HAT': theta_hat
+        })
+        print(f'WORKERTYPE = {wkr}, MKT = {mkt}, EST_TYPE = {est_type}, DELTA = {delta}, eta = {eta_hat}, theta = {theta_hat}')
+    
+    # Convert the list of records to a DataFrame
+    estimates_df = pd.DataFrame(estimates_list)
+    
+    return estimates_df
+
