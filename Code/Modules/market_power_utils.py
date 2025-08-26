@@ -796,13 +796,21 @@ def load_and_prepare_data(root, eta_bhm, theta_bhm):
     # Load earnings panel data 
      ################################
      
-    MAYARA_OUTPUT_DIR = root + "/Code/replicate_mayara/monopsonies/sas"
     _3states = '_3states'
     dfs = []
     for year in [1991,1997]:
         #export_filename = os.path.join(MAYARA_OUTPUT_DIR, f"rais{year}{_3states}.parquet")
-        export_filename = os.path.join(MAYARA_OUTPUT_DIR, f"rais_for_earnings_premia{year}_gamma{_3states}.parquet")
+        export_filename = os.path.join(root, '../market_power/Data/dump/', f"rais_for_earnings_premia{year}_gamma{_3states}.parquet")
         year_df = pd.read_parquet(export_filename)
+        # Merge on cbo and municipality from raw data
+        addl_occ_ind_geo_filename = os.path.join(root, '../market_power/Data/dump/', f"rais{year}{_3states}.parquet")
+        addl_occ_ind_geo = pd.read_parquet(addl_occ_ind_geo_filename, columns = ['fakeid_worker', 'fakeid_firm', 'municipality','cbo','occ4'])
+        addl_occ_ind_geo = addl_occ_ind_geo.loc[(addl_occ_ind_geo.fakeid_worker.notna()) & (addl_occ_ind_geo.fakeid_firm.notna())]
+        year_df = year_df.merge(addl_occ_ind_geo, on=['fakeid_worker','fakeid_firm'], how='left', validate='1:1', indicator=False)
+        #cnae95_master_file = os.path.join(root, '../market_power/Data/dump/' , f"rais_firm_cnae95_master_plus{_3states}.parquet")
+        #df_cnae95 = pd.read_parquet(cnae95_master_file).drop_duplicates()
+        #year_df = year_df.merge(df_cnae95[["fakeid_firm", "cnae95"]], on="fakeid_firm", how="inner")
+        del addl_occ_ind_geo
         dfs.append(year_df)
     
     data_full = pd.concat(dfs, ignore_index=True)
@@ -838,7 +846,7 @@ def load_and_prepare_data(root, eta_bhm, theta_bhm):
     data_full = data_full.merge(markdown_w_iota, on='jid', how='outer', validate='m:1')
 
     reg_df = data_full[['wid', 'jid', 'iota', 'gamma', 'cbo942d', 'mmc', 'mkt_mayara',
-                        'ln_real_hrly_wage_dec', 'markdown_w_iota']].copy()
+                        'ln_real_hrly_wage_dec', 'markdown_w_iota','cnae95', 'municipality','cbo','occ4']].copy()
     reg_df['y_tilde'] = reg_df.ln_real_hrly_wage_dec + np.log(reg_df.markdown_w_iota)
     reg_df['iota_gamma'] = reg_df.iota.astype(str) + '_' + reg_df.gamma.astype(str)
 
@@ -895,6 +903,9 @@ def estimate_fixed_effects(reg_df, stata_or_python):
         'iota_gamma_fes': 'first',          # These don't vary within the group, so we can take the first value
         'markdown_w_iota': 'first',         # These don't vary within the group, so we can take the first value
         'cbo942d': 'first',                    # These don't vary within the group, so we can take the first value
+        'cbo': 'first',                    # These don't vary within the group, so we can take the first value
+        'occ4': 'first',                    # These don't vary within the group, so we can take the first value
+        'cnae95': 'first',                    # These don't vary within the group, so we can take the first value
         'mmc': mode_or_first,        # Use custom function to handle ties
         'ln_real_hrly_wage_dec': 'mean',    # Average of log earnings within the group
         'wid': 'count'               # Count of rows in this group
@@ -939,7 +950,7 @@ def generate_shocks_and_find_equilibrium(reg_df_w_FEs, alpha, beta, delta, eta, 
 
 
 
-def run_estimations_for_combinations(data, combinations, stata_or_python='Python'):
+def run_estimations_for_combinations(data, combinations, stata_or_python='Python', ari_var=None):
     """
     Runs estimations for each combination of worker type, market definition, estimation type, and delta.
     
@@ -972,7 +983,10 @@ def run_estimations_for_combinations(data, combinations, stata_or_python='Python
             mktvar=mkt,
             stata_or_python=stata_or_python
         )
-        
+        if ari_var is not None:
+            ari = compute_rand_index(data, ari_var, mkt)
+        else:
+            ari = None
         # Append the result as a record to the list
         estimates_list.append({
             'WORKERTYPE': wkr_key,
@@ -980,12 +994,66 @@ def run_estimations_for_combinations(data, combinations, stata_or_python='Python
             'EST_TYPE': est_type,
             'DELTA': delta,
             'ETA_HAT': eta_hat,
-            'THETA_HAT': theta_hat
+            'THETA_HAT': theta_hat,
+            'AdjRandIdx': ari
         })
         print(f'WORKERTYPE = {wkr}, MKT = {mkt}, EST_TYPE = {est_type}, DELTA = {delta}, eta = {eta_hat}, theta = {theta_hat}')
     
     # Convert the list of records to a DataFrame
     estimates_df = pd.DataFrame(estimates_list)
+  
+def produce_ari_table(df, writefile : str, mkts: list):
+    # --- which markets (use the ones shown in your table, in that order) ---
     
-    return estimates_df
-
+    # --- helpers ---
+    def parse_mkt(s):  # split "cbo,mmc" -> ['cbo','mmc']
+        return [t.strip() for t in s.split(',')]
+    
+    # labels: long for rows, short for columns (good for slides)
+    full_map = {
+        'gamma': r'$\gamma$', 'cbo942d': 'Occupation (2-digit)', 'mmc': 'Micro Region',
+        'cbo': 'Occupation (5-digit)', 'occ4': 'Occupation (4-digit)', 'cnae95': 'Industry (5-digit)'
+    }
+    abbr_map = {
+        'gamma': r'$\gamma$', 'cbo942d': 'Occ2', 'mmc': 'Micro. R',
+        'cbo': 'Occ5', 'occ4': 'Occ4', 'cnae95': 'Ind5'
+    }
+    
+    def fmt_label(s, mp, joiner=r' $\times$ '):
+        return joiner.join(mp.get(t, t) for t in parse_mkt(s))
+    
+    def fmt_label_wrapped(s):  # wrap long row labels over 3 lines if needed
+        return r' \\ $\times$ \\ '.join(full_map.get(t, t) for t in parse_mkt(s))
+    
+    # --- build pairwise ARI matrix ---
+    n = len(mkts)
+    A = pd.DataFrame(np.eye(n), index=mkts, columns=mkts, dtype=float)
+    for i in range(n):
+        for j in range(i):  # fill lower triangle (and mirror)
+            li, lj = parse_mkt(mkts[i]), parse_mkt(mkts[j])
+            val = compute_rand_index(df, li, lj)
+            A.iat[i, j] = A.iat[j, i] = val
+    
+    # --- make a readable lower-triangle table for slides ---
+    #   • columns: short labels  • rows: long, wrapped labels  • hide upper triangle
+    A_disp = A.copy()
+    A_disp.columns = [fmt_label(c, abbr_map) for c in A_disp.columns]
+    A_disp.index   = [fmt_label_wrapped(r)   for r in A_disp.index]
+    
+    A_lt = A_disp.mask(np.triu(np.ones_like(A_disp, dtype=bool), k=1))  # NaN upper triangle
+    A_str = A_lt.applymap(lambda x: "" if pd.isna(x) else f"{x:.3f}").rename_axis(None, axis=1)
+    
+    latex = A_str.to_latex(
+        index=True, escape=False, na_rep="",
+        column_format="l" + "r"*A_str.shape[1]  # tight numeric columns
+    )
+    
+    # optional legend to explain abbreviations on the slide
+    legend = "Legend: MMC=Micro Region, Ind5=Industry (5-digit), Occ5=Occupation (5-digit), Occ4=Occupation (4-digit), Occ2=Occupation (2-digit)."
+    latex += f"\n% {legend}\n"
+    
+    # write to file
+    with open(writefile, "w") as f:
+        f.write(latex)
+    
+    return A
