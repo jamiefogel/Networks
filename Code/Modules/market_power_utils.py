@@ -1001,6 +1001,7 @@ def run_estimations_for_combinations(data, combinations, stata_or_python='Python
     
     # Convert the list of records to a DataFrame
     estimates_df = pd.DataFrame(estimates_list)
+    return estimates_df
   
 def produce_ari_table(df, writefile : str, mkts: list):
     # --- which markets (use the ones shown in your table, in that order) ---
